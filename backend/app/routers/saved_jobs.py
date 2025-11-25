@@ -109,10 +109,14 @@ def save_job(
 def unsave_job(
     job_id: int,
     request: Request,
+    from_page: str | None = None,
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     """Remove a saved job for the current user."""
+    # Check query param for context (saved page vs job listing)
+    is_from_saved_page = request.query_params.get("from") == "saved"
+
     saved_job = (
         db.query(SavedJob)
         .filter(SavedJob.user_id == user.id, SavedJob.job_id == job_id)
@@ -120,12 +124,32 @@ def unsave_job(
     )
 
     if not saved_job:
-        # Not saved - return save button (idempotent)
-        job = db.query(Job).filter(Job.id == job_id).first()
-        if request.headers.get("HX-Request") and job:
+        # Not saved - handle based on context
+        if request.headers.get("HX-Request"):
+            if is_from_saved_page:
+                # Re-render the saved jobs list (job was already removed)
+                saved_jobs = (
+                    db.query(SavedJob)
+                    .filter(SavedJob.user_id == user.id)
+                    .join(Job)
+                    .order_by(SavedJob.saved_at.desc())
+                    .all()
+                )
+                return templates.TemplateResponse(
+                    "partials/saved_job_list.html",
+                    {"request": request, "saved_jobs": saved_jobs, "user": user},
+                )
+            # From job listing - return save button if job exists
+            job = db.query(Job).filter(Job.id == job_id).first()
+            if job:
+                return templates.TemplateResponse(
+                    "partials/save_button.html",
+                    {"request": request, "job": job, "is_saved": False},
+                )
+            # Job doesn't exist - return empty button placeholder
             return templates.TemplateResponse(
-                "partials/save_button.html",
-                {"request": request, "job": job, "is_saved": False},
+                "partials/save_button_removed.html",
+                {"request": request},
             )
         return {"message": "Job was not saved", "job_id": job_id}
 
@@ -136,6 +160,20 @@ def unsave_job(
     db.commit()
 
     if request.headers.get("HX-Request"):
+        if is_from_saved_page:
+            # Re-render the saved jobs list
+            saved_jobs = (
+                db.query(SavedJob)
+                .filter(SavedJob.user_id == user.id)
+                .join(Job)
+                .order_by(SavedJob.saved_at.desc())
+                .all()
+            )
+            return templates.TemplateResponse(
+                "partials/saved_job_list.html",
+                {"request": request, "saved_jobs": saved_jobs, "user": user},
+            )
+        # From job listing - return save button
         return templates.TemplateResponse(
             "partials/save_button.html",
             {"request": request, "job": job, "is_saved": False},

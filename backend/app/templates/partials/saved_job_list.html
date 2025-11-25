@@ -75,9 +75,9 @@
                 </a>
                 <button
                     class="btn"
-                    hx-delete="/api/saved-jobs/{{ job.id }}"
-                    hx-target="#saved-job-{{ job.id }}"
-                    hx-swap="outerHTML"
+                    hx-delete="/api/saved-jobs/{{ job.id }}?from=saved"
+                    hx-target="#saved-job-list"
+                    hx-swap="innerHTML"
                     hx-confirm="Remove this job from your saved list?"
                     style="background: #dc2626; color: white; border: none; cursor: pointer;">
                     Remove
