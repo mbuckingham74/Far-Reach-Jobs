@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% block title %}Far Reach Jobs - Alaska Bush & Rural US Jobs{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 2rem;">
+    <h2 style="font-size: 1.5rem; margin-bottom: 0.5rem;">Find Jobs in Remote Communities</h2>
+    <p style="color: #666;">Discover job opportunities in Alaska bush communities and rural US towns.</p>
+</div>
+
+<!-- Search and Filters - To be implemented in Phase 1D -->
+<div class="card" style="margin-bottom: 2rem;">
+    <form hx-get="/api/jobs" hx-target="#job-list" hx-trigger="submit, change delay:300ms">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+            <div>
+                <label for="q" style="display: block; margin-bottom: 0.25rem; font-weight: 500;">Search</label>
+                <input type="text" id="q" name="q" placeholder="Job title, keywords..."
+                       style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;">
+            </div>
+            <div>
+                <label for="state" style="display: block; margin-bottom: 0.25rem; font-weight: 500;">State</label>
+                <select id="state" name="state" style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;">
+                    <option value="">All States</option>
+                    <option value="AK">Alaska</option>
+                    <!-- More states will be populated dynamically -->
+                </select>
+            </div>
+            <div>
+                <label for="job_type" style="display: block; margin-bottom: 0.25rem; font-weight: 500;">Job Type</label>
+                <select id="job_type" name="job_type" style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;">
+                    <option value="">All Types</option>
+                    <option value="full-time">Full-time</option>
+                    <option value="part-time">Part-time</option>
+                    <option value="seasonal">Seasonal</option>
+                    <option value="contract">Contract</option>
+                </select>
+            </div>
+        </div>
+    </form>
+</div>
+
+<!-- Job Listings -->
+<div id="job-list">
+    <p style="text-align: center; color: #666; padding: 2rem;">
+        No jobs available yet. Check back soon!<br>
+        <small>Job scraping will begin once sources are configured.</small>
+    </p>
+</div>
+{% endblock %}

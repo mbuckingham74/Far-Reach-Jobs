@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Far Reach Jobs{% endblock %}</title>
+    <link rel="stylesheet" href="/static/css/styles.css">
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <script src="/static/js/app.js" defer></script>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <nav style="display: flex; justify-content: space-between; align-items: center;">
+                <a href="/" style="color: white; text-decoration: none;">
+                    <h1>Far Reach Jobs</h1>
+                </a>
+                <div>
+                    {% if user %}
+                        <a href="/saved" class="btn" style="color: white; margin-right: 0.5rem;">Saved Jobs</a>
+                        <a href="/api/auth/logout" class="btn" style="color: white;">Logout</a>
+                    {% else %}
+                        <a href="/login" class="btn" style="color: white; margin-right: 0.5rem;">Login</a>
+                        <a href="/register" class="btn btn-primary">Register</a>
+                    {% endif %}
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <main>
+        <div class="container">
+            {% block content %}{% endblock %}
+        </div>
+    </main>
+
+    <footer style="text-align: center; padding: 2rem 0; color: #666; font-size: 0.875rem;">
+        <div class="container">
+            <p>&copy; 2024 Far Reach Jobs. Jobs in Alaska bush &amp; rural communities.</p>
+        </div>
+    </footer>
+</body>
+</html>
