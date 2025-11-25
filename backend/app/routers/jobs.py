@@ -5,8 +5,7 @@ from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.dependencies import get_optional_current_user
-from app.models import Job, SavedJob, User
+from app.models import Job
 from app.schemas import JobResponse, JobListResponse
 
 router = APIRouter()
@@ -60,12 +59,6 @@ def list_jobs(
 
     # Check if this is an HTMX request - if so, return HTML partial
     if request.headers.get("HX-Request"):
-        user = get_optional_current_user(request)
-        saved_job_ids = set()
-        if user:
-            saved_jobs = db.query(SavedJob.job_id).filter(SavedJob.user_id == user.id).all()
-            saved_job_ids = {sj.job_id for sj in saved_jobs}
-
         return templates.TemplateResponse(
             "partials/job_list.html",
             {
@@ -75,8 +68,6 @@ def list_jobs(
                 "page": page,
                 "per_page": per_page,
                 "total_pages": total_pages,
-                "user": user,
-                "saved_job_ids": saved_job_ids,
                 "q": q or "",
                 "state": state or "",
                 "job_type": job_type or "",
