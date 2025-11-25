@@ -63,7 +63,12 @@ document.addEventListener('DOMContentLoaded', function() {
             const data = await response.json();
 
             if (response.ok) {
-                const next = params.get('next') || '/';
+                // Sanitize next param to prevent open redirect
+                let next = params.get('next') || '/';
+                // Only allow relative paths starting with /
+                if (!next.startsWith('/') || next.startsWith('//')) {
+                    next = '/';
+                }
                 window.location.href = next;
             } else {
                 msgEl.classList.remove('hidden', 'bg-green-50', 'text-green-700', 'border-green-200', 'bg-blue-50', 'text-blue-700', 'border-blue-200');

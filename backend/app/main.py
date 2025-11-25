@@ -87,9 +87,25 @@ def saved_jobs_page(request: Request):
 
 
 # Error handlers
+def _wants_json(request: Request) -> bool:
+    """Check if request expects JSON response (API routes or Accept header)."""
+    if request.url.path.startswith("/api/"):
+        return True
+    accept = request.headers.get("accept", "")
+    return "application/json" in accept
+
+
 @app.exception_handler(StarletteHTTPException)
 async def http_exception_handler(request: Request, exc: StarletteHTTPException):
-    """Handle HTTP exceptions with custom error pages."""
+    """Handle HTTP exceptions with custom error pages for browser, JSON for API."""
+    from fastapi.responses import JSONResponse
+
+    if _wants_json(request):
+        return JSONResponse(
+            status_code=exc.status_code,
+            content={"detail": exc.detail}
+        )
+
     if exc.status_code == 404:
         return templates.TemplateResponse(
             "404.html",
@@ -111,7 +127,15 @@ async def http_exception_handler(request: Request, exc: StarletteHTTPException):
 
 @app.exception_handler(Exception)
 async def general_exception_handler(request: Request, exc: Exception):
-    """Handle unexpected exceptions with 500 error page."""
+    """Handle unexpected exceptions with 500 error page or JSON for API."""
+    from fastapi.responses import JSONResponse
+
+    if _wants_json(request):
+        return JSONResponse(
+            status_code=500,
+            content={"detail": "Internal server error"}
+        )
+
     return templates.TemplateResponse(
         "500.html",
         {"request": request, "user": None},
