@@ -25,17 +25,22 @@ def get_optional_current_user(request: Request, db: Session = None) -> User | No
     if not user_id:
         return None
 
+    try:
+        user_id_int = int(user_id)
+    except (TypeError, ValueError):
+        return None
+
     # Get DB session if not provided
     if db is None:
         from app.database import SessionLocal
         db = SessionLocal()
         try:
-            user = db.query(User).filter(User.id == int(user_id)).first()
+            user = db.query(User).filter(User.id == user_id_int).first()
             return user
         finally:
             db.close()
 
-    return db.query(User).filter(User.id == int(user_id)).first()
+    return db.query(User).filter(User.id == user_id_int).first()
 
 
 def get_current_user(request: Request, db: Session = Depends(get_db)) -> User:
@@ -64,7 +69,15 @@ def get_current_user(request: Request, db: Session = Depends(get_db)) -> User:
             detail="Invalid token payload",
         )
 
-    user = db.query(User).filter(User.id == int(user_id)).first()
+    try:
+        user_id_int = int(user_id)
+    except (TypeError, ValueError):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token payload",
+        )
+
+    user = db.query(User).filter(User.id == user_id_int).first()
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

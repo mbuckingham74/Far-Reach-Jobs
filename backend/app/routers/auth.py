@@ -1,7 +1,10 @@
+from datetime import datetime, timezone
+
 from fastapi import APIRouter, Depends, HTTPException, status, Response, Request
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 
+from app.config import get_settings
 from app.database import get_db
 from app.models import User
 from app.schemas import UserCreate, UserResponse, LoginRequest, TokenResponse, MessageResponse
@@ -14,8 +17,10 @@ from app.services import (
 )
 
 router = APIRouter()
+settings = get_settings()
 
 COOKIE_NAME = "access_token"
+VERIFICATION_TOKEN_EXPIRY_HOURS = 24
 
 
 @router.post("/register", response_model=MessageResponse, status_code=status.HTTP_201_CREATED)
@@ -29,17 +34,27 @@ def register(user_data: UserCreate, db: Session = Depends(get_db)):
             detail="Email already registered"
         )
 
+    # Check if SMTP is configured - if not in dev, auto-verify
+    smtp_configured = bool(settings.smtp_user and settings.smtp_password)
+    auto_verify = not smtp_configured and settings.environment == "development"
+
     # Create user with hashed password
-    verification_token = generate_verification_token()
+    verification_token = None if auto_verify else generate_verification_token()
     user = User(
         email=user_data.email,
         password_hash=hash_password(user_data.password),
-        is_verified=False,
+        is_verified=auto_verify,
         verification_token=verification_token,
+        verification_token_created_at=None if auto_verify else datetime.now(timezone.utc),
     )
     db.add(user)
     db.commit()
     db.refresh(user)
+
+    if auto_verify:
+        return MessageResponse(
+            message="Registration successful. You can now log in. (Dev mode: auto-verified)"
+        )
 
     # Send verification email
     email_sent = send_verification_email(user.email, verification_token)
@@ -72,12 +87,12 @@ def login(login_data: LoginRequest, response: Response, db: Session = Depends(ge
     # Create access token
     access_token = create_access_token(data={"sub": str(user.id), "email": user.email})
 
-    # Set httpOnly cookie
+    # Set httpOnly cookie - secure only in production (HTTPS)
     response.set_cookie(
         key=COOKIE_NAME,
         value=access_token,
         httponly=True,
-        secure=True,  # HTTPS only
+        secure=settings.environment == "production",
         samesite="lax",
         max_age=60 * 60 * 24,  # 24 hours
     )
@@ -96,12 +111,23 @@ def verify_email(token: str, db: Session = Depends(get_db)):
             detail="Invalid or expired verification token"
         )
 
+    # Check token expiry
+    if user.verification_token_created_at:
+        from datetime import timedelta
+        expiry_time = user.verification_token_created_at + timedelta(hours=VERIFICATION_TOKEN_EXPIRY_HOURS)
+        if datetime.now(timezone.utc) > expiry_time:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Verification token has expired. Please request a new one."
+            )
+
     if user.is_verified:
         return RedirectResponse(url="/login?message=already_verified", status_code=302)
 
     # Mark user as verified
     user.is_verified = True
     user.verification_token = None
+    user.verification_token_created_at = None
     db.commit()
 
     return RedirectResponse(url="/login?message=verified", status_code=302)
@@ -130,6 +156,7 @@ def resend_verification(email_data: dict, db: Session = Depends(get_db)):
     if user and not user.is_verified:
         verification_token = generate_verification_token()
         user.verification_token = verification_token
+        user.verification_token_created_at = datetime.now(timezone.utc)
         db.commit()
         send_verification_email(user.email, verification_token)
 
@@ -158,7 +185,15 @@ def get_current_user(request: Request, db: Session = Depends(get_db)):
         )
 
     user_id = payload.get("sub")
-    user = db.query(User).filter(User.id == int(user_id)).first()
+    try:
+        user_id_int = int(user_id)
+    except (TypeError, ValueError):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token payload"
+        )
+
+    user = db.query(User).filter(User.id == user_id_int).first()
 
     if not user:
         raise HTTPException(
