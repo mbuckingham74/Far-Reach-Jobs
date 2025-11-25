@@ -1,28 +1,96 @@
+import logging
+from datetime import datetime, timedelta, timezone
+
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
-import logging
 
 logger = logging.getLogger(__name__)
 
 scheduler: BackgroundScheduler | None = None
 
+# Job lifecycle constants
+STALE_AFTER_HOURS = 24  # Mark as stale if not seen in 24 hours (2 missed scrapes)
+DELETE_AFTER_DAYS = 7   # Delete if stale for 7 days
+
 
 def run_scrapers():
-    """Run all active scrapers - To be fully implemented in Phase 1C."""
+    """Run all active scrapers and upsert jobs to database."""
+    from app.database import SessionLocal
+    from app.models import Job, ScrapeSource
+    from scraper.runner import run_all_scrapers
+
     logger.info("Starting scheduled scrape run...")
-    # Will be implemented to:
-    # 1. Get all active scrape sources from DB
-    # 2. Run each scraper
-    # 3. Update last_scraped_at
-    # 4. Run stale job cleanup
-    logger.info("Scrape run completed.")
+
+    db = SessionLocal()
+    try:
+        # Get all active sources
+        sources = db.query(ScrapeSource).filter(ScrapeSource.is_active == True).all()
+        if not sources:
+            logger.warning("No active scrape sources configured")
+            return
+
+        # Run scrapers and get results
+        results = run_all_scrapers(db, sources)
+
+        for result in results:
+            logger.info(
+                f"[{result.source_name}] Found: {result.jobs_found}, "
+                f"New: {result.jobs_new}, Updated: {result.jobs_updated}, "
+                f"Errors: {len(result.errors)}"
+            )
+            if result.errors:
+                for error in result.errors:
+                    logger.error(f"[{result.source_name}] {error}")
+
+        db.commit()
+        logger.info("Scrape run completed successfully")
+
+    except Exception as e:
+        logger.error(f"Scrape run failed: {e}")
+        db.rollback()
+    finally:
+        db.close()
 
 
 def cleanup_stale_jobs():
     """Mark jobs as stale if not seen in 24h, delete if stale for 7 days."""
+    from app.database import SessionLocal
+    from app.models import Job
+
     logger.info("Running stale job cleanup...")
-    # Will be implemented in Phase 1C
-    logger.info("Stale job cleanup completed.")
+
+    db = SessionLocal()
+    try:
+        now = datetime.now(timezone.utc)
+        stale_threshold = now - timedelta(hours=STALE_AFTER_HOURS)
+        delete_threshold = now - timedelta(days=DELETE_AFTER_DAYS)
+
+        # Mark jobs as stale if not seen recently
+        stale_count = (
+            db.query(Job)
+            .filter(Job.is_stale == False)
+            .filter(Job.last_seen_at < stale_threshold)
+            .update({"is_stale": True})
+        )
+        logger.info(f"Marked {stale_count} jobs as stale")
+
+        # Delete jobs that have been stale for too long
+        delete_count = (
+            db.query(Job)
+            .filter(Job.is_stale == True)
+            .filter(Job.last_seen_at < delete_threshold)
+            .delete()
+        )
+        logger.info(f"Deleted {delete_count} stale jobs")
+
+        db.commit()
+        logger.info("Stale job cleanup completed")
+
+    except Exception as e:
+        logger.error(f"Stale job cleanup failed: {e}")
+        db.rollback()
+    finally:
+        db.close()
 
 
 def start_scheduler():
