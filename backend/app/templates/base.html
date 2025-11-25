@@ -3,40 +3,72 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Find jobs in Alaska bush communities and extremely rural US towns. Far Reach Jobs aggregates opportunities from remote locations.">
     <title>{% block title %}Far Reach Jobs{% endblock %}</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#eff6ff',
+                            100: '#dbeafe',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8',
+                            800: '#1e40af',
+                            900: '#1e3a5a',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
     <link rel="stylesheet" href="/static/css/styles.css">
     <script src="https://unpkg.com/htmx.org@1.9.10"></script>
     <script src="/static/js/app.js" defer></script>
 </head>
-<body>
-    <header>
-        <div class="container">
-            <nav style="display: flex; justify-content: space-between; align-items: center;">
-                <a href="/" style="color: white; text-decoration: none;">
-                    <h1>Far Reach Jobs</h1>
+<body class="min-h-screen bg-gray-50 text-gray-900 flex flex-col">
+    <header class="bg-primary-900 text-white shadow-lg">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+            <nav class="flex justify-between items-center py-4">
+                <a href="/" class="text-white no-underline hover:text-primary-100 transition-colors">
+                    <h1 class="text-xl sm:text-2xl font-bold">Far Reach Jobs</h1>
                 </a>
-                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <div class="flex items-center gap-2 sm:gap-4">
                     {% if user %}
-                        <a href="/saved" class="btn" style="color: white;">Saved Jobs</a>
-                        <button onclick="logout()" class="btn" style="color: white; background: none; border: none; cursor: pointer;">Logout</button>
+                        <a href="/saved" class="text-white hover:text-primary-100 text-sm sm:text-base transition-colors">
+                            Saved Jobs
+                        </a>
+                        <button onclick="logout()" class="text-white hover:text-primary-100 text-sm sm:text-base bg-transparent border-none cursor-pointer transition-colors">
+                            Logout
+                        </button>
                     {% else %}
-                        <a href="/login" class="btn" style="color: white;">Login</a>
-                        <a href="/register" class="btn btn-primary">Register</a>
+                        <a href="/login" class="text-white hover:text-primary-100 text-sm sm:text-base transition-colors">
+                            Login
+                        </a>
+                        <a href="/register" class="bg-primary-600 hover:bg-primary-700 text-white px-3 py-1.5 sm:px-4 sm:py-2 rounded-md text-sm sm:text-base font-medium transition-colors">
+                            Register
+                        </a>
                     {% endif %}
                 </div>
             </nav>
         </div>
     </header>
 
-    <main>
-        <div class="container">
+    <main class="flex-1 py-6 sm:py-8">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
             {% block content %}{% endblock %}
         </div>
     </main>
 
-    <footer style="text-align: center; padding: 2rem 0; color: #666; font-size: 0.875rem;">
-        <div class="container">
-            <p>&copy; 2024 Far Reach Jobs. Jobs in Alaska bush &amp; rural communities.</p>
+    <footer class="bg-white border-t border-gray-200 mt-auto">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <p class="text-center text-gray-500 text-sm">
+                &copy; 2024 Far Reach Jobs. Jobs in Alaska bush &amp; rural communities.
+            </p>
         </div>
     </footer>
 </body>

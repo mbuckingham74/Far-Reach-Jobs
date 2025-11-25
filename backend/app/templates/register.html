@@ -3,36 +3,38 @@
 {% block title %}Register - Far Reach Jobs{% endblock %}
 
 {% block content %}
-<div style="max-width: 400px; margin: 2rem auto;">
-    <h2 style="text-align: center; margin-bottom: 1.5rem;">Create Account</h2>
+<div class="max-w-md mx-auto mt-8">
+    <h2 class="text-2xl font-bold text-center text-gray-900 mb-6">Create Account</h2>
 
-    <div id="message" style="display: none; padding: 1rem; border-radius: 4px; margin-bottom: 1rem;"></div>
+    <div id="message" class="hidden rounded-md p-4 mb-4"></div>
 
-    <form id="register-form" class="card">
-        <div style="margin-bottom: 1rem;">
-            <label for="email" style="display: block; margin-bottom: 0.25rem; font-weight: 500;">Email</label>
+    <form id="register-form" class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <div class="mb-4">
+            <label for="email" class="block text-sm font-medium text-gray-700 mb-1">Email</label>
             <input type="email" id="email" name="email" required
-                   style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;">
+                   class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
         </div>
 
-        <div style="margin-bottom: 1rem;">
-            <label for="password" style="display: block; margin-bottom: 0.25rem; font-weight: 500;">Password</label>
+        <div class="mb-4">
+            <label for="password" class="block text-sm font-medium text-gray-700 mb-1">Password</label>
             <input type="password" id="password" name="password" required minlength="8"
-                   style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;">
-            <small style="color: #666;">Minimum 8 characters</small>
+                   class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+            <p class="mt-1 text-sm text-gray-500">Minimum 8 characters</p>
         </div>
 
-        <div style="margin-bottom: 1.5rem;">
-            <label for="confirm-password" style="display: block; margin-bottom: 0.25rem; font-weight: 500;">Confirm Password</label>
+        <div class="mb-6">
+            <label for="confirm-password" class="block text-sm font-medium text-gray-700 mb-1">Confirm Password</label>
             <input type="password" id="confirm-password" name="confirm-password" required minlength="8"
-                   style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;">
+                   class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
         </div>
 
-        <button type="submit" class="btn btn-primary" style="width: 100%;">Register</button>
+        <button type="submit" class="w-full px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-md transition-colors">
+            Register
+        </button>
     </form>
 
-    <p style="text-align: center; margin-top: 1rem;">
-        Already have an account? <a href="/login">Login here</a>
+    <p class="text-center mt-4 text-gray-600">
+        Already have an account? <a href="/login" class="text-primary-600 hover:text-primary-800 font-medium">Login here</a>
     </p>
 </div>
 
@@ -49,9 +51,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Validate passwords match
         if (password !== confirmPassword) {
-            msgEl.style.display = 'block';
-            msgEl.style.backgroundColor = '#fed7d7';
-            msgEl.style.color = '#c53030';
+            msgEl.classList.remove('hidden', 'bg-green-50', 'text-green-700', 'border-green-200');
+            msgEl.classList.add('bg-red-50', 'text-red-700', 'border', 'border-red-200');
             msgEl.textContent = 'Passwords do not match';
             return;
         }
@@ -66,22 +67,18 @@ document.addEventListener('DOMContentLoaded', function() {
             const data = await response.json();
 
             if (response.ok) {
-                msgEl.style.display = 'block';
-                msgEl.style.backgroundColor = '#c6f6d5';
-                msgEl.style.color = '#276749';
+                msgEl.classList.remove('hidden', 'bg-red-50', 'text-red-700', 'border-red-200');
+                msgEl.classList.add('bg-green-50', 'text-green-700', 'border', 'border-green-200');
                 msgEl.textContent = data.message;
-                // Clear form
                 document.getElementById('register-form').reset();
             } else {
-                msgEl.style.display = 'block';
-                msgEl.style.backgroundColor = '#fed7d7';
-                msgEl.style.color = '#c53030';
+                msgEl.classList.remove('hidden', 'bg-green-50', 'text-green-700', 'border-green-200');
+                msgEl.classList.add('bg-red-50', 'text-red-700', 'border', 'border-red-200');
                 msgEl.textContent = data.detail || 'Registration failed';
             }
         } catch (error) {
-            msgEl.style.display = 'block';
-            msgEl.style.backgroundColor = '#fed7d7';
-            msgEl.style.color = '#c53030';
+            msgEl.classList.remove('hidden', 'bg-green-50', 'text-green-700', 'border-green-200');
+            msgEl.classList.add('bg-red-50', 'text-red-700', 'border', 'border-red-200');
             msgEl.textContent = 'An error occurred. Please try again.';
         }
     });

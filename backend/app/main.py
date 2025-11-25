@@ -4,6 +4,8 @@ from pathlib import Path
 from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from fastapi.responses import HTMLResponse
+from starlette.exceptions import HTTPException as StarletteHTTPException
 from contextlib import asynccontextmanager
 
 from app.config import get_settings
@@ -82,3 +84,36 @@ def saved_jobs_page(request: Request):
     if not user:
         return RedirectResponse(url="/login?next=/saved", status_code=302)
     return templates.TemplateResponse("saved.html", {"request": request, "user": user})
+
+
+# Error handlers
+@app.exception_handler(StarletteHTTPException)
+async def http_exception_handler(request: Request, exc: StarletteHTTPException):
+    """Handle HTTP exceptions with custom error pages."""
+    if exc.status_code == 404:
+        return templates.TemplateResponse(
+            "404.html",
+            {"request": request, "user": None},
+            status_code=404
+        )
+    elif exc.status_code == 500:
+        return templates.TemplateResponse(
+            "500.html",
+            {"request": request, "user": None},
+            status_code=500
+        )
+    # For other HTTP errors, return a generic response
+    return HTMLResponse(
+        content=f"<h1>Error {exc.status_code}</h1><p>{exc.detail}</p>",
+        status_code=exc.status_code
+    )
+
+
+@app.exception_handler(Exception)
+async def general_exception_handler(request: Request, exc: Exception):
+    """Handle unexpected exceptions with 500 error page."""
+    return templates.TemplateResponse(
+        "500.html",
+        {"request": request, "user": None},
+        status_code=500
+    )
