@@ -30,7 +30,13 @@ services:
     restart: unless-stopped
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    networks:
+      - default
+      - npm_network
 
 networks:
   default:
     name: far-reach-jobs-network
+  npm_network:
+    name: ${NPM_NETWORK:-npm_default}
+    external: true

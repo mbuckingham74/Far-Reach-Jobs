@@ -214,15 +214,39 @@ ENVIRONMENT=development|production
 - User-Agent: `FarReachJobsBot/1.0`
 - "Warn but allow" if robots.txt fetch fails
 
-## Server Info (from user)
+## Server Info
 
-- NPM manages SSL
-- MySQL 8 container already exists on tachyonfuture.com
-- Cloudflare A record set up for far-reach-jobs.tachyonfuture.com
+**Server IP:** 62.72.5.248 (tachyonfuture.com)
+**Domain:** far-reach-jobs.tachyonfuture.com
+**DNS:** Unproxied A record pointing to server IP (propagated)
 
-## Notes for Next Session
+### NPM (Nginx Proxy Manager)
+- NPM manages SSL termination
+- Login: See .env file for credentials
+- Proxy host config: forward to `far-reach-jobs-web:8000`
 
-1. **Phase 1D is next** - Job display and search
-2. **No concrete scrapers exist yet** - User will provide URLs to scrape
-3. **Scheduler only runs in production** or with `ENABLE_SCHEDULER=true`
-4. **All migrations are in place** but DB hasn't been created yet
+### MySQL 8
+- Existing container on tachyonfuture.com
+- Root password: See .env file
+- Create database `far_reach_jobs` and user before deployment
+
+### Docker Network
+- Container must join NPM's network for proxy routing
+- Network name: typically `npm_default` or check with `docker network ls`
+
+## Deployment Checklist
+
+1. SSH to server, clone repo to `/opt/far-reach-jobs`
+2. Create `.env` from `.env.example` with production values
+3. Create MySQL database and user
+4. Update `docker-compose.yml` to join NPM network
+5. Run `docker compose up -d --build`
+6. Run Alembic migrations
+7. Configure NPM proxy host for domain
+8. Test health endpoint and SSL
+
+## Notes
+
+1. **No concrete scrapers exist yet** - User will provide URLs to scrape
+2. **Scheduler only runs in production** or with `ENABLE_SCHEDULER=true`
+3. **Gitleaks** is used to prevent secret leaks - all secrets in .env only
