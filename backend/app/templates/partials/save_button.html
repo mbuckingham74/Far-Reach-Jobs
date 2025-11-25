@@ -1,18 +1,16 @@
 {% set is_job_saved = is_saved if is_saved is defined else (job.id in saved_job_ids if saved_job_ids is defined else false) %}
 {% if is_job_saved %}
 <button
-    class="btn save-btn saved"
+    class="flex-1 sm:flex-none text-center px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-medium rounded-md transition-colors cursor-pointer"
     hx-delete="/api/saved-jobs/{{ job.id }}"
-    hx-swap="outerHTML"
-    style="background: #dc2626; color: white; border: none; cursor: pointer;">
+    hx-swap="outerHTML">
     Saved
 </button>
 {% else %}
 <button
-    class="btn save-btn"
+    class="flex-1 sm:flex-none text-center px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white font-medium rounded-md transition-colors cursor-pointer"
     hx-post="/api/saved-jobs/{{ job.id }}"
-    hx-swap="outerHTML"
-    style="background: #6b7280; color: white; border: none; cursor: pointer;">
+    hx-swap="outerHTML">
     Save
 </button>
 {% endif %}
