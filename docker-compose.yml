@@ -9,8 +9,8 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - MYSQL_HOST=${MYSQL_HOST}
-      - MYSQL_PORT=${MYSQL_PORT}
+      - MYSQL_HOST=mysql
+      - MYSQL_PORT=3306
       - MYSQL_DATABASE=${MYSQL_DATABASE}
       - MYSQL_USER=${MYSQL_USER}
       - MYSQL_PASSWORD=${MYSQL_PASSWORD}
@@ -28,11 +28,34 @@ services:
       - ./backend:/app
       - ./frontend/static:/app/static
     restart: unless-stopped
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
+    depends_on:
+      mysql:
+        condition: service_healthy
     networks:
       - default
       - npm_network
+
+  mysql:
+    image: mysql:8.0
+    container_name: far-reach-jobs-mysql
+    environment:
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+      - MYSQL_DATABASE=${MYSQL_DATABASE}
+      - MYSQL_USER=${MYSQL_USER}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+    volumes:
+      - mysql_data:/var/lib/mysql
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - default
+
+volumes:
+  mysql_data:
 
 networks:
   default:
