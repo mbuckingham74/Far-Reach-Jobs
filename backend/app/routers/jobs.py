@@ -52,7 +52,7 @@ def list_jobs(
     total = query.count()
 
     # Calculate pagination
-    total_pages = (total + per_page - 1) // per_page if total > 0 else 1
+    total_pages = (total + per_page - 1) // per_page if total > 0 else 0
     offset = (page - 1) * per_page
 
     # Get paginated results, ordered by most recently seen
@@ -120,8 +120,8 @@ def get_job_types(db: Session = Depends(get_db)):
 
 @router.get("/{job_id}", response_model=JobResponse)
 def get_job(job_id: int, db: Session = Depends(get_db)):
-    """Get a single job by ID."""
-    job = db.query(Job).filter(Job.id == job_id).first()
+    """Get a single job by ID. Returns 404 for stale/deleted jobs."""
+    job = db.query(Job).filter(Job.id == job_id, Job.is_stale == False).first()
     if not job:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

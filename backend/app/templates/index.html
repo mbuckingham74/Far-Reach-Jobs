@@ -14,7 +14,7 @@
           hx-get="/api/jobs"
           hx-target="#job-list"
           hx-trigger="submit"
-          hx-indicator="#loading-indicator">
+          hx-indicator="#job-list-container">
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
             <div>
                 <label for="q" style="display: block; margin-bottom: 0.25rem; font-weight: 500;">Search</label>
@@ -74,15 +74,18 @@
     </form>
 </div>
 
-<!-- Loading indicator -->
-<div id="loading-indicator" class="htmx-indicator" style="text-align: center; padding: 2rem; display: none;">
-    <div style="display: inline-block; width: 2rem; height: 2rem; border: 3px solid #e5e7eb; border-top-color: #1a56db; border-radius: 50%; animation: spin 1s linear infinite;"></div>
-    <p style="margin-top: 0.5rem; color: #6b7280;">Loading jobs...</p>
-</div>
+<!-- Job Listings Container -->
+<div id="job-list-container">
+    <!-- Loading indicator -->
+    <div id="loading-indicator" class="htmx-indicator" style="text-align: center; padding: 2rem;">
+        <div style="display: inline-block; width: 2rem; height: 2rem; border: 3px solid #e5e7eb; border-top-color: #1a56db; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+        <p style="margin-top: 0.5rem; color: #6b7280;">Loading jobs...</p>
+    </div>
 
-<!-- Job Listings -->
-<div id="job-list" hx-get="/api/jobs" hx-trigger="load" hx-indicator="#loading-indicator">
-    <!-- Jobs will be loaded here via HTMX -->
+    <!-- Job Listings -->
+    <div id="job-list" hx-get="/api/jobs" hx-trigger="load" hx-indicator="closest #job-list-container">
+        <!-- Jobs will be loaded here via HTMX -->
+    </div>
 </div>
 
 <style>
@@ -92,10 +95,10 @@
     .htmx-indicator {
         display: none;
     }
-    .htmx-request .htmx-indicator {
+    #job-list-container.htmx-request .htmx-indicator {
         display: block;
     }
-    .htmx-request #job-list {
+    #job-list-container.htmx-request #job-list {
         opacity: 0.5;
     }
 </style>

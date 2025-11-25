@@ -66,15 +66,6 @@
                    class="btn btn-primary" style="text-decoration: none; white-space: nowrap;">
                     Apply
                 </a>
-                {% if user %}
-                <button
-                    class="btn save-btn {% if job.id in saved_job_ids %}saved{% endif %}"
-                    hx-post="/api/saved-jobs/{{ job.id }}"
-                    hx-swap="outerHTML"
-                    style="background: {% if job.id in saved_job_ids %}#dc2626{% else %}#6b7280{% endif %}; color: white; border: none; cursor: pointer;">
-                    {% if job.id in saved_job_ids %}Unsave{% else %}Save{% endif %}
-                </button>
-                {% endif %}
             </div>
         </div>
     </div>
