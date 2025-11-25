@@ -8,42 +8,104 @@
     <p style="color: #666;">Discover job opportunities in Alaska bush communities and rural US towns.</p>
 </div>
 
-<!-- Search and Filters - To be implemented in Phase 1D -->
-<div class="card" style="margin-bottom: 2rem;">
-    <form hx-get="/api/jobs" hx-target="#job-list" hx-trigger="submit, change delay:300ms">
+<!-- Search and Filters -->
+<div class="card" style="margin-bottom: 2rem; padding: 1.25rem;">
+    <form id="job-filters"
+          hx-get="/api/jobs"
+          hx-target="#job-list"
+          hx-trigger="submit"
+          hx-indicator="#loading-indicator">
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
             <div>
                 <label for="q" style="display: block; margin-bottom: 0.25rem; font-weight: 500;">Search</label>
                 <input type="text" id="q" name="q" placeholder="Job title, keywords..."
-                       style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;">
+                       hx-get="/api/jobs"
+                       hx-target="#job-list"
+                       hx-trigger="keyup changed delay:400ms"
+                       hx-include="#job-filters"
+                       style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box;">
             </div>
             <div>
                 <label for="state" style="display: block; margin-bottom: 0.25rem; font-weight: 500;">State</label>
-                <select id="state" name="state" style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;">
+                <select id="state" name="state"
+                        hx-get="/api/jobs"
+                        hx-target="#job-list"
+                        hx-trigger="change"
+                        hx-include="#job-filters"
+                        style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box;">
                     <option value="">All States</option>
                     <option value="AK">Alaska</option>
-                    <!-- More states will be populated dynamically -->
+                    <option value="AL">Alabama</option>
+                    <option value="AR">Arkansas</option>
+                    <option value="AZ">Arizona</option>
+                    <option value="CA">California</option>
+                    <option value="CO">Colorado</option>
+                    <option value="ID">Idaho</option>
+                    <option value="MT">Montana</option>
+                    <option value="NM">New Mexico</option>
+                    <option value="NV">Nevada</option>
+                    <option value="OR">Oregon</option>
+                    <option value="UT">Utah</option>
+                    <option value="WA">Washington</option>
+                    <option value="WY">Wyoming</option>
                 </select>
             </div>
             <div>
                 <label for="job_type" style="display: block; margin-bottom: 0.25rem; font-weight: 500;">Job Type</label>
-                <select id="job_type" name="job_type" style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;">
+                <select id="job_type" name="job_type"
+                        hx-get="/api/jobs"
+                        hx-target="#job-list"
+                        hx-trigger="change"
+                        hx-include="#job-filters"
+                        style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box;">
                     <option value="">All Types</option>
                     <option value="full-time">Full-time</option>
                     <option value="part-time">Part-time</option>
                     <option value="seasonal">Seasonal</option>
                     <option value="contract">Contract</option>
+                    <option value="temporary">Temporary</option>
                 </select>
             </div>
+        </div>
+        <div style="margin-top: 1rem; display: flex; gap: 0.5rem;">
+            <button type="submit" class="btn btn-primary">Search</button>
+            <button type="button" class="btn" onclick="clearFilters()">Clear Filters</button>
         </div>
     </form>
 </div>
 
-<!-- Job Listings -->
-<div id="job-list">
-    <p style="text-align: center; color: #666; padding: 2rem;">
-        No jobs available yet. Check back soon!<br>
-        <small>Job scraping will begin once sources are configured.</small>
-    </p>
+<!-- Loading indicator -->
+<div id="loading-indicator" class="htmx-indicator" style="text-align: center; padding: 2rem; display: none;">
+    <div style="display: inline-block; width: 2rem; height: 2rem; border: 3px solid #e5e7eb; border-top-color: #1a56db; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+    <p style="margin-top: 0.5rem; color: #6b7280;">Loading jobs...</p>
 </div>
+
+<!-- Job Listings -->
+<div id="job-list" hx-get="/api/jobs" hx-trigger="load" hx-indicator="#loading-indicator">
+    <!-- Jobs will be loaded here via HTMX -->
+</div>
+
+<style>
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+    .htmx-indicator {
+        display: none;
+    }
+    .htmx-request .htmx-indicator {
+        display: block;
+    }
+    .htmx-request #job-list {
+        opacity: 0.5;
+    }
+</style>
+
+<script>
+function clearFilters() {
+    document.getElementById('q').value = '';
+    document.getElementById('state').value = '';
+    document.getElementById('job_type').value = '';
+    htmx.trigger('#job-filters', 'submit');
+}
+</script>
 {% endblock %}
