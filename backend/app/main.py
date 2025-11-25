@@ -70,3 +70,15 @@ def login_page(request: Request):
 def register_page(request: Request):
     """Registration page."""
     return templates.TemplateResponse("register.html", {"request": request, "user": None})
+
+
+@app.get("/saved")
+def saved_jobs_page(request: Request):
+    """Saved jobs page (requires authentication)."""
+    from app.dependencies import get_optional_current_user
+    from fastapi.responses import RedirectResponse
+
+    user = get_optional_current_user(request)
+    if not user:
+        return RedirectResponse(url="/login?next=/saved", status_code=302)
+    return templates.TemplateResponse("saved.html", {"request": request, "user": user})

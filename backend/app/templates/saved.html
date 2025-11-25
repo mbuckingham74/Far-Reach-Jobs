@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+
+{% block title %}Saved Jobs - Far Reach Jobs{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 2rem;">
+    <h2 style="font-size: 1.5rem; margin-bottom: 0.5rem;">Your Saved Jobs</h2>
+    <p style="color: #666;">Jobs you've saved for later. Apply when you're ready!</p>
+</div>
+
+<!-- Saved Job Listings -->
+<div id="saved-job-list" hx-get="/api/saved-jobs" hx-trigger="load">
+    <!-- Loading state -->
+    <div style="text-align: center; padding: 2rem;">
+        <div style="display: inline-block; width: 2rem; height: 2rem; border: 3px solid #e5e7eb; border-top-color: #1a56db; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+        <p style="margin-top: 0.5rem; color: #6b7280;">Loading saved jobs...</p>
+    </div>
+</div>
+
+<style>
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+</style>
+{% endblock %}
