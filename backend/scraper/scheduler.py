@@ -4,7 +4,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-scheduler = BackgroundScheduler()
+scheduler: BackgroundScheduler | None = None
 
 
 def run_scrapers():
@@ -26,41 +26,51 @@ def cleanup_stale_jobs():
 
 
 def start_scheduler():
-    """Start the APScheduler with configured jobs."""
-    # Run scrapers at noon and midnight PST (UTC-8)
-    # Noon PST = 20:00 UTC, Midnight PST = 08:00 UTC
+    """Start the APScheduler with configured jobs.
+
+    Uses America/Anchorage timezone for Alaska-centric scheduling.
+    Noon and midnight in Alaska time (handles DST automatically).
+    """
+    global scheduler
+    scheduler = BackgroundScheduler()
+
+    # Use Alaska timezone directly - APScheduler handles DST
+    alaska_tz = "America/Anchorage"
+
     scheduler.add_job(
         run_scrapers,
-        CronTrigger(hour=8, minute=0, timezone="UTC"),  # Midnight PST
+        CronTrigger(hour=0, minute=0, timezone=alaska_tz),  # Midnight Alaska
         id="scrape_midnight",
         replace_existing=True,
     )
     scheduler.add_job(
         run_scrapers,
-        CronTrigger(hour=20, minute=0, timezone="UTC"),  # Noon PST
+        CronTrigger(hour=12, minute=0, timezone=alaska_tz),  # Noon Alaska
         id="scrape_noon",
         replace_existing=True,
     )
 
-    # Run cleanup after each scrape (with 5 min delay to allow scraping to finish)
+    # Run cleanup after each scrape (with 30 min delay to allow scraping to finish)
     scheduler.add_job(
         cleanup_stale_jobs,
-        CronTrigger(hour=8, minute=30, timezone="UTC"),
+        CronTrigger(hour=0, minute=30, timezone=alaska_tz),
         id="cleanup_midnight",
         replace_existing=True,
     )
     scheduler.add_job(
         cleanup_stale_jobs,
-        CronTrigger(hour=20, minute=30, timezone="UTC"),
+        CronTrigger(hour=12, minute=30, timezone=alaska_tz),
         id="cleanup_noon",
         replace_existing=True,
     )
 
     scheduler.start()
-    logger.info("Scheduler started with scrape jobs at noon and midnight PST")
+    logger.info("Scheduler started with scrape jobs at noon and midnight Alaska time")
 
 
 def shutdown_scheduler():
     """Shutdown the scheduler gracefully."""
-    scheduler.shutdown(wait=False)
-    logger.info("Scheduler shut down")
+    global scheduler
+    if scheduler is not None:
+        scheduler.shutdown(wait=False)
+        logger.info("Scheduler shut down")

@@ -1,3 +1,6 @@
+import os
+from pathlib import Path
+
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -12,13 +15,16 @@ settings = get_settings()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup: Initialize scheduler for scraping
-    from scraper.scheduler import start_scheduler
-    start_scheduler()
+    # Only start scheduler in production or if explicitly enabled
+    # This prevents duplicate schedulers during development with --reload
+    if settings.environment == "production" or os.getenv("ENABLE_SCHEDULER", "").lower() == "true":
+        from scraper.scheduler import start_scheduler
+        start_scheduler()
     yield
-    # Shutdown: Clean up scheduler
-    from scraper.scheduler import shutdown_scheduler
-    shutdown_scheduler()
+    # Shutdown: Clean up scheduler if it was started
+    if settings.environment == "production" or os.getenv("ENABLE_SCHEDULER", "").lower() == "true":
+        from scraper.scheduler import shutdown_scheduler
+        shutdown_scheduler()
 
 
 app = FastAPI(
@@ -28,8 +34,12 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# Mount static files
-app.mount("/static", StaticFiles(directory="static"), name="static")
+# Mount static files - handle both Docker (static/) and local development (../frontend/static/)
+static_dir = Path("static")
+if not static_dir.exists():
+    static_dir = Path(__file__).parent.parent.parent / "frontend" / "static"
+if static_dir.exists():
+    app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
 
 # Templates
 templates = Jinja2Templates(directory="app/templates")

@@ -22,4 +22,6 @@ USER appuser
 
 EXPOSE 8000
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+# Default to production mode (no reload)
+# For development, override with: docker-compose up with command override or ENVIRONMENT=development
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
