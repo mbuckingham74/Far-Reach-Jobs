@@ -114,15 +114,26 @@ class MyOrgScraper(BaseScraper):
 - GET `/api/jobs/job-types` - Get job types with active jobs
 - GET `/api/jobs/{id}` - Get single job by ID
 
+### Phase 1E: Saved Jobs ✅
+- [x] Save/unsave job endpoints with HTMX button swap
+- [x] Saved jobs page with stale job warnings
+- [x] Save button on job cards (HTMX toggle)
+- [x] Stale jobs shown with warning on saved page; deleted jobs cascade-removed
+
+**Key Files:**
+- `backend/app/routers/saved_jobs.py` - Save/unsave endpoints
+- `backend/app/templates/saved.html` - Saved jobs page
+- `backend/app/templates/partials/save_button.html` - HTMX save/unsave button
+- `backend/app/templates/partials/saved_job_list.html` - Saved jobs list partial
+
+**API Endpoints:**
+- GET `/api/saved-jobs` - List user's saved jobs
+- POST `/api/saved-jobs/{job_id}` - Save a job
+- DELETE `/api/saved-jobs/{job_id}` - Unsave a job
+
 ## Remaining Phases
 
-### Phase 1E: Saved Jobs (Next)
-- [ ] Save/unsave job endpoints
-- [ ] Saved jobs page
-- [ ] Save button on job cards (HTMX toggle)
-- [ ] Handle saved jobs when job becomes stale/deleted
-
-### Phase 1F: Polish & Deploy
+### Phase 1F: Polish & Deploy (Next)
 - [ ] Tailwind CSS styling
 - [ ] Responsive design
 - [ ] Error pages (404, 500)

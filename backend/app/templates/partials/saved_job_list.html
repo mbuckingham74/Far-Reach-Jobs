@@ -1,15 +1,21 @@
-{% if jobs %}
+{% if saved_jobs %}
 <div class="job-results-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
     <p style="color: #666; margin: 0;">
-        Showing {{ ((page - 1) * per_page) + 1 }}-{{ [page * per_page, total] | min }} of {{ total }} job{{ 's' if total != 1 else '' }}
+        You have {{ saved_jobs|length }} saved job{{ 's' if saved_jobs|length != 1 else '' }}
     </p>
 </div>
 
 <div class="job-list" style="display: flex; flex-direction: column; gap: 1rem;">
-    {% for job in jobs %}
-    <div class="job-card card" style="padding: 1.25rem;">
+    {% for saved_job in saved_jobs %}
+    {% set job = saved_job.job %}
+    <div class="job-card card {% if job.is_stale %}stale{% endif %}" id="saved-job-{{ job.id }}" style="padding: 1.25rem; {% if job.is_stale %}opacity: 0.7; border-left: 4px solid #f59e0b;{% endif %}">
         <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem;">
             <div style="flex: 1;">
+                {% if job.is_stale %}
+                <div style="background: #fef3c7; color: #92400e; padding: 0.5rem 0.75rem; border-radius: 4px; font-size: 0.875rem; margin-bottom: 0.75rem;">
+                    This job listing may no longer be available
+                </div>
+                {% endif %}
                 <h3 style="margin: 0 0 0.5rem 0; font-size: 1.125rem;">
                     <a href="{{ job.url }}" target="_blank" rel="noopener noreferrer" style="color: #1a56db; text-decoration: none;">
                         {{ job.title }}
@@ -54,70 +60,45 @@
                         {{ job.salary_info }}
                     </span>
                     {% endif %}
+                    <span style="display: flex; align-items: center; gap: 0.25rem; color: #9ca3af;">
+                        <svg style="width: 1rem; height: 1rem;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"></path>
+                        </svg>
+                        Saved {{ saved_job.saved_at.strftime('%b %d, %Y') }}
+                    </span>
                 </div>
-                {% if job.description %}
-                <p style="margin: 0.75rem 0 0 0; color: #4b5563; font-size: 0.875rem; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
-                    {{ job.description[:300] }}{% if job.description|length > 300 %}...{% endif %}
-                </p>
-                {% endif %}
             </div>
             <div style="display: flex; flex-direction: column; gap: 0.5rem; flex-shrink: 0;">
                 <a href="{{ job.url }}" target="_blank" rel="noopener noreferrer"
                    class="btn btn-primary" style="text-decoration: none; white-space: nowrap;">
                     Apply
                 </a>
-                {% if user %}
-                {% include "partials/save_button.html" with context %}
-                {% endif %}
+                <button
+                    class="btn"
+                    hx-delete="/api/saved-jobs/{{ job.id }}?from=saved"
+                    hx-target="#saved-job-list"
+                    hx-swap="innerHTML"
+                    hx-confirm="Remove this job from your saved list?"
+                    style="background: #dc2626; color: white; border: none; cursor: pointer;">
+                    Remove
+                </button>
             </div>
         </div>
     </div>
     {% endfor %}
 </div>
 
-{% if total_pages > 1 %}
-<div class="pagination" style="display: flex; justify-content: center; align-items: center; gap: 0.5rem; margin-top: 1.5rem;">
-    {% if page > 1 %}
-    <button
-        class="btn"
-        hx-get="/api/jobs?page={{ page - 1 }}{% if q %}&q={{ q }}{% endif %}{% if state %}&state={{ state }}{% endif %}{% if job_type %}&job_type={{ job_type }}{% endif %}"
-        hx-target="#job-list"
-        hx-swap="innerHTML"
-        style="padding: 0.5rem 1rem;">
-        Previous
-    </button>
-    {% endif %}
-
-    <span style="color: #6b7280;">
-        Page {{ page }} of {{ total_pages }}
-    </span>
-
-    {% if page < total_pages %}
-    <button
-        class="btn"
-        hx-get="/api/jobs?page={{ page + 1 }}{% if q %}&q={{ q }}{% endif %}{% if state %}&state={{ state }}{% endif %}{% if job_type %}&job_type={{ job_type }}{% endif %}"
-        hx-target="#job-list"
-        hx-swap="innerHTML"
-        style="padding: 0.5rem 1rem;">
-        Next
-    </button>
-    {% endif %}
-</div>
-{% endif %}
-
 {% else %}
 <div style="text-align: center; padding: 3rem 1rem;">
     <svg style="width: 4rem; height: 4rem; margin: 0 auto 1rem; color: #9ca3af;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"></path>
     </svg>
-    <h3 style="margin: 0 0 0.5rem 0; color: #374151;">No jobs found</h3>
+    <h3 style="margin: 0 0 0.5rem 0; color: #374151;">No saved jobs</h3>
     <p style="margin: 0; color: #6b7280;">
-        {% if q or state or job_type %}
-        Try adjusting your search filters or check back later for new listings.
-        {% else %}
-        No jobs available yet. Check back soon!<br>
-        <small>Job scraping will begin once sources are configured.</small>
-        {% endif %}
+        Browse jobs and click "Save" to keep track of positions you're interested in.
     </p>
+    <a href="/" class="btn btn-primary" style="display: inline-block; margin-top: 1rem; text-decoration: none;">
+        Browse Jobs
+    </a>
 </div>
 {% endif %}
