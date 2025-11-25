@@ -37,3 +37,20 @@ function showFlash(message, type = 'info') {
     document.body.prepend(flash);
     setTimeout(() => flash.remove(), 5000);
 }
+
+// Logout function - sends POST request to logout endpoint
+async function logout() {
+    try {
+        const response = await fetch('/api/auth/logout', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+        });
+        if (response.ok) {
+            window.location.href = '/login';
+        } else {
+            showFlash('Logout failed', 'error');
+        }
+    } catch (error) {
+        showFlash('Logout failed', 'error');
+    }
+}

@@ -1,7 +1,7 @@
 import os
 from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from contextlib import asynccontextmanager
@@ -51,10 +51,22 @@ app.include_router(jobs.router, prefix="/api/jobs", tags=["jobs"])
 app.include_router(saved_jobs.router, prefix="/api/saved-jobs", tags=["saved-jobs"])
 
 
-# Page routes will be added here
+# Page routes
 @app.get("/")
-async def home():
-    from fastapi.responses import HTMLResponse
-    from fastapi import Request
-    # Placeholder - will be implemented in Phase 1D
-    return HTMLResponse("<h1>Far Reach Jobs - Coming Soon</h1>")
+def home(request: Request):
+    """Home page with job listings."""
+    from app.dependencies import get_optional_current_user
+    user = get_optional_current_user(request)
+    return templates.TemplateResponse("index.html", {"request": request, "user": user})
+
+
+@app.get("/login")
+def login_page(request: Request):
+    """Login page."""
+    return templates.TemplateResponse("login.html", {"request": request, "user": None})
+
+
+@app.get("/register")
+def register_page(request: Request):
+    """Registration page."""
+    return templates.TemplateResponse("register.html", {"request": request, "user": None})

@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+
+{% block title %}Register - Far Reach Jobs{% endblock %}
+
+{% block content %}
+<div style="max-width: 400px; margin: 2rem auto;">
+    <h2 style="text-align: center; margin-bottom: 1.5rem;">Create Account</h2>
+
+    <div id="message" style="display: none; padding: 1rem; border-radius: 4px; margin-bottom: 1rem;"></div>
+
+    <form id="register-form" class="card">
+        <div style="margin-bottom: 1rem;">
+            <label for="email" style="display: block; margin-bottom: 0.25rem; font-weight: 500;">Email</label>
+            <input type="email" id="email" name="email" required
+                   style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;">
+        </div>
+
+        <div style="margin-bottom: 1rem;">
+            <label for="password" style="display: block; margin-bottom: 0.25rem; font-weight: 500;">Password</label>
+            <input type="password" id="password" name="password" required minlength="8"
+                   style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;">
+            <small style="color: #666;">Minimum 8 characters</small>
+        </div>
+
+        <div style="margin-bottom: 1.5rem;">
+            <label for="confirm-password" style="display: block; margin-bottom: 0.25rem; font-weight: 500;">Confirm Password</label>
+            <input type="password" id="confirm-password" name="confirm-password" required minlength="8"
+                   style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px;">
+        </div>
+
+        <button type="submit" class="btn btn-primary" style="width: 100%;">Register</button>
+    </form>
+
+    <p style="text-align: center; margin-top: 1rem;">
+        Already have an account? <a href="/login">Login here</a>
+    </p>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const msgEl = document.getElementById('message');
+
+    document.getElementById('register-form').addEventListener('submit', async function(e) {
+        e.preventDefault();
+
+        const email = document.getElementById('email').value;
+        const password = document.getElementById('password').value;
+        const confirmPassword = document.getElementById('confirm-password').value;
+
+        // Validate passwords match
+        if (password !== confirmPassword) {
+            msgEl.style.display = 'block';
+            msgEl.style.backgroundColor = '#fed7d7';
+            msgEl.style.color = '#c53030';
+            msgEl.textContent = 'Passwords do not match';
+            return;
+        }
+
+        try {
+            const response = await fetch('/api/auth/register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password }),
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                msgEl.style.display = 'block';
+                msgEl.style.backgroundColor = '#c6f6d5';
+                msgEl.style.color = '#276749';
+                msgEl.textContent = data.message;
+                // Clear form
+                document.getElementById('register-form').reset();
+            } else {
+                msgEl.style.display = 'block';
+                msgEl.style.backgroundColor = '#fed7d7';
+                msgEl.style.color = '#c53030';
+                msgEl.textContent = data.detail || 'Registration failed';
+            }
+        } catch (error) {
+            msgEl.style.display = 'block';
+            msgEl.style.backgroundColor = '#fed7d7';
+            msgEl.style.color = '#c53030';
+            msgEl.textContent = 'An error occurred. Please try again.';
+        }
+    });
+});
+</script>
+{% endblock %}

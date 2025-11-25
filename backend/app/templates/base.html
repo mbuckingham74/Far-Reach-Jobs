@@ -15,12 +15,12 @@
                 <a href="/" style="color: white; text-decoration: none;">
                     <h1>Far Reach Jobs</h1>
                 </a>
-                <div>
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
                     {% if user %}
-                        <a href="/saved" class="btn" style="color: white; margin-right: 0.5rem;">Saved Jobs</a>
-                        <a href="/api/auth/logout" class="btn" style="color: white;">Logout</a>
+                        <a href="/saved" class="btn" style="color: white;">Saved Jobs</a>
+                        <button onclick="logout()" class="btn" style="color: white; background: none; border: none; cursor: pointer;">Logout</button>
                     {% else %}
-                        <a href="/login" class="btn" style="color: white; margin-right: 0.5rem;">Login</a>
+                        <a href="/login" class="btn" style="color: white;">Login</a>
                         <a href="/register" class="btn btn-primary">Register</a>
                     {% endif %}
                 </div>
