@@ -149,6 +149,35 @@ class MyOrgScraper(BaseScraper):
 - [x] All templates updated with dark: variants
 - [x] Works for all users (logged in or not)
 
+### Phase 1H: Admin Scrape History ✅
+- [x] Scrape history page at `/admin/history`
+- [x] ScrapeLog model tracks each scrape run
+- [x] Shows trigger type, duration, jobs found/added/updated
+- [x] Error display with JSON parsing
+- [x] Summary stats (total runs, success rate, totals)
+
+**Key Files:**
+- `backend/app/models/scrape_log.py` - ScrapeLog model
+- `backend/app/templates/admin/history.html` - History page template
+
+### Phase 1I: Scrape Notification Emails ✅
+- [x] Email notifications after each scrape run (manual or scheduled)
+- [x] HTML formatted email with summary table
+- [x] Shows: execution time, trigger type, duration, sources processed
+- [x] Shows: jobs added, updated, removed (stale)
+- [x] Error table with source name and error message
+- [x] Link to admin scrape history page
+- [x] Plain text fallback for email clients
+
+**Key Files:**
+- `backend/app/services/email.py` - `ScrapeNotificationData` and `send_scrape_notification()`
+- `backend/app/config.py` - `admin_email` setting
+
+**Configuration:**
+```env
+ADMIN_EMAIL=michael.buckingham74@gmail.com
+```
+
 ## Remaining Work
 
 ### Scrapers (Phase 2)
@@ -202,6 +231,11 @@ FROM_EMAIL=noreply@far-reach-jobs.tachyonfuture.com
 # App
 APP_URL=https://far-reach-jobs.tachyonfuture.com
 ENVIRONMENT=development|production
+
+# Admin
+ADMIN_USERNAME=<username>
+ADMIN_PASSWORD=<password>
+ADMIN_EMAIL=<email>  # Receives scrape notification emails
 ```
 
 ## Important Implementation Details
