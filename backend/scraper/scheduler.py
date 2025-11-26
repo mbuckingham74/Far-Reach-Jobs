@@ -144,23 +144,24 @@ def start_scheduler():
     # Use Alaska timezone directly - APScheduler handles DST
     alaska_tz = "America/Anchorage"
 
-    # Daily scrape at noon Alaska time
-    scheduler.add_job(
-        run_scrapers,
-        CronTrigger(hour=12, minute=0, timezone=alaska_tz),
-        id="scrape_daily",
-        replace_existing=True,
-    )
+    # TEMPORARILY DISABLED - uncomment when ready to enable scheduled scrapes
+    # # Daily scrape at noon Alaska time
+    # scheduler.add_job(
+    #     run_scrapers,
+    #     CronTrigger(hour=12, minute=0, timezone=alaska_tz),
+    #     id="scrape_daily",
+    #     replace_existing=True,
+    # )
 
-    # Independent cleanup job - ensures stale jobs are cleaned even if
-    # scrapers are disabled or failing. The cleanup function is idempotent
-    # so running it twice (once in scraper, once here) is safe.
-    scheduler.add_job(
-        cleanup_stale_jobs,
-        CronTrigger(hour=12, minute=30, timezone=alaska_tz),
-        id="cleanup_daily",
-        replace_existing=True,
-    )
+    # # Independent cleanup job - ensures stale jobs are cleaned even if
+    # # scrapers are disabled or failing. The cleanup function is idempotent
+    # # so running it twice (once in scraper, once here) is safe.
+    # scheduler.add_job(
+    #     cleanup_stale_jobs,
+    #     CronTrigger(hour=12, minute=30, timezone=alaska_tz),
+    #     id="cleanup_daily",
+    #     replace_existing=True,
+    # )
 
     scheduler.start()
     logger.info("Scheduler started with daily scrape at noon Alaska time")
