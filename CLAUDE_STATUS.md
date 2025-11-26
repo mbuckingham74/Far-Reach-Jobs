@@ -131,16 +131,21 @@ class MyOrgScraper(BaseScraper):
 - POST `/api/saved-jobs/{job_id}` - Save a job
 - DELETE `/api/saved-jobs/{job_id}` - Unsave a job
 
-## Remaining Phases
-
-### Phase 1F: Polish & Deploy (Next)
-- [ ] Tailwind CSS styling
-- [ ] Responsive design
-- [ ] Error pages (404, 500)
-- [ ] NPM reverse proxy configuration
-- [ ] Production environment setup
-- [ ] Initial scrape run
+### Phase 1F: Polish & Deploy ✅
+- [x] Tailwind CSS styling via CDN
+- [x] Responsive design (mobile-first with sm: breakpoints)
+- [x] Error pages (404, 500) with custom handlers
+- [x] NPM reverse proxy configuration
+- [x] Production deployment to tachyonfuture.com
+- [x] Let's Encrypt SSL certificate
+- [ ] Initial scrape run (awaiting scraper URLs)
 - [ ] Beta launch
+
+## Remaining Work
+
+### Scrapers (Phase 2)
+- No concrete scrapers exist yet - user will provide URLs to scrape
+- Scheduler runs in production (noon/midnight Alaska time)
 
 ## Database Schema
 
@@ -219,34 +224,36 @@ ENVIRONMENT=development|production
 **Server IP:** 62.72.5.248 (tachyonfuture.com)
 **Domain:** far-reach-jobs.tachyonfuture.com
 **DNS:** Unproxied A record pointing to server IP (propagated)
+**Deployed:** ~/apps/far-reach-jobs on server
 
 ### NPM (Nginx Proxy Manager)
-- NPM manages SSL termination
-- Login: See .env file for credentials
-- Proxy host config: forward to `far-reach-jobs-web:8000`
+- NPM manages SSL termination (Let's Encrypt, cert ID 25)
+- Login: michael.buckingham74@gmail.com (password in server .env)
+- Proxy host ID: 23, forwards to `far-reach-jobs-web:8000`
+- Network: `npm_network`
 
 ### MySQL 8
-- Existing container on tachyonfuture.com
-- Root password: See .env file
-- Create database `far_reach_jobs` and user before deployment
+- Dedicated container: `far-reach-jobs-mysql`
+- Database/user: `far_reach_jobs`
+- Credentials in server .env file
 
-### Docker Network
-- Container must join NPM's network for proxy routing
-- Network name: typically `npm_default` or check with `docker network ls`
+### Gmail SMTP
+- User: michael.buckingham74@gmail.com
+- App password stored in server .env (format: xxxx xxxx xxxx xxxx)
 
-## Deployment Checklist
+## Deployment (Completed)
 
-1. SSH to server, clone repo to `/opt/far-reach-jobs`
-2. Create `.env` from `.env.example` with production values
-3. Create MySQL database and user
-4. Update `docker-compose.yml` to join NPM network
-5. Run `docker compose up -d --build`
-6. Run Alembic migrations
-7. Configure NPM proxy host for domain
-8. Test health endpoint and SSL
+1. ✅ SSH to server, cloned repo to `~/apps/far-reach-jobs`
+2. ✅ Created `.env` with production values
+3. ✅ MySQL container auto-creates database and user
+4. ✅ docker-compose.yml joins NPM network
+5. ✅ `docker compose up -d --build`
+6. ✅ Alembic migrations applied (001, 002)
+7. ✅ NPM proxy host configured with SSL
+8. ✅ Health endpoint verified: https://far-reach-jobs.tachyonfuture.com/api/health
 
 ## Notes
 
-1. **No concrete scrapers exist yet** - User will provide URLs to scrape
-2. **Scheduler only runs in production** or with `ENABLE_SCHEDULER=true`
-3. **Gitleaks** is used to prevent secret leaks - all secrets in .env only
+1. **Gitleaks** is used to prevent secret leaks - all secrets in server .env only
+2. **Scheduler** runs in production (noon/midnight Alaska time)
+3. **To redeploy:** `ssh michael@tachyonfuture.com` then `cd ~/apps/far-reach-jobs && git pull && docker compose up -d --build`
