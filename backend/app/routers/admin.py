@@ -239,7 +239,10 @@ async def trigger_scrape(request: Request, db: Session = Depends(get_db)):
     if not get_admin_user(request):
         raise HTTPException(status_code=401)
 
+    import time
+    from datetime import datetime, timezone
     from scraper.runner import run_all_scrapers
+    from app.services.email import send_scrape_notification, ScrapeNotificationData
 
     try:
         # Get active sources
@@ -250,11 +253,17 @@ async def trigger_scrape(request: Request, db: Session = Depends(get_db)):
                 {"request": request, "error": "No active scrape sources configured", "success": False},
             )
 
+        # Track timing
+        start_time = time.time()
+        execution_time = datetime.now(timezone.utc)
+
         # Run scrapers - returns list of ScrapeResult
         results = run_all_scrapers(db, sources)
 
         # Commit the changes made by scrapers
         db.commit()
+
+        duration = time.time() - start_time
 
         # Aggregate results for display
         aggregate = {
@@ -264,6 +273,24 @@ async def trigger_scrape(request: Request, db: Session = Depends(get_db)):
             "jobs_updated": sum(r.jobs_updated for r in results),
             "errors": [e for r in results for e in r.errors],
         }
+
+        # Send notification email
+        errors_with_source = []
+        for result in results:
+            for error in result.errors:
+                errors_with_source.append((result.source_name, error))
+
+        notification_data = ScrapeNotificationData(
+            execution_time=execution_time,
+            trigger_type="manual",
+            duration_seconds=duration,
+            sources_processed=len(results),
+            jobs_added=aggregate["jobs_new"],
+            jobs_updated=aggregate["jobs_updated"],
+            jobs_removed=0,  # Manual scrape doesn't run stale cleanup
+            errors=errors_with_source,
+        )
+        send_scrape_notification(notification_data)
 
         return templates.TemplateResponse(
             "admin/partials/scrape_result.html",

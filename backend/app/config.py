@@ -30,6 +30,7 @@ class Settings(BaseSettings):
     # Admin
     admin_username: str = "admin"
     admin_password: str = "changeme"
+    admin_email: str = ""  # Email to receive scrape notifications
 
     @model_validator(mode="after")
     def validate_secrets(self) -> "Settings":
