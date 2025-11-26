@@ -1,0 +1,84 @@
+{% if error %}
+<div class="bg-red-50 text-red-700 border border-red-200 rounded-md p-3 mb-4">
+    {{ error }}
+</div>
+{% endif %}
+
+{% if success %}
+<div class="bg-green-50 text-green-700 border border-green-200 rounded-md p-3 mb-4">
+    {{ success }}
+</div>
+{% endif %}
+
+{% if sources %}
+<div class="overflow-x-auto">
+    <table class="w-full text-left">
+        <thead class="bg-gray-50 border-b border-gray-200">
+            <tr>
+                <th class="px-4 py-3 text-sm font-medium text-gray-700">Name</th>
+                <th class="px-4 py-3 text-sm font-medium text-gray-700">URL</th>
+                <th class="px-4 py-3 text-sm font-medium text-gray-700">Type</th>
+                <th class="px-4 py-3 text-sm font-medium text-gray-700">Status</th>
+                <th class="px-4 py-3 text-sm font-medium text-gray-700">Last Scraped</th>
+                <th class="px-4 py-3 text-sm font-medium text-gray-700">Actions</th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-200">
+            {% for source in sources %}
+            <tr class="{% if not source.is_active %}opacity-50{% endif %}">
+                <td class="px-4 py-3 font-medium">{{ source.name }}</td>
+                <td class="px-4 py-3 text-sm">
+                    <a href="{{ source.base_url }}" target="_blank" rel="noopener noreferrer"
+                       class="text-primary-600 hover:underline truncate block max-w-xs">
+                        {{ source.base_url[:50] }}{% if source.base_url|length > 50 %}...{% endif %}
+                    </a>
+                </td>
+                <td class="px-4 py-3 text-sm text-gray-600">{{ source.scraper_class }}</td>
+                <td class="px-4 py-3">
+                    {% if source.is_active %}
+                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                        Active
+                    </span>
+                    {% else %}
+                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
+                        Inactive
+                    </span>
+                    {% endif %}
+                </td>
+                <td class="px-4 py-3 text-sm text-gray-600">
+                    {% if source.last_scraped_at %}
+                    {{ source.last_scraped_at.strftime('%Y-%m-%d %H:%M') }}
+                    {% else %}
+                    Never
+                    {% endif %}
+                </td>
+                <td class="px-4 py-3">
+                    <div class="flex gap-2">
+                        <button
+                            class="px-3 py-1 text-sm {% if source.is_active %}bg-amber-500 hover:bg-amber-600{% else %}bg-green-500 hover:bg-green-600{% endif %} text-white rounded transition-colors"
+                            hx-post="/admin/sources/{{ source.id }}/toggle"
+                            hx-target="#source-list"
+                            hx-swap="innerHTML">
+                            {% if source.is_active %}Disable{% else %}Enable{% endif %}
+                        </button>
+                        <button
+                            class="px-3 py-1 text-sm bg-red-500 hover:bg-red-600 text-white rounded transition-colors"
+                            hx-delete="/admin/sources/{{ source.id }}"
+                            hx-target="#source-list"
+                            hx-swap="innerHTML"
+                            hx-confirm="Delete source '{{ source.name }}'? This will also delete all jobs from this source.">
+                            Delete
+                        </button>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<div class="text-center py-8 text-gray-500">
+    <p>No scrape sources configured yet.</p>
+    <p class="text-sm mt-1">Add a source above to start scraping jobs.</p>
+</div>
+{% endif %}

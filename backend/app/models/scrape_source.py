@@ -16,4 +16,4 @@ class ScrapeSource(Base):
     last_scraped_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, server_default=func.now())
 
-    jobs = relationship("Job", back_populates="source")
+    jobs = relationship("Job", back_populates="source", cascade="all, delete-orphan")

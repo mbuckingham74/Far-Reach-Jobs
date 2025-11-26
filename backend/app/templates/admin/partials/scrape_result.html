@@ -1,0 +1,31 @@
+{% if success %}
+<div class="bg-green-50 text-green-700 border border-green-200 rounded-md p-4 mb-4">
+    <h4 class="font-medium mb-2">Scrape completed!</h4>
+    {% if result %}
+    <ul class="text-sm space-y-1">
+        <li>Sources processed: {{ result.sources_processed }}</li>
+        <li>Jobs found: {{ result.jobs_found }}</li>
+        <li>New jobs: {{ result.jobs_new }}</li>
+        <li>Jobs updated: {{ result.jobs_updated }}</li>
+    </ul>
+    {% if result.errors %}
+    <div class="mt-3 pt-3 border-t border-green-200">
+        <p class="font-medium text-amber-700">Warnings ({{ result.errors|length }}):</p>
+        <ul class="text-xs text-amber-600 mt-1 space-y-1">
+            {% for error in result.errors[:5] %}
+            <li>{{ error }}</li>
+            {% endfor %}
+            {% if result.errors|length > 5 %}
+            <li>...and {{ result.errors|length - 5 }} more</li>
+            {% endif %}
+        </ul>
+    </div>
+    {% endif %}
+    {% endif %}
+</div>
+{% else %}
+<div class="bg-red-50 text-red-700 border border-red-200 rounded-md p-4 mb-4">
+    <h4 class="font-medium mb-2">Scrape failed</h4>
+    <p class="text-sm">{{ error }}</p>
+</div>
+{% endif %}
