@@ -253,7 +253,7 @@ ADMIN_EMAIL=<email>  # Receives scrape notification emails
 ### Scraper Job Lifecycle
 1. New job: `first_seen_at = now`, `last_seen_at = now`, `is_stale = False`
 2. Seen again: `last_seen_at = now`, content fields updated if changed
-3. Not seen for 24h: `is_stale = True`
+3. Not seen for 48h: `is_stale = True` (2 missed daily scrapes)
 4. Stale for 7 days: Deleted from database
 
 ### robots.txt Handling
@@ -297,5 +297,5 @@ ADMIN_EMAIL=<email>  # Receives scrape notification emails
 ## Notes
 
 1. **Gitleaks** is used to prevent secret leaks - all secrets in server .env only
-2. **Scheduler** runs in production (noon/midnight Alaska time)
+2. **Scheduler** runs daily at noon Alaska time (production only)
 3. **To redeploy:** `ssh michael@tachyonfuture.com` then `cd ~/apps/far-reach-jobs && git pull && docker compose up -d --build`

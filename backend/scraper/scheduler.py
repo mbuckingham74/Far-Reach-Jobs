@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 scheduler: BackgroundScheduler | None = None
 
 # Job lifecycle constants
-STALE_AFTER_HOURS = 24  # Mark as stale if not seen in 24 hours (2 missed scrapes)
+STALE_AFTER_HOURS = 48  # Mark as stale if not seen in 48 hours (2 missed daily scrapes)
 DELETE_AFTER_DAYS = 7   # Delete if stale for 7 days
 
 
@@ -133,11 +133,11 @@ def start_scheduler():
     """Start the APScheduler with configured jobs.
 
     Uses America/Anchorage timezone for Alaska-centric scheduling.
-    Noon and midnight in Alaska time (handles DST automatically).
+    Scrapes run once daily at noon Alaska time.
 
     Cleanup runs both:
     - As part of each scrape run (to get jobs_removed count for notification)
-    - Independently 30 min after scrapes (in case scrapers are disabled/failing)
+    - Independently 30 min after scrape (in case scrapers are disabled/failing)
     """
     global scheduler
     scheduler = BackgroundScheduler()
@@ -145,37 +145,26 @@ def start_scheduler():
     # Use Alaska timezone directly - APScheduler handles DST
     alaska_tz = "America/Anchorage"
 
+    # Daily scrape at noon Alaska time
     scheduler.add_job(
         run_scrapers,
-        CronTrigger(hour=0, minute=0, timezone=alaska_tz),  # Midnight Alaska
-        id="scrape_midnight",
-        replace_existing=True,
-    )
-    scheduler.add_job(
-        run_scrapers,
-        CronTrigger(hour=12, minute=0, timezone=alaska_tz),  # Noon Alaska
-        id="scrape_noon",
+        CronTrigger(hour=12, minute=0, timezone=alaska_tz),
+        id="scrape_daily",
         replace_existing=True,
     )
 
-    # Independent cleanup jobs - ensures stale jobs are cleaned even if
+    # Independent cleanup job - ensures stale jobs are cleaned even if
     # scrapers are disabled or failing. The cleanup function is idempotent
     # so running it twice (once in scraper, once here) is safe.
     scheduler.add_job(
         cleanup_stale_jobs,
-        CronTrigger(hour=0, minute=30, timezone=alaska_tz),
-        id="cleanup_midnight",
-        replace_existing=True,
-    )
-    scheduler.add_job(
-        cleanup_stale_jobs,
         CronTrigger(hour=12, minute=30, timezone=alaska_tz),
-        id="cleanup_noon",
+        id="cleanup_daily",
         replace_existing=True,
     )
 
     scheduler.start()
-    logger.info("Scheduler started with scrape jobs at noon and midnight Alaska time")
+    logger.info("Scheduler started with daily scrape at noon Alaska time")
 
 
 def shutdown_scheduler():
