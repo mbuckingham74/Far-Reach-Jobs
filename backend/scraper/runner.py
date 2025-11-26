@@ -210,6 +210,9 @@ def run_scraper(db: Session, source: ScrapeSource, trigger_type: str = "manual")
                     # Log the full error for debugging, but only include sanitized message in results
                     logger.error(f"Failed to upsert job {scraped_job.external_id}: {e}")
                     all_errors.append(f"Failed to upsert job {scraped_job.external_id}")
+                    # Rollback to clear the failed transaction state so we can continue
+                    # processing remaining jobs (otherwise we'd get PendingRollbackError)
+                    db.rollback()
 
             # Update source's last_scraped_at
             source.last_scraped_at = datetime.now(timezone.utc)
@@ -250,6 +253,7 @@ def run_all_scrapers(
     results = []
     for source in sources:
         logger.info(f"Running scraper for {source.name}...")
+        started_at = datetime.now(timezone.utc)
         try:
             result = run_scraper(db, source, trigger_type)
             # Commit after each source to isolate transactions
@@ -266,5 +270,12 @@ def run_all_scrapers(
                 errors=[f"Scraper failed: {type(e).__name__}"],
                 duration_seconds=0,
             )
+            # Log the failure to scrape history (session is clean after rollback)
+            try:
+                log_scrape_result(db, source, result, trigger_type, started_at)
+                db.commit()
+            except Exception as log_error:
+                logger.error(f"Failed to log scrape failure for {source.name}: {log_error}")
+                db.rollback()
         results.append(result)
     return results
