@@ -32,6 +32,36 @@
 </div>
 {% endif %}
 
+<!-- AI Analysis Section -->
+<div class="bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-200 dark:border-purple-800 p-6 mb-6">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <h3 class="text-lg font-semibold text-purple-800 dark:text-purple-200 flex items-center gap-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+                </svg>
+                AI-Powered Selector Detection
+            </h3>
+            <p class="text-sm text-purple-700 dark:text-purple-300 mt-1">
+                Let AI analyze the job listings page and suggest CSS selectors automatically
+            </p>
+        </div>
+        <button type="button"
+                hx-post="/admin/sources/{{ source.id }}/analyze"
+                hx-target="#ai-results"
+                hx-swap="innerHTML"
+                hx-indicator="#analyze-spinner"
+                class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-md transition-colors flex items-center gap-2 whitespace-nowrap">
+            <svg id="analyze-spinner" class="w-4 h-4 animate-spin htmx-indicator" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <span>Analyze Page with AI</span>
+        </button>
+    </div>
+    <div id="ai-results" class="mt-4"></div>
+</div>
+
 <form method="post" action="/admin/sources/{{ source.id }}/configure" class="space-y-6">
     <!-- Basic Info -->
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 transition-colors">
