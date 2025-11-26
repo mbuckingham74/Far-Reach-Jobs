@@ -55,23 +55,19 @@ def get_scraper_class(class_name: str) -> type[BaseScraper] | None:
     return None
 
 
-def upsert_job(db: Session, source_id: int, scraped_job: ScrapedJob, seen_ids: set[str]) -> tuple[bool, bool]:
+def upsert_job(db: Session, source_id: int, scraped_job: ScrapedJob) -> tuple[bool, bool]:
     """Insert or update a job in the database.
 
     Args:
         db: Database session
         source_id: ID of the scrape source
         scraped_job: Job data from scraper
-        seen_ids: Set of external_ids already processed in this scrape (for deduplication)
 
     Returns:
         (is_new, is_updated) tuple. is_updated is True only if content changed.
-    """
-    # Skip if we've already seen this job in this scrape run (handles duplicates on same page)
-    if scraped_job.external_id in seen_ids:
-        return (False, False)
-    seen_ids.add(scraped_job.external_id)
 
+    Note: Caller is responsible for deduplication via seen_ids before calling.
+    """
     now = datetime.now(timezone.utc)
 
     # Check if job already exists
@@ -198,8 +194,16 @@ def run_scraper(db: Session, source: ScrapeSource, trigger_type: str = "manual")
             all_errors.extend(errors)
 
             for scraped_job in scraped_jobs:
+                # Dedup check before savepoint - skip jobs we've already processed
+                if scraped_job.external_id in seen_ids:
+                    continue
+                seen_ids.add(scraped_job.external_id)
+
+                # Use savepoint so failures only roll back this job, not prior successful ones
                 try:
-                    is_new, is_updated = upsert_job(db, source.id, scraped_job, seen_ids)
+                    with db.begin_nested():
+                        is_new, is_updated = upsert_job(db, source.id, scraped_job)
+                        # Savepoint auto-commits on successful exit
                     if is_new:
                         jobs_new += 1
                     elif is_updated:
@@ -207,12 +211,11 @@ def run_scraper(db: Session, source: ScrapeSource, trigger_type: str = "manual")
                     else:
                         jobs_unchanged += 1
                 except Exception as e:
-                    # Log the full error for debugging, but only include sanitized message in results
+                    # Savepoint was rolled back, main transaction intact
+                    # Remove from seen_ids since the job wasn't actually persisted
+                    seen_ids.discard(scraped_job.external_id)
                     logger.error(f"Failed to upsert job {scraped_job.external_id}: {e}")
                     all_errors.append(f"Failed to upsert job {scraped_job.external_id}")
-                    # Rollback to clear the failed transaction state so we can continue
-                    # processing remaining jobs (otherwise we'd get PendingRollbackError)
-                    db.rollback()
 
             # Update source's last_scraped_at
             source.last_scraped_at = datetime.now(timezone.utc)
