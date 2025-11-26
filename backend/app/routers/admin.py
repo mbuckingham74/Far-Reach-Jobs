@@ -173,7 +173,6 @@ def delete_source(source_id: int, request: Request, db: Session = Depends(get_db
 
     source = db.query(ScrapeSource).filter(ScrapeSource.id == source_id).first()
     if source:
-        source_name = source.name
         db.delete(source)
         try:
             db.commit()
