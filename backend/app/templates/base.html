@@ -41,6 +41,7 @@
             }
         })();
     </script>
+    <script src="/static/js/app.js" defer></script>
 </head>
 <body class="min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 flex flex-col transition-colors">
     <header class="bg-primary-900 text-white shadow-lg">
@@ -99,11 +100,6 @@
         function toggleDarkMode() {
             const isDark = document.documentElement.classList.toggle('dark');
             localStorage.setItem('darkMode', isDark);
-        }
-
-        function logout() {
-            fetch('/api/auth/logout', { method: 'POST' })
-                .then(() => window.location.href = '/');
         }
     </script>
 </body>
