@@ -26,6 +26,8 @@ services:
       - ENVIRONMENT=${ENVIRONMENT}
       - ADMIN_USERNAME=${ADMIN_USERNAME}
       - ADMIN_PASSWORD=${ADMIN_PASSWORD}
+      - ADMIN_EMAIL=${ADMIN_EMAIL}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
     volumes:
       - ./backend:/app
       - ./frontend/static:/app/static
