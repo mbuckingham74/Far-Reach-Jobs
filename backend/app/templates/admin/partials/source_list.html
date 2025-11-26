@@ -68,7 +68,11 @@
                     {% endif %}
                 </td>
                 <td class="px-4 py-3">
-                    <div class="flex gap-2 justify-center">
+                    <div class="flex gap-2 justify-center flex-wrap">
+                        <a href="/admin/sources/{{ source.id }}/configure"
+                           class="px-3 py-1 text-sm bg-gray-500 hover:bg-gray-600 text-white rounded transition-colors inline-block">
+                            Configure
+                        </a>
                         <button
                             class="px-3 py-1 text-sm {% if source.is_active %}bg-amber-500 hover:bg-amber-600{% else %}bg-green-500 hover:bg-green-600{% endif %} text-white rounded transition-colors"
                             hx-post="/admin/sources/{{ source.id }}/toggle"

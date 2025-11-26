@@ -46,5 +46,7 @@ And add a ScrapeSource record to the database:
 """
 
 # Import all scrapers here so they get registered on module load
-# Example:
+from scraper.sources.generic import GenericScraper
+
+# Custom scrapers can be added below:
 # from scraper.sources.example_org import ExampleOrgScraper

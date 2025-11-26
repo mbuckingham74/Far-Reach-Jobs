@@ -160,6 +160,26 @@ def log_scrape_result(
     return log
 
 
+def get_source_config(source: ScrapeSource) -> dict:
+    """Extract configuration dictionary from a ScrapeSource model."""
+    return {
+        "name": source.name,
+        "base_url": source.base_url,
+        "listing_url": source.listing_url,
+        "selector_job_container": source.selector_job_container,
+        "selector_title": source.selector_title,
+        "selector_url": source.selector_url,
+        "selector_organization": source.selector_organization,
+        "selector_location": source.selector_location,
+        "selector_job_type": source.selector_job_type,
+        "selector_salary": source.selector_salary,
+        "selector_description": source.selector_description,
+        "url_attribute": source.url_attribute,
+        "selector_next_page": source.selector_next_page,
+        "max_pages": source.max_pages,
+    }
+
+
 def run_scraper(db: Session, source: ScrapeSource, trigger_type: str = "manual") -> ScrapeResult:
     """Run a single scraper and upsert jobs to database."""
     start_time = time.time()
@@ -191,8 +211,17 @@ def run_scraper(db: Session, source: ScrapeSource, trigger_type: str = "manual")
     # Track seen external_ids to handle duplicates within same scrape
     seen_ids: set[str] = set()
 
+    # Prepare scraper configuration for GenericScraper
+    source_config = get_source_config(source)
+
     try:
-        with scraper_class() as scraper:
+        # GenericScraper needs configuration, other scrapers don't
+        if source.scraper_class == "GenericScraper":
+            scraper_instance = scraper_class(source_config=source_config)
+        else:
+            scraper_instance = scraper_class()
+
+        with scraper_instance as scraper:
             scraped_jobs, errors = scraper.run()
             all_errors.extend(errors)
 

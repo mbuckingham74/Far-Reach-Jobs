@@ -1,0 +1,200 @@
+{% extends "base.html" %}
+
+{% block title %}Configure {{ source.name }} - Far Reach Jobs Admin{% endblock %}
+
+{% block content %}
+<div class="mb-6 flex justify-between items-center">
+    <div>
+        <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Configure Source</h2>
+        <p class="text-gray-600 dark:text-gray-300">Set up CSS selectors for {{ source.name }}</p>
+    </div>
+    <div class="flex gap-2">
+        <a href="/admin" class="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white font-medium rounded-md transition-colors">
+            Back to Dashboard
+        </a>
+        <form method="post" action="/admin/logout">
+            <button type="submit" class="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white font-medium rounded-md transition-colors">
+                Logout
+            </button>
+        </form>
+    </div>
+</div>
+
+{% if error %}
+<div class="bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-200 border border-red-200 dark:border-red-800 rounded-md p-3 mb-6">
+    {{ error }}
+</div>
+{% endif %}
+
+{% if success %}
+<div class="bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-200 border border-green-200 dark:border-green-800 rounded-md p-3 mb-6">
+    {{ success }}
+</div>
+{% endif %}
+
+<form method="post" action="/admin/sources/{{ source.id }}/configure" class="space-y-6">
+    <!-- Basic Info -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 transition-colors">
+        <h3 class="text-lg font-semibold dark:text-white mb-4">Basic Information</h3>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+                <label for="name" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Source Name</label>
+                <input type="text" id="name" name="name" required value="{{ source.name }}"
+                       class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white dark:bg-gray-700 dark:text-white">
+            </div>
+            <div>
+                <label for="base_url" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Base URL</label>
+                <input type="url" id="base_url" name="base_url" required value="{{ source.base_url }}"
+                       class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white dark:bg-gray-700 dark:text-white">
+                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Main website URL (used for robots.txt and relative links)</p>
+            </div>
+        </div>
+        <div class="mt-4">
+            <label for="listing_url" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Job Listings Page URL</label>
+            <input type="url" id="listing_url" name="listing_url" value="{{ source.listing_url or '' }}" placeholder="{{ source.base_url }}"
+                   class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white dark:bg-gray-700 dark:text-white dark:placeholder-gray-500">
+            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">URL of the page containing job listings. Leave blank to use Base URL.</p>
+        </div>
+    </div>
+
+    <!-- Required Selectors -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 transition-colors">
+        <h3 class="text-lg font-semibold dark:text-white mb-2">Required CSS Selectors</h3>
+        <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
+            These selectors are required for the scraper to find jobs. Use browser DevTools to inspect the page structure.
+        </p>
+        <div class="space-y-4">
+            <div>
+                <label for="selector_job_container" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Job Container Selector <span class="text-red-500">*</span>
+                </label>
+                <input type="text" id="selector_job_container" name="selector_job_container" value="{{ source.selector_job_container or '' }}"
+                       placeholder=".job-card, tr.job-row, article.listing"
+                       class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white dark:bg-gray-700 dark:text-white dark:placeholder-gray-500 font-mono text-sm">
+                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Selector for the repeating element containing each job listing</p>
+            </div>
+            <div>
+                <label for="selector_title" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Title Selector <span class="text-red-500">*</span>
+                </label>
+                <input type="text" id="selector_title" name="selector_title" value="{{ source.selector_title or '' }}"
+                       placeholder=".job-title, h2 a, .title"
+                       class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white dark:bg-gray-700 dark:text-white dark:placeholder-gray-500 font-mono text-sm">
+                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Selector for the job title within each container</p>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label for="selector_url" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        URL Link Selector <span class="text-red-500">*</span>
+                    </label>
+                    <input type="text" id="selector_url" name="selector_url" value="{{ source.selector_url or '' }}"
+                           placeholder="a.job-link, h2 a, a[href]"
+                           class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white dark:bg-gray-700 dark:text-white dark:placeholder-gray-500 font-mono text-sm">
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Selector for the link element</p>
+                </div>
+                <div>
+                    <label for="url_attribute" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">URL Attribute</label>
+                    <input type="text" id="url_attribute" name="url_attribute" value="{{ source.url_attribute or 'href' }}"
+                           placeholder="href"
+                           class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white dark:bg-gray-700 dark:text-white dark:placeholder-gray-500 font-mono text-sm">
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Attribute containing the URL (usually "href")</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Optional Selectors -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 transition-colors">
+        <h3 class="text-lg font-semibold dark:text-white mb-2">Optional CSS Selectors</h3>
+        <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
+            These fields are optional but help provide more complete job information.
+        </p>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+                <label for="selector_organization" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Organization Selector</label>
+                <input type="text" id="selector_organization" name="selector_organization" value="{{ source.selector_organization or '' }}"
+                       placeholder=".company-name, .employer"
+                       class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white dark:bg-gray-700 dark:text-white dark:placeholder-gray-500 font-mono text-sm">
+            </div>
+            <div>
+                <label for="selector_location" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Location Selector</label>
+                <input type="text" id="selector_location" name="selector_location" value="{{ source.selector_location or '' }}"
+                       placeholder=".location, .job-location"
+                       class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white dark:bg-gray-700 dark:text-white dark:placeholder-gray-500 font-mono text-sm">
+            </div>
+            <div>
+                <label for="selector_job_type" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Job Type Selector</label>
+                <input type="text" id="selector_job_type" name="selector_job_type" value="{{ source.selector_job_type or '' }}"
+                       placeholder=".job-type, .employment-type"
+                       class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white dark:bg-gray-700 dark:text-white dark:placeholder-gray-500 font-mono text-sm">
+            </div>
+            <div>
+                <label for="selector_salary" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Salary Selector</label>
+                <input type="text" id="selector_salary" name="selector_salary" value="{{ source.selector_salary or '' }}"
+                       placeholder=".salary, .compensation"
+                       class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white dark:bg-gray-700 dark:text-white dark:placeholder-gray-500 font-mono text-sm">
+            </div>
+            <div class="sm:col-span-2">
+                <label for="selector_description" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Description Selector</label>
+                <input type="text" id="selector_description" name="selector_description" value="{{ source.selector_description or '' }}"
+                       placeholder=".job-description, .summary"
+                       class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white dark:bg-gray-700 dark:text-white dark:placeholder-gray-500 font-mono text-sm">
+            </div>
+        </div>
+    </div>
+
+    <!-- Pagination -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 transition-colors">
+        <h3 class="text-lg font-semibold dark:text-white mb-2">Pagination (Optional)</h3>
+        <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
+            Configure these if jobs span multiple pages.
+        </p>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+                <label for="selector_next_page" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Next Page Selector</label>
+                <input type="text" id="selector_next_page" name="selector_next_page" value="{{ source.selector_next_page or '' }}"
+                       placeholder="a.next-page, .pagination a[rel='next']"
+                       class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white dark:bg-gray-700 dark:text-white dark:placeholder-gray-500 font-mono text-sm">
+                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Selector for the "next page" link</p>
+            </div>
+            <div>
+                <label for="max_pages" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Max Pages</label>
+                <input type="number" id="max_pages" name="max_pages" value="{{ source.max_pages or 10 }}" min="1" max="100"
+                       class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white dark:bg-gray-700 dark:text-white">
+                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Maximum number of pages to scrape (1-100)</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="flex gap-4">
+        <button type="submit" class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-md transition-colors">
+            Save Configuration
+        </button>
+        <a href="/admin" class="px-6 py-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 font-medium rounded-md transition-colors">
+            Cancel
+        </a>
+    </div>
+</form>
+
+<!-- Help Section -->
+<div class="mt-8 bg-blue-50 dark:bg-blue-900/30 rounded-lg border border-blue-200 dark:border-blue-800 p-6">
+    <h3 class="text-lg font-semibold text-blue-800 dark:text-blue-200 mb-2">How to Find CSS Selectors</h3>
+    <ol class="list-decimal list-inside space-y-2 text-sm text-blue-700 dark:text-blue-300">
+        <li>Open the job listings page in your browser</li>
+        <li>Right-click on a job listing and select "Inspect" or press F12</li>
+        <li>Find the HTML element that wraps each job - this is your <strong>Job Container</strong></li>
+        <li>Within that container, find elements for title, link, location, etc.</li>
+        <li>Use CSS selectors like <code class="bg-blue-100 dark:bg-blue-800 px-1 rounded">.class-name</code>, <code class="bg-blue-100 dark:bg-blue-800 px-1 rounded">#id</code>, or <code class="bg-blue-100 dark:bg-blue-800 px-1 rounded">tag.class</code></li>
+    </ol>
+    <div class="mt-4">
+        <h4 class="font-medium text-blue-800 dark:text-blue-200 mb-1">Example Selectors:</h4>
+        <ul class="list-disc list-inside text-sm text-blue-700 dark:text-blue-300 space-y-1">
+            <li><code class="bg-blue-100 dark:bg-blue-800 px-1 rounded">.job-listing</code> - selects elements with class "job-listing"</li>
+            <li><code class="bg-blue-100 dark:bg-blue-800 px-1 rounded">h2.title a</code> - selects links inside h2 elements with class "title"</li>
+            <li><code class="bg-blue-100 dark:bg-blue-800 px-1 rounded">[data-job-id]</code> - selects elements with a data-job-id attribute</li>
+            <li><code class="bg-blue-100 dark:bg-blue-800 px-1 rounded">tr.job-row td:nth-child(2)</code> - selects the 2nd column of table rows</li>
+        </ul>
+    </div>
+</div>
+{% endblock %}
