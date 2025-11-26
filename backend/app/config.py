@@ -32,6 +32,9 @@ class Settings(BaseSettings):
     admin_password: str = "changeme"
     admin_email: str = ""  # Email to receive scrape notifications
 
+    # AI (Anthropic API for selector analysis)
+    anthropic_api_key: str = ""  # Optional: enables AI-powered selector suggestions
+
     @model_validator(mode="after")
     def validate_secrets(self) -> "Settings":
         """Ensure secrets are set properly in non-development environments."""

@@ -14,6 +14,7 @@ from app.database import get_db
 from app.models.scrape_source import ScrapeSource
 from app.models.scrape_log import ScrapeLog
 from app.models.job import Job
+from app.services.ai_analyzer import analyze_job_page, is_ai_analysis_available
 
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
@@ -503,4 +504,45 @@ async def save_source_configuration(source_id: int, request: Request, db: Sessio
         return templates.TemplateResponse(
             "admin/configure_source.html",
             {"request": request, "source": source, "error": "Failed to save configuration. Please try again."},
+        )
+
+
+@router.post("/sources/{source_id}/analyze")
+async def analyze_source_page(source_id: int, request: Request, db: Session = Depends(get_db)):
+    """Use AI to analyze the job listing page and suggest CSS selectors."""
+    if not get_admin_user(request):
+        raise HTTPException(status_code=401)
+
+    source = db.query(ScrapeSource).filter(ScrapeSource.id == source_id).first()
+    if not source:
+        return HTMLResponse(
+            '<div class="text-red-600 dark:text-red-400">Source not found</div>',
+            status_code=404
+        )
+
+    if not is_ai_analysis_available():
+        return HTMLResponse(
+            '<div class="text-red-600 dark:text-red-400">AI analysis not available. Set ANTHROPIC_API_KEY in environment.</div>',
+            status_code=400
+        )
+
+    # Use listing_url if set, otherwise fall back to base_url
+    url_to_analyze = source.listing_url or source.base_url
+
+    try:
+        suggestions = await analyze_job_page(url_to_analyze)
+
+        return templates.TemplateResponse(
+            "admin/partials/ai_suggestions.html",
+            {
+                "request": request,
+                "suggestions": suggestions,
+                "source": source,
+            },
+        )
+    except Exception as e:
+        logger.exception(f"AI analysis failed for source {source_id}: {e}")
+        return HTMLResponse(
+            f'<div class="text-red-600 dark:text-red-400">Analysis failed: {str(e)}</div>',
+            status_code=500
         )

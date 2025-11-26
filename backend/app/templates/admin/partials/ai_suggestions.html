@@ -1,0 +1,230 @@
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 transition-colors">
+    <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg font-semibold dark:text-white flex items-center gap-2">
+            <svg class="w-5 h-5 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+            </svg>
+            AI Analysis Results
+        </h3>
+        {% if suggestions.can_use_generic_scraper %}
+        <span class="px-3 py-1 text-sm font-medium rounded-full bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300">
+            Generic Scraper Compatible
+        </span>
+        {% else %}
+        <span class="px-3 py-1 text-sm font-medium rounded-full bg-yellow-100 dark:bg-yellow-900/50 text-yellow-700 dark:text-yellow-300">
+            May Need Custom Scraper
+        </span>
+        {% endif %}
+    </div>
+
+    {% if suggestions.error %}
+    <div class="bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-200 border border-red-200 dark:border-red-800 rounded-md p-3 mb-4">
+        <strong>Error:</strong> {{ suggestions.error }}
+    </div>
+    {% endif %}
+
+    <div class="bg-gray-50 dark:bg-gray-700/50 rounded-md p-4 mb-4">
+        <p class="text-gray-700 dark:text-gray-300">{{ suggestions.reason }}</p>
+        {% if suggestions.notes %}
+        <p class="text-sm text-gray-500 dark:text-gray-400 mt-2"><strong>Notes:</strong> {{ suggestions.notes }}</p>
+        {% endif %}
+    </div>
+
+    {% if suggestions.jobs_found > 0 %}
+    <div class="mb-4 text-sm text-gray-600 dark:text-gray-400">
+        Found approximately <strong class="text-gray-900 dark:text-white">{{ suggestions.jobs_found }}</strong> job listings on the page
+    </div>
+    {% endif %}
+
+    {% if suggestions.sample_job %}
+    <div class="bg-blue-50 dark:bg-blue-900/30 rounded-md p-4 mb-4">
+        <h4 class="font-medium text-blue-800 dark:text-blue-200 mb-2">Sample Job Detected:</h4>
+        <dl class="text-sm space-y-1">
+            {% if suggestions.sample_job.title %}
+            <div class="flex gap-2">
+                <dt class="text-blue-600 dark:text-blue-300 w-24">Title:</dt>
+                <dd class="text-blue-900 dark:text-blue-100">{{ suggestions.sample_job.title }}</dd>
+            </div>
+            {% endif %}
+            {% if suggestions.sample_job.organization %}
+            <div class="flex gap-2">
+                <dt class="text-blue-600 dark:text-blue-300 w-24">Organization:</dt>
+                <dd class="text-blue-900 dark:text-blue-100">{{ suggestions.sample_job.organization }}</dd>
+            </div>
+            {% endif %}
+            {% if suggestions.sample_job.location %}
+            <div class="flex gap-2">
+                <dt class="text-blue-600 dark:text-blue-300 w-24">Location:</dt>
+                <dd class="text-blue-900 dark:text-blue-100">{{ suggestions.sample_job.location }}</dd>
+            </div>
+            {% endif %}
+            {% if suggestions.sample_job.url %}
+            <div class="flex gap-2">
+                <dt class="text-blue-600 dark:text-blue-300 w-24">URL:</dt>
+                <dd class="text-blue-900 dark:text-blue-100 truncate">{{ suggestions.sample_job.url }}</dd>
+            </div>
+            {% endif %}
+        </dl>
+    </div>
+    {% endif %}
+
+    {% if suggestions.can_use_generic_scraper %}
+    <h4 class="font-medium text-gray-900 dark:text-white mb-3">Suggested Selectors:</h4>
+    <div class="space-y-3">
+        <!-- Required Selectors -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {% if suggestions.job_container %}
+            <div class="flex items-center gap-2">
+                <label class="text-sm text-gray-600 dark:text-gray-400 w-32">Job Container:</label>
+                <code class="flex-1 px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded text-sm font-mono text-gray-800 dark:text-gray-200 selector-value">{{ suggestions.job_container }}</code>
+                <button type="button" class="apply-btn px-2 py-1 text-xs bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 rounded hover:bg-purple-200 dark:hover:bg-purple-800 transition-colors"
+                        data-target="selector_job_container">
+                    Apply
+                </button>
+            </div>
+            {% endif %}
+            {% if suggestions.title %}
+            <div class="flex items-center gap-2">
+                <label class="text-sm text-gray-600 dark:text-gray-400 w-32">Title:</label>
+                <code class="flex-1 px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded text-sm font-mono text-gray-800 dark:text-gray-200 selector-value">{{ suggestions.title }}</code>
+                <button type="button" class="apply-btn px-2 py-1 text-xs bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 rounded hover:bg-purple-200 dark:hover:bg-purple-800 transition-colors"
+                        data-target="selector_title">
+                    Apply
+                </button>
+            </div>
+            {% endif %}
+            {% if suggestions.url %}
+            <div class="flex items-center gap-2">
+                <label class="text-sm text-gray-600 dark:text-gray-400 w-32">URL Link:</label>
+                <code class="flex-1 px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded text-sm font-mono text-gray-800 dark:text-gray-200 selector-value">{{ suggestions.url }}</code>
+                <button type="button" class="apply-btn px-2 py-1 text-xs bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 rounded hover:bg-purple-200 dark:hover:bg-purple-800 transition-colors"
+                        data-target="selector_url">
+                    Apply
+                </button>
+            </div>
+            {% endif %}
+            {% if suggestions.url_attribute and suggestions.url_attribute != 'href' %}
+            <div class="flex items-center gap-2">
+                <label class="text-sm text-gray-600 dark:text-gray-400 w-32">URL Attribute:</label>
+                <code class="flex-1 px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded text-sm font-mono text-gray-800 dark:text-gray-200 selector-value">{{ suggestions.url_attribute }}</code>
+                <button type="button" class="apply-btn px-2 py-1 text-xs bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 rounded hover:bg-purple-200 dark:hover:bg-purple-800 transition-colors"
+                        data-target="url_attribute">
+                    Apply
+                </button>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Optional Selectors -->
+        {% if suggestions.organization or suggestions.location or suggestions.job_type or suggestions.salary or suggestions.description %}
+        <h5 class="text-sm font-medium text-gray-700 dark:text-gray-300 mt-4">Optional Fields:</h5>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {% if suggestions.organization %}
+            <div class="flex items-center gap-2">
+                <label class="text-sm text-gray-600 dark:text-gray-400 w-32">Organization:</label>
+                <code class="flex-1 px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded text-sm font-mono text-gray-800 dark:text-gray-200 selector-value">{{ suggestions.organization }}</code>
+                <button type="button" class="apply-btn px-2 py-1 text-xs bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 rounded hover:bg-purple-200 dark:hover:bg-purple-800 transition-colors"
+                        data-target="selector_organization">
+                    Apply
+                </button>
+            </div>
+            {% endif %}
+            {% if suggestions.location %}
+            <div class="flex items-center gap-2">
+                <label class="text-sm text-gray-600 dark:text-gray-400 w-32">Location:</label>
+                <code class="flex-1 px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded text-sm font-mono text-gray-800 dark:text-gray-200 selector-value">{{ suggestions.location }}</code>
+                <button type="button" class="apply-btn px-2 py-1 text-xs bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 rounded hover:bg-purple-200 dark:hover:bg-purple-800 transition-colors"
+                        data-target="selector_location">
+                    Apply
+                </button>
+            </div>
+            {% endif %}
+            {% if suggestions.job_type %}
+            <div class="flex items-center gap-2">
+                <label class="text-sm text-gray-600 dark:text-gray-400 w-32">Job Type:</label>
+                <code class="flex-1 px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded text-sm font-mono text-gray-800 dark:text-gray-200 selector-value">{{ suggestions.job_type }}</code>
+                <button type="button" class="apply-btn px-2 py-1 text-xs bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 rounded hover:bg-purple-200 dark:hover:bg-purple-800 transition-colors"
+                        data-target="selector_job_type">
+                    Apply
+                </button>
+            </div>
+            {% endif %}
+            {% if suggestions.salary %}
+            <div class="flex items-center gap-2">
+                <label class="text-sm text-gray-600 dark:text-gray-400 w-32">Salary:</label>
+                <code class="flex-1 px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded text-sm font-mono text-gray-800 dark:text-gray-200 selector-value">{{ suggestions.salary }}</code>
+                <button type="button" class="apply-btn px-2 py-1 text-xs bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 rounded hover:bg-purple-200 dark:hover:bg-purple-800 transition-colors"
+                        data-target="selector_salary">
+                    Apply
+                </button>
+            </div>
+            {% endif %}
+            {% if suggestions.description %}
+            <div class="flex items-center gap-2 sm:col-span-2">
+                <label class="text-sm text-gray-600 dark:text-gray-400 w-32">Description:</label>
+                <code class="flex-1 px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded text-sm font-mono text-gray-800 dark:text-gray-200 selector-value">{{ suggestions.description }}</code>
+                <button type="button" class="apply-btn px-2 py-1 text-xs bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 rounded hover:bg-purple-200 dark:hover:bg-purple-800 transition-colors"
+                        data-target="selector_description">
+                    Apply
+                </button>
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        <!-- Pagination -->
+        {% if suggestions.next_page %}
+        <h5 class="text-sm font-medium text-gray-700 dark:text-gray-300 mt-4">Pagination:</h5>
+        <div class="flex items-center gap-2">
+            <label class="text-sm text-gray-600 dark:text-gray-400 w-32">Next Page:</label>
+            <code class="flex-1 px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded text-sm font-mono text-gray-800 dark:text-gray-200 selector-value">{{ suggestions.next_page }}</code>
+            <button type="button" class="apply-btn px-2 py-1 text-xs bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 rounded hover:bg-purple-200 dark:hover:bg-purple-800 transition-colors"
+                    data-target="selector_next_page">
+                Apply
+            </button>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="mt-6 flex gap-3">
+        <button type="button" id="apply-all-btn"
+                class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-md transition-colors flex items-center gap-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+            </svg>
+            Apply All Suggestions
+        </button>
+        <span class="text-sm text-gray-500 dark:text-gray-400 self-center">Then click "Save Configuration" to save</span>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+(function() {
+    // Apply a single selector value to its target field
+    function applySelector(button) {
+        const targetId = button.dataset.target;
+        const codeEl = button.parentElement.querySelector('.selector-value');
+        const field = document.getElementById(targetId);
+
+        if (field && codeEl) {
+            field.value = codeEl.textContent;
+            field.classList.add('ring-2', 'ring-purple-500');
+            setTimeout(() => field.classList.remove('ring-2', 'ring-purple-500'), 1500);
+        }
+    }
+
+    // Attach click handlers to all Apply buttons
+    document.querySelectorAll('.apply-btn').forEach(btn => {
+        btn.addEventListener('click', () => applySelector(btn));
+    });
+
+    // Apply All button
+    const applyAllBtn = document.getElementById('apply-all-btn');
+    if (applyAllBtn) {
+        applyAllBtn.addEventListener('click', () => {
+            document.querySelectorAll('.apply-btn').forEach(btn => applySelector(btn));
+        });
+    }
+})();
+</script>
