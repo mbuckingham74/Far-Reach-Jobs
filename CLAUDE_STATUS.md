@@ -367,8 +367,11 @@ ADMIN_EMAIL=<email>  # Receives scrape notification emails
 
 ### robots.txt Handling
 - Respects Disallow rules and Crawl-delay
-- User-Agent: `FarReachJobsBot/1.0`
+- HTTP User-Agent: `Mozilla/5.0 (compatible; FarReachJobs/1.0; +https://far-reach-jobs.tachyonfuture.com)`
+- robots.txt compliance checks both `FarReachJobs` and `Mozilla` UAs, honoring the most restrictive
+- Uses maximum crawl delay from either UA-specific rule
 - "Warn but allow" if robots.txt fetch fails
+- Sites without robots.txt (404) allow all paths
 
 ## Server Info
 
