@@ -231,11 +231,56 @@ ADMIN_EMAIL=michael.buckingham74@gmail.com
 **API Endpoints:**
 - POST `/admin/sources/{id}/scrape` - Trigger scrape for single source
 
+### Phase 1M: GenericScraper ✅
+- [x] Configurable scraper using CSS selectors (no code required per source)
+- [x] Admin configuration page for each source at `/admin/sources/{id}/configure`
+- [x] Required selectors: job container, title, URL
+- [x] Optional selectors: organization, location, job type, salary, description
+- [x] Pagination support with next-page selector and max pages limit
+- [x] Server-side validation for required fields
+- [x] Relative URL resolution against current page (handles ./path and ../path)
+- [x] GenericScraper is default for new sources
+
+**Key Files:**
+- `backend/scraper/sources/generic.py` - GenericScraper implementation
+- `backend/app/templates/admin/configure_source.html` - Configuration form
+- `backend/app/routers/admin.py` - Configure endpoints (GET/POST)
+- `backend/app/models/scrape_source.py` - Selector fields
+- `backend/alembic/versions/005_add_generic_scraper_fields.py` - Migration
+
+**ScrapeSource Selector Fields:**
+- `listing_url` - Page containing job listings (defaults to base_url)
+- `selector_job_container` - CSS selector for each job's container element
+- `selector_title` - CSS selector for job title within container
+- `selector_url` - CSS selector for job link within container
+- `selector_organization` - CSS selector for organization name
+- `selector_location` - CSS selector for location
+- `selector_job_type` - CSS selector for job type
+- `selector_salary` - CSS selector for salary info
+- `selector_description` - CSS selector for description
+- `url_attribute` - Attribute to extract URL from (default: "href")
+- `selector_next_page` - CSS selector for pagination next link
+- `max_pages` - Maximum pages to scrape (default: 10)
+
+**How to Add a New Job Source:**
+1. Go to Admin Dashboard → Add Scrape Source
+2. Enter source name and base URL
+3. Click "Configure" on the new source
+4. Use browser DevTools to inspect the job listing page
+5. Enter CSS selectors for job container, title, and URL (required)
+6. Optionally add selectors for organization, location, salary, etc.
+7. Save configuration and click "Scrape" to test
+
+**API Endpoints:**
+- GET `/admin/sources/{id}/configure` - Configuration page
+- POST `/admin/sources/{id}/configure` - Save configuration
+
 ## Remaining Work
 
 ### Scrapers (Phase 2)
-- No concrete scrapers exist yet - user will provide URLs to scrape
+- GenericScraper is ready - configure sources via admin panel
 - Scheduler runs in production (noon/midnight Alaska time)
+- Add job sources by configuring CSS selectors in admin
 
 ## Database Schema
 
@@ -258,6 +303,11 @@ ADMIN_EMAIL=michael.buckingham74@gmail.com
 ### scrape_sources
 - id, name, base_url, scraper_class
 - is_active, last_scraped_at, last_scrape_success, created_at
+- listing_url (GenericScraper: page containing job listings)
+- selector_job_container, selector_title, selector_url (required for GenericScraper)
+- selector_organization, selector_location, selector_job_type
+- selector_salary, selector_description
+- url_attribute, selector_next_page, max_pages
 
 ## Environment Variables
 

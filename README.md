@@ -36,6 +36,20 @@ We respect `robots.txt` and identify ourselves as `FarReachJobsBot/1.0`.
 - **Scraping:** httpx + BeautifulSoup + APScheduler
 - **Deployment:** Docker Compose with Nginx Proxy Manager
 
+## Adding Job Sources (Admin)
+
+Far Reach Jobs uses a configurable scraper system. New job sources can be added via the admin panel without writing code:
+
+1. Go to Admin Dashboard → Add Scrape Source
+2. Enter the source name and base URL
+3. Click "Configure" on the new source
+4. Use browser DevTools to inspect the job listing page structure
+5. Enter CSS selectors for job container, title, and URL (required)
+6. Optionally add selectors for organization, location, salary, etc.
+7. Save configuration and click "Scrape" to test
+
+The scraper respects `robots.txt` rules and uses crawl delays when specified.
+
 ## For Employers
 
 If you're an employer in remote Alaska and want your jobs included, or if you'd like to be excluded from scraping, please open an issue or contact us.
