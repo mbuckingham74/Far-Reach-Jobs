@@ -14,6 +14,7 @@ class ScrapeSource(Base):
     scraper_class = Column(String(255), nullable=False)
     is_active = Column(Boolean, default=True)
     last_scraped_at = Column(DateTime, nullable=True)
+    last_scrape_success = Column(Boolean, nullable=True)  # True=success, False=fail, None=never run
     created_at = Column(DateTime, server_default=func.now())
 
     jobs = relationship("Job", back_populates="source", cascade="all, delete-orphan")

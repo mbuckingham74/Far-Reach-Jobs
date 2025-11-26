@@ -23,7 +23,7 @@ Job aggregator for Alaska bush communities and extremely rural US towns (pop < 1
 - Docker Compose configuration
 - FastAPI app structure with health check
 - SQLAlchemy models: User, Job, SavedJob, ScrapeSource
-- Alembic migrations (001: initial schema, 002: verification token expiry)
+- Alembic migrations (001: initial schema, 002: verification token expiry, 003: scrape logs, 004: last_scrape_success)
 - APScheduler setup (noon/midnight Alaska time)
 
 **Key Files:**
@@ -212,6 +212,25 @@ ADMIN_EMAIL=michael.buckingham74@gmail.com
 - Failed email sends return actionable message instead of silent pass
 - HTMX callers get "Error - Retry" button instead of broken UI on DB failures
 
+### Phase 1L: Single-Source Scraping ✅
+- [x] "Scrape" button for each source in admin panel (blue, next to Delete)
+- [x] Single-source scrape endpoint with HTMX integration
+- [x] `last_scrape_success` field tracks success/fail status per source
+- [x] Success/Failed badge displayed under Last Scraped timestamp
+- [x] Single-source scrapes logged to scrape history
+- [x] Email notifications sent for single-source scrapes
+- [x] Edge cases handled: unknown scraper class, catastrophic failures
+
+**Key Files:**
+- `backend/app/routers/admin.py` - `trigger_single_source_scrape()` endpoint
+- `backend/app/models/scrape_source.py` - `last_scrape_success` field
+- `backend/app/templates/admin/partials/source_list.html` - Scrape button and status badge
+- `backend/scraper/runner.py` - Status tracking in `run_scraper()` and `run_all_scrapers()`
+- `backend/alembic/versions/004_add_last_scrape_success.py` - Migration
+
+**API Endpoints:**
+- POST `/admin/sources/{id}/scrape` - Trigger scrape for single source
+
 ## Remaining Work
 
 ### Scrapers (Phase 2)
@@ -238,7 +257,7 @@ ADMIN_EMAIL=michael.buckingham74@gmail.com
 
 ### scrape_sources
 - id, name, base_url, scraper_class
-- is_active, last_scraped_at, created_at
+- is_active, last_scraped_at, last_scrape_success, created_at
 
 ## Environment Variables
 
@@ -330,7 +349,7 @@ ADMIN_EMAIL=<email>  # Receives scrape notification emails
 3. ✅ MySQL container auto-creates database and user
 4. ✅ docker-compose.yml joins NPM network
 5. ✅ `docker compose up -d --build`
-6. ✅ Alembic migrations applied (001, 002)
+6. ✅ Alembic migrations applied (001, 002, 003, 004)
 7. ✅ NPM proxy host configured with SSL
 8. ✅ Health endpoint verified: https://far-reach-jobs.tachyonfuture.com/api/health
 
