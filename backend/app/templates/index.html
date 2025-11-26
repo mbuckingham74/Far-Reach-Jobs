@@ -4,12 +4,12 @@
 
 {% block content %}
 <div class="mb-6 sm:mb-8">
-    <h2 class="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Find Jobs in Remote Communities</h2>
-    <p class="text-gray-600">Discover job opportunities in Alaska bush communities and rural US towns.</p>
+    <h2 class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-2">Find Jobs in Remote Communities</h2>
+    <p class="text-gray-600 dark:text-gray-300">Discover job opportunities in Alaska bush communities and rural US towns.</p>
 </div>
 
 <!-- Search and Filters -->
-<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6 mb-6">
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 sm:p-6 mb-6 transition-colors">
     <form id="job-filters"
           hx-get="/api/jobs"
           hx-target="#job-list"
@@ -17,22 +17,22 @@
           hx-indicator="#job-list-container">
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             <div>
-                <label for="q" class="block text-sm font-medium text-gray-700 mb-1">Search</label>
+                <label for="q" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Search</label>
                 <input type="text" id="q" name="q" placeholder="Job title, keywords..."
                        hx-get="/api/jobs"
                        hx-target="#job-list"
                        hx-trigger="keyup changed delay:400ms"
                        hx-include="#job-filters"
-                       class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                       class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white dark:bg-gray-700 dark:text-white dark:placeholder-gray-400">
             </div>
             <div>
-                <label for="state" class="block text-sm font-medium text-gray-700 mb-1">State</label>
+                <label for="state" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">State</label>
                 <select id="state" name="state"
                         hx-get="/api/jobs"
                         hx-target="#job-list"
                         hx-trigger="change"
                         hx-include="#job-filters"
-                        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white">
+                        class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white dark:bg-gray-700 dark:text-white">
                     <option value="">All States</option>
                     <option value="AK">Alaska</option>
                     <option value="AL">Alabama</option>
@@ -51,13 +51,13 @@
                 </select>
             </div>
             <div>
-                <label for="job_type" class="block text-sm font-medium text-gray-700 mb-1">Job Type</label>
+                <label for="job_type" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Job Type</label>
                 <select id="job_type" name="job_type"
                         hx-get="/api/jobs"
                         hx-target="#job-list"
                         hx-trigger="change"
                         hx-include="#job-filters"
-                        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white">
+                        class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white dark:bg-gray-700 dark:text-white">
                     <option value="">All Types</option>
                     <option value="full-time">Full-time</option>
                     <option value="part-time">Part-time</option>
@@ -71,7 +71,7 @@
             <button type="submit" class="w-full sm:w-auto px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-md transition-colors">
                 Search
             </button>
-            <button type="button" onclick="clearFilters()" class="w-full sm:w-auto px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-md transition-colors">
+            <button type="button" onclick="clearFilters()" class="w-full sm:w-auto px-4 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 font-medium rounded-md transition-colors">
                 Clear Filters
             </button>
         </div>
@@ -82,8 +82,8 @@
 <div id="job-list-container">
     <!-- Loading indicator -->
     <div id="loading-indicator" class="htmx-indicator text-center py-12">
-        <div class="inline-block w-8 h-8 border-4 border-gray-200 border-t-primary-600 rounded-full animate-spin"></div>
-        <p class="mt-3 text-gray-500">Loading jobs...</p>
+        <div class="inline-block w-8 h-8 border-4 border-gray-200 dark:border-gray-700 border-t-primary-600 rounded-full animate-spin"></div>
+        <p class="mt-3 text-gray-500 dark:text-gray-400">Loading jobs...</p>
     </div>
 
     <!-- Job Listings -->

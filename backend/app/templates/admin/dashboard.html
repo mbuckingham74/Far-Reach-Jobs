@@ -5,8 +5,8 @@
 {% block content %}
 <div class="mb-6 flex justify-between items-center">
     <div>
-        <h2 class="text-2xl font-bold text-gray-900">Admin Dashboard</h2>
-        <p class="text-gray-600">Manage scrape sources and monitor job data</p>
+        <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Admin Dashboard</h2>
+        <p class="text-gray-600 dark:text-gray-300">Manage scrape sources and monitor job data</p>
     </div>
     <form method="post" action="/admin/logout">
         <button type="submit" class="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white font-medium rounded-md transition-colors">
@@ -17,23 +17,23 @@
 
 <!-- Stats -->
 <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 transition-colors">
         <div class="text-3xl font-bold text-primary-600">{{ sources|length }}</div>
-        <div class="text-gray-600">Scrape Sources</div>
+        <div class="text-gray-600 dark:text-gray-400">Scrape Sources</div>
     </div>
-    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-        <div class="text-3xl font-bold text-green-600">{{ job_count }}</div>
-        <div class="text-gray-600">Active Jobs</div>
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 transition-colors">
+        <div class="text-3xl font-bold text-green-600 dark:text-green-500">{{ job_count }}</div>
+        <div class="text-gray-600 dark:text-gray-400">Active Jobs</div>
     </div>
-    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-        <div class="text-3xl font-bold text-amber-600">{{ stale_count }}</div>
-        <div class="text-gray-600">Stale Jobs</div>
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 transition-colors">
+        <div class="text-3xl font-bold text-amber-600 dark:text-amber-500">{{ stale_count }}</div>
+        <div class="text-gray-600 dark:text-gray-400">Stale Jobs</div>
     </div>
 </div>
 
 <!-- Manual Scrape -->
-<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
-    <h3 class="text-lg font-semibold mb-4">Manual Scrape</h3>
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-8 transition-colors">
+    <h3 class="text-lg font-semibold dark:text-white mb-4">Manual Scrape</h3>
     <div id="scrape-result"></div>
     <button
         class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-md transition-colors"
@@ -44,14 +44,14 @@
         <span id="scrape-spinner" class="htmx-indicator inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></span>
         Run Scraper Now
     </button>
-    <p class="text-sm text-gray-500 mt-2">
+    <p class="text-sm text-gray-500 dark:text-gray-400 mt-2">
         Scheduled scrapes run at noon and midnight Alaska time.
     </p>
 </div>
 
 <!-- Add Source Form -->
-<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
-    <h3 class="text-lg font-semibold mb-4">Add Scrape Source</h3>
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-8 transition-colors">
+    <h3 class="text-lg font-semibold dark:text-white mb-4">Add Scrape Source</h3>
     <form id="add-source-form" hx-post="/admin/sources" hx-target="#source-list" hx-swap="innerHTML" class="space-y-4">
     <script>
         document.body.addEventListener('sourceCreated', function() {
@@ -60,24 +60,24 @@
     </script>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-                <label for="name" class="block text-sm font-medium text-gray-700 mb-1">Source Name</label>
+                <label for="name" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Source Name</label>
                 <input type="text" id="name" name="name" required placeholder="e.g., City of Bethel"
-                       class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                       class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white dark:bg-gray-700 dark:text-white dark:placeholder-gray-400">
             </div>
             <div>
-                <label for="base_url" class="block text-sm font-medium text-gray-700 mb-1">Jobs Page URL</label>
+                <label for="base_url" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Jobs Page URL</label>
                 <input type="url" id="base_url" name="base_url" required placeholder="https://example.com/jobs"
-                       class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                       class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white dark:bg-gray-700 dark:text-white dark:placeholder-gray-400">
             </div>
         </div>
         <div>
-            <label for="scraper_class" class="block text-sm font-medium text-gray-700 mb-1">Scraper Type</label>
+            <label for="scraper_class" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Scraper Type</label>
             <select id="scraper_class" name="scraper_class"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                    class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white dark:bg-gray-700 dark:text-white">
                 <option value="GenericScraper">Generic (auto-detect job links)</option>
                 <option value="CustomScraper">Custom (requires code)</option>
             </select>
-            <p class="text-sm text-gray-500 mt-1">Generic scraper attempts to find job listings automatically. Custom scrapers need implementation in code.</p>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Generic scraper attempts to find job listings automatically. Custom scrapers need implementation in code.</p>
         </div>
         <button type="submit" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-md transition-colors">
             Add Source
@@ -86,10 +86,10 @@
 </div>
 
 <!-- Source List -->
-<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-    <h3 class="text-lg font-semibold mb-4">Scrape Sources</h3>
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 transition-colors">
+    <h3 class="text-lg font-semibold dark:text-white mb-4">Scrape Sources</h3>
     <div id="source-list" hx-get="/admin/sources" hx-trigger="load">
-        <div class="text-center py-8 text-gray-500">Loading sources...</div>
+        <div class="text-center py-8 text-gray-500 dark:text-gray-400">Loading sources...</div>
     </div>
 </div>
 {% endblock %}
