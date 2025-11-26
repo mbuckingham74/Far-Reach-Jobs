@@ -192,12 +192,35 @@ async def trigger_scrape(request: Request, db: Session = Depends(get_db)):
     from scraper.runner import run_all_scrapers
 
     try:
-        result = run_all_scrapers(db)
+        # Get active sources
+        sources = db.query(ScrapeSource).filter(ScrapeSource.is_active == True).all()
+        if not sources:
+            return templates.TemplateResponse(
+                "admin/partials/scrape_result.html",
+                {"request": request, "error": "No active scrape sources configured", "success": False},
+            )
+
+        # Run scrapers - returns list of ScrapeResult
+        results = run_all_scrapers(db, sources)
+
+        # Commit the changes made by scrapers
+        db.commit()
+
+        # Aggregate results for display
+        aggregate = {
+            "sources_processed": len(results),
+            "jobs_found": sum(r.jobs_found for r in results),
+            "jobs_new": sum(r.jobs_new for r in results),
+            "jobs_updated": sum(r.jobs_updated for r in results),
+            "errors": [e for r in results for e in r.errors],
+        }
+
         return templates.TemplateResponse(
             "admin/partials/scrape_result.html",
-            {"request": request, "result": result, "success": True},
+            {"request": request, "result": aggregate, "success": True},
         )
     except Exception as e:
+        db.rollback()
         return templates.TemplateResponse(
             "admin/partials/scrape_result.html",
             {"request": request, "error": str(e), "success": False},

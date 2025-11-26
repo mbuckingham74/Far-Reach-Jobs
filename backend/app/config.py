@@ -32,14 +32,20 @@ class Settings(BaseSettings):
     admin_password: str = "changeme"
 
     @model_validator(mode="after")
-    def validate_secret_key(self) -> "Settings":
-        """Ensure secret_key is set properly in non-development environments."""
+    def validate_secrets(self) -> "Settings":
+        """Ensure secrets are set properly in non-development environments."""
         weak_keys = {"change-me-in-production", "", "secret", "changeme"}
-        if self.environment != "development" and self.secret_key in weak_keys:
-            raise ValueError(
-                f"SECRET_KEY must be set to a secure value in {self.environment} environment. "
-                "Generate one with: openssl rand -hex 32"
-            )
+        if self.environment != "development":
+            if self.secret_key in weak_keys:
+                raise ValueError(
+                    f"SECRET_KEY must be set to a secure value in {self.environment} environment. "
+                    "Generate one with: openssl rand -hex 32"
+                )
+            weak_admin_creds = {"admin", "changeme", "password", ""}
+            if self.admin_username in weak_admin_creds or self.admin_password in weak_admin_creds:
+                raise ValueError(
+                    f"ADMIN_USERNAME and ADMIN_PASSWORD must be set to secure values in {self.environment} environment."
+                )
         return self
 
     @property

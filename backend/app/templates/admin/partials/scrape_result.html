@@ -4,11 +4,23 @@
     {% if result %}
     <ul class="text-sm space-y-1">
         <li>Sources processed: {{ result.sources_processed }}</li>
-        <li>New jobs found: {{ result.jobs_created }}</li>
+        <li>Jobs found: {{ result.jobs_found }}</li>
+        <li>New jobs: {{ result.jobs_new }}</li>
         <li>Jobs updated: {{ result.jobs_updated }}</li>
-        <li>Jobs marked stale: {{ result.jobs_stale }}</li>
-        <li>Jobs deleted: {{ result.jobs_deleted }}</li>
     </ul>
+    {% if result.errors %}
+    <div class="mt-3 pt-3 border-t border-green-200">
+        <p class="font-medium text-amber-700">Warnings ({{ result.errors|length }}):</p>
+        <ul class="text-xs text-amber-600 mt-1 space-y-1">
+            {% for error in result.errors[:5] %}
+            <li>{{ error }}</li>
+            {% endfor %}
+            {% if result.errors|length > 5 %}
+            <li>...and {{ result.errors|length - 5 }} more</li>
+            {% endif %}
+        </ul>
+    </div>
+    {% endif %}
     {% endif %}
 </div>
 {% else %}
