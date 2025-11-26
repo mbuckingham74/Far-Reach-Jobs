@@ -1,6 +1,6 @@
 # Far Reach Jobs
 
-A job aggregator for remote Alaskan communities, bush villages, and tribal organizations. Find opportunities in places most job boards don't reach.
+An ethical job aggregator for remote Alaskan communities, bush villages, and tribal organizations. Find opportunities in places most job boards don't reach.
 
 **Live site:** [far-reach-jobs.tachyonfuture.com](https://far-reach-jobs.tachyonfuture.com/)
 
