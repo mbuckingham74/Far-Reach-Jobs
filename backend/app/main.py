@@ -1,7 +1,10 @@
+import logging
 import os
 from pathlib import Path
 
 from fastapi import FastAPI, Request
+
+logger = logging.getLogger(__name__)
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse
@@ -130,6 +133,14 @@ async def http_exception_handler(request: Request, exc: StarletteHTTPException):
 async def general_exception_handler(request: Request, exc: Exception):
     """Handle unexpected exceptions with 500 error page or JSON for API."""
     from fastapi.responses import JSONResponse
+
+    # Log the exception with request context for debugging
+    logger.exception(
+        "Unhandled exception: %s %s",
+        request.method,
+        request.url.path,
+        exc_info=exc,
+    )
 
     if _wants_json(request):
         return JSONResponse(

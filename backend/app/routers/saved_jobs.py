@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
@@ -6,6 +8,7 @@ from app.database import get_db
 from app.dependencies import get_current_user
 from app.models import Job, SavedJob, User
 
+logger = logging.getLogger(__name__)
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
 
@@ -94,7 +97,20 @@ def save_job(
     # Save the job
     saved_job = SavedJob(user_id=user.id, job_id=job_id)
     db.add(saved_job)
-    db.commit()
+    try:
+        db.commit()
+    except Exception:
+        db.rollback()
+        logger.exception("Failed to save job %d for user %d", job_id, user.id)
+        if request.headers.get("HX-Request"):
+            return templates.TemplateResponse(
+                "partials/save_button_error.html",
+                {"request": request, "job": job, "action": "save"},
+            )
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Unable to save job. Please try again.",
+        )
 
     if request.headers.get("HX-Request"):
         return templates.TemplateResponse(
@@ -157,7 +173,20 @@ def unsave_job(
     job = saved_job.job
 
     db.delete(saved_job)
-    db.commit()
+    try:
+        db.commit()
+    except Exception:
+        db.rollback()
+        logger.exception("Failed to unsave job %d for user %d", job_id, user.id)
+        if request.headers.get("HX-Request"):
+            return templates.TemplateResponse(
+                "partials/save_button_error.html",
+                {"request": request, "job": job, "action": "unsave"},
+            )
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Unable to remove saved job. Please try again.",
+        )
 
     if request.headers.get("HX-Request"):
         if is_from_saved_page:

@@ -1,0 +1,12 @@
+{% set action = action if action is defined else "save" %}
+<button
+    class="flex-1 sm:flex-none text-center px-4 py-2 bg-yellow-600 hover:bg-yellow-700 text-white font-medium rounded-md transition-colors cursor-pointer"
+    {% if action == "save" %}
+    hx-post="/api/saved-jobs/{{ job.id }}"
+    {% else %}
+    hx-delete="/api/saved-jobs/{{ job.id }}"
+    {% endif %}
+    hx-swap="outerHTML"
+    title="Click to retry">
+    Error - Retry
+</button>
