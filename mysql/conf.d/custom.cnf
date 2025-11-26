@@ -10,22 +10,16 @@ innodb_log_file_size = 128M
 # Trades tiny durability risk for much better bulk insert performance
 innodb_flush_log_at_trx_commit = 2
 
-# Allow more concurrent connections (default 151 is fine, but bump slightly)
-max_connections = 200
+# Keep default max_connections (151) - our app uses a small connection pool
+# Per-connection buffers kept conservative to avoid memory bloat
+sort_buffer_size = 1M
+join_buffer_size = 1M
 
-# Increase sort/join buffers for complex queries
-sort_buffer_size = 4M
-join_buffer_size = 4M
+# Temp table size for in-memory temp tables (modest increase)
+tmp_table_size = 32M
+max_heap_table_size = 32M
 
-# Temp table size for in-memory temp tables
-tmp_table_size = 64M
-max_heap_table_size = 64M
-
-# Query cache is deprecated in MySQL 8, but ensure it's off
-# (already disabled by default, but explicit)
-# query_cache_type = 0
-
-# Slow query logging for debugging performance issues
-slow_query_log = 1
-slow_query_log_file = /var/lib/mysql/slow-queries.log
+# Slow query logging disabled by default to avoid unbounded log growth
+# Enable temporarily for debugging: SET GLOBAL slow_query_log = 1;
+slow_query_log = 0
 long_query_time = 2
