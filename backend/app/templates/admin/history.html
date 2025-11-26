@@ -121,7 +121,8 @@
                         {% if log.errors %}
                         <button type="button"
                                 class="text-red-600 dark:text-red-400 hover:underline cursor-pointer"
-                                onclick="showErrorModal({{ log.errors | tojson }})">
+                                data-errors="{{ log.errors | e }}"
+                                onclick="showErrorModal(this.dataset.errors)">
                             View Errors
                         </button>
                         {% else %}
