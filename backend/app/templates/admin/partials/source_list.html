@@ -20,7 +20,7 @@
                 <th class="px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-300">Type</th>
                 <th class="px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-300">Status</th>
                 <th class="px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-300">Last Scraped</th>
-                <th class="px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-300">Actions</th>
+                <th class="px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-300 text-center">Actions</th>
             </tr>
         </thead>
         <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
@@ -68,7 +68,7 @@
                     {% endif %}
                 </td>
                 <td class="px-4 py-3">
-                    <div class="flex gap-2">
+                    <div class="flex gap-2 justify-center">
                         <button
                             class="px-3 py-1 text-sm {% if source.is_active %}bg-amber-500 hover:bg-amber-600{% else %}bg-green-500 hover:bg-green-600{% endif %} text-white rounded transition-colors"
                             hx-post="/admin/sources/{{ source.id }}/toggle"
@@ -85,13 +85,13 @@
                             Delete
                         </button>
                         <button
-                            class="px-3 py-1 text-sm bg-blue-500 hover:bg-blue-600 text-white rounded transition-colors"
+                            class="px-3 py-1 text-sm bg-blue-500 hover:bg-blue-600 text-white rounded transition-colors inline-flex items-center"
                             hx-post="/admin/sources/{{ source.id }}/scrape"
                             hx-target="#source-list"
                             hx-swap="innerHTML"
                             hx-indicator="#scrape-indicator-{{ source.id }}"
                             hx-confirm="Run scrape for '{{ source.name }}'?">
-                            <span id="scrape-indicator-{{ source.id }}" class="htmx-indicator inline-block w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin mr-1"></span>
+                            <span id="scrape-indicator-{{ source.id }}" class="htmx-indicator w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin mr-1"></span>
                             Scrape
                         </button>
                     </div>
