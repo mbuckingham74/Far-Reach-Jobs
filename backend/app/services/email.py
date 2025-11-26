@@ -1,3 +1,4 @@
+import html
 import logging
 import smtplib
 from dataclasses import dataclass
@@ -101,7 +102,7 @@ def _send_email(to_email: str, subject: str, html_body: str, text_body: str) -> 
             server.starttls()
             server.login(settings.smtp_user, settings.smtp_password)
             server.send_message(msg)
-        logger.info(f"Verification email sent to {to_email}")
+        logger.info(f"Email sent to {to_email}: {subject[:50]}")
         return True
     except Exception as e:
         logger.error(f"Failed to send email to {to_email}: {e}")
@@ -137,9 +138,9 @@ def send_scrape_notification(data: ScrapeNotificationData) -> bool:
     if data.errors:
         error_rows = ""
         for source, error in data.errors:
-            # Escape HTML in error messages
-            safe_source = source.replace("<", "&lt;").replace(">", "&gt;")
-            safe_error = error.replace("<", "&lt;").replace(">", "&gt;")
+            # Escape HTML in error messages (handles <, >, &, quotes)
+            safe_source = html.escape(source)
+            safe_error = html.escape(error)
             error_rows += f"""
                 <tr>
                     <td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0; font-size: 13px; word-break: break-word;">{safe_source}</td>

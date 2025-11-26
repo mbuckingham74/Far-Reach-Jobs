@@ -135,8 +135,9 @@ def start_scheduler():
     Uses America/Anchorage timezone for Alaska-centric scheduling.
     Noon and midnight in Alaska time (handles DST automatically).
 
-    Note: Stale job cleanup runs as part of each scrape run to track
-    jobs_removed count for the notification email.
+    Cleanup runs both:
+    - As part of each scrape run (to get jobs_removed count for notification)
+    - Independently 30 min after scrapes (in case scrapers are disabled/failing)
     """
     global scheduler
     scheduler = BackgroundScheduler()
@@ -154,6 +155,22 @@ def start_scheduler():
         run_scrapers,
         CronTrigger(hour=12, minute=0, timezone=alaska_tz),  # Noon Alaska
         id="scrape_noon",
+        replace_existing=True,
+    )
+
+    # Independent cleanup jobs - ensures stale jobs are cleaned even if
+    # scrapers are disabled or failing. The cleanup function is idempotent
+    # so running it twice (once in scraper, once here) is safe.
+    scheduler.add_job(
+        cleanup_stale_jobs,
+        CronTrigger(hour=0, minute=30, timezone=alaska_tz),
+        id="cleanup_midnight",
+        replace_existing=True,
+    )
+    scheduler.add_job(
+        cleanup_stale_jobs,
+        CronTrigger(hour=12, minute=30, timezone=alaska_tz),
+        id="cleanup_noon",
         replace_existing=True,
     )
 
