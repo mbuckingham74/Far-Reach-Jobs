@@ -1,11 +1,12 @@
 import importlib
+import json
 import logging
 import time
 from datetime import datetime, timezone
 
 from sqlalchemy.orm import Session
 
-from app.models import Job, ScrapeSource
+from app.models import Job, ScrapeSource, ScrapeLog
 from scraper.base import BaseScraper, ScrapedJob, ScrapeResult
 
 logger = logging.getLogger(__name__)
@@ -137,14 +138,41 @@ def upsert_job(db: Session, source_id: int, scraped_job: ScrapedJob, seen_ids: s
         return (True, False)
 
 
-def run_scraper(db: Session, source: ScrapeSource) -> ScrapeResult:
+def log_scrape_result(
+    db: Session,
+    source: ScrapeSource,
+    result: ScrapeResult,
+    trigger_type: str,
+    started_at: datetime,
+) -> ScrapeLog:
+    """Log a scrape result to the database."""
+    log = ScrapeLog(
+        source_id=source.id,
+        source_name=source.name,
+        trigger_type=trigger_type,
+        started_at=started_at,
+        completed_at=datetime.now(timezone.utc),
+        duration_seconds=int(result.duration_seconds),
+        success=len(result.errors) == 0,
+        jobs_found=result.jobs_found,
+        jobs_added=result.jobs_new,
+        jobs_updated=result.jobs_updated,
+        jobs_removed=0,  # TODO: track when stale jobs are cleaned up
+        errors=json.dumps(result.errors) if result.errors else None,
+    )
+    db.add(log)
+    return log
+
+
+def run_scraper(db: Session, source: ScrapeSource, trigger_type: str = "manual") -> ScrapeResult:
     """Run a single scraper and upsert jobs to database."""
     start_time = time.time()
+    started_at = datetime.now(timezone.utc)
 
     # Get the scraper class
     scraper_class = get_scraper_class(source.scraper_class)
     if scraper_class is None:
-        return ScrapeResult(
+        result = ScrapeResult(
             source_name=source.name,
             jobs_found=0,
             jobs_new=0,
@@ -153,6 +181,8 @@ def run_scraper(db: Session, source: ScrapeSource) -> ScrapeResult:
                     "Ensure the scraper is decorated with @register_scraper and imported in scraper/sources/__init__.py"],
             duration_seconds=0,
         )
+        log_scrape_result(db, source, result, trigger_type, started_at)
+        return result
 
     jobs_new = 0
     jobs_updated = 0
@@ -192,7 +222,7 @@ def run_scraper(db: Session, source: ScrapeSource) -> ScrapeResult:
         f"{jobs_unchanged} unchanged, {len(all_errors)} errors in {duration:.1f}s"
     )
 
-    return ScrapeResult(
+    result = ScrapeResult(
         source_name=source.name,
         jobs_found=jobs_new + jobs_updated + jobs_unchanged,
         jobs_new=jobs_new,
@@ -201,12 +231,19 @@ def run_scraper(db: Session, source: ScrapeSource) -> ScrapeResult:
         duration_seconds=duration,
     )
 
+    # Log the result to the database
+    log_scrape_result(db, source, result, trigger_type, started_at)
 
-def run_all_scrapers(db: Session, sources: list[ScrapeSource]) -> list[ScrapeResult]:
+    return result
+
+
+def run_all_scrapers(
+    db: Session, sources: list[ScrapeSource], trigger_type: str = "manual"
+) -> list[ScrapeResult]:
     """Run all scrapers for the given sources."""
     results = []
     for source in sources:
         logger.info(f"Running scraper for {source.name}...")
-        result = run_scraper(db, source)
+        result = run_scraper(db, source, trigger_type)
         results.append(result)
     return results
