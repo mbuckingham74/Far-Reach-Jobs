@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, status, Response, Request
@@ -16,6 +17,7 @@ from app.services import (
     send_verification_email,
 )
 
+logger = logging.getLogger(__name__)
 router = APIRouter()
 settings = get_settings()
 
@@ -48,8 +50,16 @@ def register(user_data: UserCreate, db: Session = Depends(get_db)):
         verification_token_created_at=None if auto_verify else datetime.now(timezone.utc),
     )
     db.add(user)
-    db.commit()
-    db.refresh(user)
+    try:
+        db.commit()
+        db.refresh(user)
+    except Exception as e:
+        db.rollback()
+        logger.exception("Failed to create user account for %s", user_data.email)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Unable to create account. Please try again later."
+        )
 
     if auto_verify:
         return MessageResponse(
@@ -59,8 +69,14 @@ def register(user_data: UserCreate, db: Session = Depends(get_db)):
     # Send verification email
     email_sent = send_verification_email(user.email, verification_token)
     if not email_sent:
-        # Log warning but don't fail - user can request new verification email
-        pass
+        logger.warning(
+            "Failed to send verification email to %s - user can request resend",
+            user.email,
+        )
+        return MessageResponse(
+            message="Registration successful, but we couldn't send the verification email. "
+                    "Please use 'Resend verification email' on the login page."
+        )
 
     return MessageResponse(
         message="Registration successful. Please check your email to verify your account."
@@ -128,7 +144,15 @@ def verify_email(token: str, db: Session = Depends(get_db)):
     user.is_verified = True
     user.verification_token = None
     user.verification_token_created_at = None
-    db.commit()
+    try:
+        db.commit()
+    except Exception:
+        db.rollback()
+        logger.exception("Failed to verify user %s", user.email)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Unable to verify account. Please try again later."
+        )
 
     return RedirectResponse(url="/login?message=verified", status_code=302)
 
@@ -157,7 +181,15 @@ def resend_verification(email_data: dict, db: Session = Depends(get_db)):
         verification_token = generate_verification_token()
         user.verification_token = verification_token
         user.verification_token_created_at = datetime.now(timezone.utc)
-        db.commit()
+        try:
+            db.commit()
+        except Exception:
+            db.rollback()
+            logger.exception("Failed to update verification token for %s", user.email)
+            # Return generic message to prevent email enumeration
+            return MessageResponse(
+                message="If an unverified account exists with this email, a verification link has been sent."
+            )
         send_verification_email(user.email, verification_token)
 
     return MessageResponse(

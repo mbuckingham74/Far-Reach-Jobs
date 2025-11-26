@@ -193,6 +193,25 @@ ADMIN_EMAIL=michael.buckingham74@gmail.com
 - Admin routes log full exceptions, show user-friendly messages
 - Catastrophic scraper failures still write ScrapeLog entries
 
+### Phase 1K: Route-Level Error Handling ✅
+- [x] Global exception handler logs exceptions with request context (method, path)
+- [x] Auth routes wrap commits with try/except/rollback (register, verify, resend)
+- [x] Email send failures surface user-friendly message with resend instructions
+- [x] Saved jobs routes wrap commits with try/except/rollback
+- [x] HTMX error partial for graceful save/unsave failure recovery
+
+**Key Files:**
+- `backend/app/main.py` - Global exception handler with logging
+- `backend/app/routers/auth.py` - Protected commits, email failure messaging
+- `backend/app/routers/saved_jobs.py` - Protected commits, HTMX error partials
+- `backend/app/templates/partials/save_button_error.html` - Retry button partial
+
+**Key Changes:**
+- `general_exception_handler()` now calls `logger.exception()` before returning 500
+- All `db.commit()` calls in auth/saved_jobs wrapped with try/except/rollback
+- Failed email sends return actionable message instead of silent pass
+- HTMX callers get "Error - Retry" button instead of broken UI on DB failures
+
 ## Remaining Work
 
 ### Scrapers (Phase 2)
