@@ -4,10 +4,11 @@ AI-powered job listing page analyzer using Claude API.
 Analyzes HTML pages to suggest CSS selectors for the GenericScraper.
 """
 
+import json
 import logging
 import httpx
 from dataclasses import dataclass
-from anthropic import Anthropic
+from anthropic import AsyncAnthropic
 
 from app.config import get_settings
 
@@ -122,10 +123,8 @@ def truncate_html(html: str, max_chars: int = 100000) -> str:
     return truncated + "\n<!-- HTML truncated for analysis -->"
 
 
-def analyze_with_claude(html: str) -> SelectorSuggestions:
+async def analyze_with_claude(html: str) -> SelectorSuggestions:
     """Send HTML to Claude for analysis and get selector suggestions."""
-    import json
-
     settings = get_settings()
 
     if not settings.anthropic_api_key:
@@ -135,14 +134,14 @@ def analyze_with_claude(html: str) -> SelectorSuggestions:
             error="ANTHROPIC_API_KEY not set in environment"
         )
 
-    client = Anthropic(api_key=settings.anthropic_api_key)
+    client = AsyncAnthropic(api_key=settings.anthropic_api_key)
 
     # Truncate HTML to avoid token limits
     truncated_html = truncate_html(html)
 
     try:
-        message = client.messages.create(
-            model="claude-sonnet-4-20250514",
+        message = await client.messages.create(
+            model="claude-sonnet-4-5-20250514",
             max_tokens=2000,
             messages=[
                 {
@@ -209,7 +208,7 @@ async def analyze_job_page(url: str) -> SelectorSuggestions:
     """
     try:
         html = await fetch_page_html(url)
-        return analyze_with_claude(html)
+        return await analyze_with_claude(html)
     except httpx.HTTPStatusError as e:
         logger.error(f"HTTP error fetching {url}: {e}")
         return SelectorSuggestions(

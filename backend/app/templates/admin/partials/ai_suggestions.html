@@ -76,9 +76,9 @@
             {% if suggestions.job_container %}
             <div class="flex items-center gap-2">
                 <label class="text-sm text-gray-600 dark:text-gray-400 w-32">Job Container:</label>
-                <code class="flex-1 px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded text-sm font-mono text-gray-800 dark:text-gray-200">{{ suggestions.job_container }}</code>
-                <button type="button" onclick="applySelector('selector_job_container', '{{ suggestions.job_container }}')"
-                        class="px-2 py-1 text-xs bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 rounded hover:bg-purple-200 dark:hover:bg-purple-800 transition-colors">
+                <code class="flex-1 px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded text-sm font-mono text-gray-800 dark:text-gray-200 selector-value">{{ suggestions.job_container }}</code>
+                <button type="button" class="apply-btn px-2 py-1 text-xs bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 rounded hover:bg-purple-200 dark:hover:bg-purple-800 transition-colors"
+                        data-target="selector_job_container">
                     Apply
                 </button>
             </div>
@@ -86,9 +86,9 @@
             {% if suggestions.title %}
             <div class="flex items-center gap-2">
                 <label class="text-sm text-gray-600 dark:text-gray-400 w-32">Title:</label>
-                <code class="flex-1 px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded text-sm font-mono text-gray-800 dark:text-gray-200">{{ suggestions.title }}</code>
-                <button type="button" onclick="applySelector('selector_title', '{{ suggestions.title }}')"
-                        class="px-2 py-1 text-xs bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 rounded hover:bg-purple-200 dark:hover:bg-purple-800 transition-colors">
+                <code class="flex-1 px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded text-sm font-mono text-gray-800 dark:text-gray-200 selector-value">{{ suggestions.title }}</code>
+                <button type="button" class="apply-btn px-2 py-1 text-xs bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 rounded hover:bg-purple-200 dark:hover:bg-purple-800 transition-colors"
+                        data-target="selector_title">
                     Apply
                 </button>
             </div>
@@ -96,9 +96,9 @@
             {% if suggestions.url %}
             <div class="flex items-center gap-2">
                 <label class="text-sm text-gray-600 dark:text-gray-400 w-32">URL Link:</label>
-                <code class="flex-1 px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded text-sm font-mono text-gray-800 dark:text-gray-200">{{ suggestions.url }}</code>
-                <button type="button" onclick="applySelector('selector_url', '{{ suggestions.url }}')"
-                        class="px-2 py-1 text-xs bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 rounded hover:bg-purple-200 dark:hover:bg-purple-800 transition-colors">
+                <code class="flex-1 px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded text-sm font-mono text-gray-800 dark:text-gray-200 selector-value">{{ suggestions.url }}</code>
+                <button type="button" class="apply-btn px-2 py-1 text-xs bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 rounded hover:bg-purple-200 dark:hover:bg-purple-800 transition-colors"
+                        data-target="selector_url">
                     Apply
                 </button>
             </div>
@@ -106,9 +106,9 @@
             {% if suggestions.url_attribute and suggestions.url_attribute != 'href' %}
             <div class="flex items-center gap-2">
                 <label class="text-sm text-gray-600 dark:text-gray-400 w-32">URL Attribute:</label>
-                <code class="flex-1 px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded text-sm font-mono text-gray-800 dark:text-gray-200">{{ suggestions.url_attribute }}</code>
-                <button type="button" onclick="applySelector('url_attribute', '{{ suggestions.url_attribute }}')"
-                        class="px-2 py-1 text-xs bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 rounded hover:bg-purple-200 dark:hover:bg-purple-800 transition-colors">
+                <code class="flex-1 px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded text-sm font-mono text-gray-800 dark:text-gray-200 selector-value">{{ suggestions.url_attribute }}</code>
+                <button type="button" class="apply-btn px-2 py-1 text-xs bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 rounded hover:bg-purple-200 dark:hover:bg-purple-800 transition-colors"
+                        data-target="url_attribute">
                     Apply
                 </button>
             </div>
@@ -122,9 +122,9 @@
             {% if suggestions.organization %}
             <div class="flex items-center gap-2">
                 <label class="text-sm text-gray-600 dark:text-gray-400 w-32">Organization:</label>
-                <code class="flex-1 px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded text-sm font-mono text-gray-800 dark:text-gray-200">{{ suggestions.organization }}</code>
-                <button type="button" onclick="applySelector('selector_organization', '{{ suggestions.organization }}')"
-                        class="px-2 py-1 text-xs bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 rounded hover:bg-purple-200 dark:hover:bg-purple-800 transition-colors">
+                <code class="flex-1 px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded text-sm font-mono text-gray-800 dark:text-gray-200 selector-value">{{ suggestions.organization }}</code>
+                <button type="button" class="apply-btn px-2 py-1 text-xs bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 rounded hover:bg-purple-200 dark:hover:bg-purple-800 transition-colors"
+                        data-target="selector_organization">
                     Apply
                 </button>
             </div>
@@ -132,9 +132,9 @@
             {% if suggestions.location %}
             <div class="flex items-center gap-2">
                 <label class="text-sm text-gray-600 dark:text-gray-400 w-32">Location:</label>
-                <code class="flex-1 px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded text-sm font-mono text-gray-800 dark:text-gray-200">{{ suggestions.location }}</code>
-                <button type="button" onclick="applySelector('selector_location', '{{ suggestions.location }}')"
-                        class="px-2 py-1 text-xs bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 rounded hover:bg-purple-200 dark:hover:bg-purple-800 transition-colors">
+                <code class="flex-1 px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded text-sm font-mono text-gray-800 dark:text-gray-200 selector-value">{{ suggestions.location }}</code>
+                <button type="button" class="apply-btn px-2 py-1 text-xs bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 rounded hover:bg-purple-200 dark:hover:bg-purple-800 transition-colors"
+                        data-target="selector_location">
                     Apply
                 </button>
             </div>
@@ -142,9 +142,9 @@
             {% if suggestions.job_type %}
             <div class="flex items-center gap-2">
                 <label class="text-sm text-gray-600 dark:text-gray-400 w-32">Job Type:</label>
-                <code class="flex-1 px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded text-sm font-mono text-gray-800 dark:text-gray-200">{{ suggestions.job_type }}</code>
-                <button type="button" onclick="applySelector('selector_job_type', '{{ suggestions.job_type }}')"
-                        class="px-2 py-1 text-xs bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 rounded hover:bg-purple-200 dark:hover:bg-purple-800 transition-colors">
+                <code class="flex-1 px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded text-sm font-mono text-gray-800 dark:text-gray-200 selector-value">{{ suggestions.job_type }}</code>
+                <button type="button" class="apply-btn px-2 py-1 text-xs bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 rounded hover:bg-purple-200 dark:hover:bg-purple-800 transition-colors"
+                        data-target="selector_job_type">
                     Apply
                 </button>
             </div>
@@ -152,9 +152,9 @@
             {% if suggestions.salary %}
             <div class="flex items-center gap-2">
                 <label class="text-sm text-gray-600 dark:text-gray-400 w-32">Salary:</label>
-                <code class="flex-1 px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded text-sm font-mono text-gray-800 dark:text-gray-200">{{ suggestions.salary }}</code>
-                <button type="button" onclick="applySelector('selector_salary', '{{ suggestions.salary }}')"
-                        class="px-2 py-1 text-xs bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 rounded hover:bg-purple-200 dark:hover:bg-purple-800 transition-colors">
+                <code class="flex-1 px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded text-sm font-mono text-gray-800 dark:text-gray-200 selector-value">{{ suggestions.salary }}</code>
+                <button type="button" class="apply-btn px-2 py-1 text-xs bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 rounded hover:bg-purple-200 dark:hover:bg-purple-800 transition-colors"
+                        data-target="selector_salary">
                     Apply
                 </button>
             </div>
@@ -162,9 +162,9 @@
             {% if suggestions.description %}
             <div class="flex items-center gap-2 sm:col-span-2">
                 <label class="text-sm text-gray-600 dark:text-gray-400 w-32">Description:</label>
-                <code class="flex-1 px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded text-sm font-mono text-gray-800 dark:text-gray-200">{{ suggestions.description }}</code>
-                <button type="button" onclick="applySelector('selector_description', '{{ suggestions.description }}')"
-                        class="px-2 py-1 text-xs bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 rounded hover:bg-purple-200 dark:hover:bg-purple-800 transition-colors">
+                <code class="flex-1 px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded text-sm font-mono text-gray-800 dark:text-gray-200 selector-value">{{ suggestions.description }}</code>
+                <button type="button" class="apply-btn px-2 py-1 text-xs bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 rounded hover:bg-purple-200 dark:hover:bg-purple-800 transition-colors"
+                        data-target="selector_description">
                     Apply
                 </button>
             </div>
@@ -177,9 +177,9 @@
         <h5 class="text-sm font-medium text-gray-700 dark:text-gray-300 mt-4">Pagination:</h5>
         <div class="flex items-center gap-2">
             <label class="text-sm text-gray-600 dark:text-gray-400 w-32">Next Page:</label>
-            <code class="flex-1 px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded text-sm font-mono text-gray-800 dark:text-gray-200">{{ suggestions.next_page }}</code>
-            <button type="button" onclick="applySelector('selector_next_page', '{{ suggestions.next_page }}')"
-                    class="px-2 py-1 text-xs bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 rounded hover:bg-purple-200 dark:hover:bg-purple-800 transition-colors">
+            <code class="flex-1 px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded text-sm font-mono text-gray-800 dark:text-gray-200 selector-value">{{ suggestions.next_page }}</code>
+            <button type="button" class="apply-btn px-2 py-1 text-xs bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 rounded hover:bg-purple-200 dark:hover:bg-purple-800 transition-colors"
+                    data-target="selector_next_page">
                 Apply
             </button>
         </div>
@@ -187,7 +187,7 @@
     </div>
 
     <div class="mt-6 flex gap-3">
-        <button type="button" onclick="applyAllSelectors()"
+        <button type="button" id="apply-all-btn"
                 class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-md transition-colors flex items-center gap-2">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
@@ -200,25 +200,31 @@
 </div>
 
 <script>
-function applySelector(fieldId, value) {
-    const field = document.getElementById(fieldId);
-    if (field) {
-        field.value = value;
-        field.classList.add('ring-2', 'ring-purple-500');
-        setTimeout(() => field.classList.remove('ring-2', 'ring-purple-500'), 1500);
-    }
-}
+(function() {
+    // Apply a single selector value to its target field
+    function applySelector(button) {
+        const targetId = button.dataset.target;
+        const codeEl = button.parentElement.querySelector('.selector-value');
+        const field = document.getElementById(targetId);
 
-function applyAllSelectors() {
-    {% if suggestions.job_container %}applySelector('selector_job_container', '{{ suggestions.job_container }}');{% endif %}
-    {% if suggestions.title %}applySelector('selector_title', '{{ suggestions.title }}');{% endif %}
-    {% if suggestions.url %}applySelector('selector_url', '{{ suggestions.url }}');{% endif %}
-    {% if suggestions.url_attribute %}applySelector('url_attribute', '{{ suggestions.url_attribute }}');{% endif %}
-    {% if suggestions.organization %}applySelector('selector_organization', '{{ suggestions.organization }}');{% endif %}
-    {% if suggestions.location %}applySelector('selector_location', '{{ suggestions.location }}');{% endif %}
-    {% if suggestions.job_type %}applySelector('selector_job_type', '{{ suggestions.job_type }}');{% endif %}
-    {% if suggestions.salary %}applySelector('selector_salary', '{{ suggestions.salary }}');{% endif %}
-    {% if suggestions.description %}applySelector('selector_description', '{{ suggestions.description }}');{% endif %}
-    {% if suggestions.next_page %}applySelector('selector_next_page', '{{ suggestions.next_page }}');{% endif %}
-}
+        if (field && codeEl) {
+            field.value = codeEl.textContent;
+            field.classList.add('ring-2', 'ring-purple-500');
+            setTimeout(() => field.classList.remove('ring-2', 'ring-purple-500'), 1500);
+        }
+    }
+
+    // Attach click handlers to all Apply buttons
+    document.querySelectorAll('.apply-btn').forEach(btn => {
+        btn.addEventListener('click', () => applySelector(btn));
+    });
+
+    // Apply All button
+    const applyAllBtn = document.getElementById('apply-all-btn');
+    if (applyAllBtn) {
+        applyAllBtn.addEventListener('click', () => {
+            document.querySelectorAll('.apply-btn').forEach(btn => applySelector(btn));
+        });
+    }
+})();
 </script>
