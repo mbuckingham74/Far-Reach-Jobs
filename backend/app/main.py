@@ -9,7 +9,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from contextlib import asynccontextmanager
 
 from app.config import get_settings
-from app.routers import health, auth, jobs, saved_jobs
+from app.routers import health, auth, jobs, saved_jobs, admin
 
 
 settings = get_settings()
@@ -51,6 +51,7 @@ app.include_router(health.router, prefix="/api", tags=["health"])
 app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
 app.include_router(jobs.router, prefix="/api/jobs", tags=["jobs"])
 app.include_router(saved_jobs.router, prefix="/api/saved-jobs", tags=["saved-jobs"])
+app.include_router(admin.router, prefix="/admin", tags=["admin"])
 
 
 # Page routes

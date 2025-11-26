@@ -27,6 +27,10 @@ class Settings(BaseSettings):
     app_url: str = "http://localhost:8000"
     environment: str = "development"
 
+    # Admin
+    admin_username: str = "admin"
+    admin_password: str = "changeme"
+
     @model_validator(mode="after")
     def validate_secret_key(self) -> "Settings":
         """Ensure secret_key is set properly in non-development environments."""

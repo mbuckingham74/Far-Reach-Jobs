@@ -1,0 +1,19 @@
+{% if success %}
+<div class="bg-green-50 text-green-700 border border-green-200 rounded-md p-4 mb-4">
+    <h4 class="font-medium mb-2">Scrape completed!</h4>
+    {% if result %}
+    <ul class="text-sm space-y-1">
+        <li>Sources processed: {{ result.sources_processed }}</li>
+        <li>New jobs found: {{ result.jobs_created }}</li>
+        <li>Jobs updated: {{ result.jobs_updated }}</li>
+        <li>Jobs marked stale: {{ result.jobs_stale }}</li>
+        <li>Jobs deleted: {{ result.jobs_deleted }}</li>
+    </ul>
+    {% endif %}
+</div>
+{% else %}
+<div class="bg-red-50 text-red-700 border border-red-200 rounded-md p-4 mb-4">
+    <h4 class="font-medium mb-2">Scrape failed</h4>
+    <p class="text-sm">{{ error }}</p>
+</div>
+{% endif %}
