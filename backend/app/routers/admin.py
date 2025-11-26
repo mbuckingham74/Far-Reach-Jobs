@@ -141,10 +141,12 @@ async def create_source(request: Request, db: Session = Depends(get_db)):
     db.commit()
 
     sources = db.query(ScrapeSource).order_by(ScrapeSource.created_at.desc()).all()
-    return templates.TemplateResponse(
+    response = templates.TemplateResponse(
         "admin/partials/source_list.html",
         {"request": request, "sources": sources, "success": f"Source '{name}' created"},
     )
+    response.headers["HX-Trigger"] = "sourceCreated"
+    return response
 
 
 @router.delete("/sources/{source_id}")
