@@ -35,6 +35,7 @@ def run_scrapers():
             return
 
         # Run scrapers and get results (scheduled trigger type)
+        # Note: run_all_scrapers commits after each source for transaction isolation
         results = run_all_scrapers(db, sources, trigger_type="scheduled")
 
         for result in results:
@@ -46,8 +47,6 @@ def run_scrapers():
             if result.errors:
                 for error in result.errors:
                     logger.error(f"[{result.source_name}] {error}")
-
-        db.commit()
 
         # Run stale job cleanup and get count of deleted jobs
         jobs_removed = cleanup_stale_jobs()

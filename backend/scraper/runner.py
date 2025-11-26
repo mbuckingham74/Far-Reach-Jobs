@@ -55,23 +55,19 @@ def get_scraper_class(class_name: str) -> type[BaseScraper] | None:
     return None
 
 
-def upsert_job(db: Session, source_id: int, scraped_job: ScrapedJob, seen_ids: set[str]) -> tuple[bool, bool]:
+def upsert_job(db: Session, source_id: int, scraped_job: ScrapedJob) -> tuple[bool, bool]:
     """Insert or update a job in the database.
 
     Args:
         db: Database session
         source_id: ID of the scrape source
         scraped_job: Job data from scraper
-        seen_ids: Set of external_ids already processed in this scrape (for deduplication)
 
     Returns:
         (is_new, is_updated) tuple. is_updated is True only if content changed.
-    """
-    # Skip if we've already seen this job in this scrape run (handles duplicates on same page)
-    if scraped_job.external_id in seen_ids:
-        return (False, False)
-    seen_ids.add(scraped_job.external_id)
 
+    Note: Caller is responsible for deduplication via seen_ids before calling.
+    """
     now = datetime.now(timezone.utc)
 
     # Check if job already exists
@@ -198,8 +194,16 @@ def run_scraper(db: Session, source: ScrapeSource, trigger_type: str = "manual")
             all_errors.extend(errors)
 
             for scraped_job in scraped_jobs:
+                # Dedup check before savepoint - skip jobs we've already processed
+                if scraped_job.external_id in seen_ids:
+                    continue
+                seen_ids.add(scraped_job.external_id)
+
+                # Use savepoint so failures only roll back this job, not prior successful ones
                 try:
-                    is_new, is_updated = upsert_job(db, source.id, scraped_job, seen_ids)
+                    with db.begin_nested():
+                        is_new, is_updated = upsert_job(db, source.id, scraped_job)
+                        # Savepoint auto-commits on successful exit
                     if is_new:
                         jobs_new += 1
                     elif is_updated:
@@ -207,7 +211,11 @@ def run_scraper(db: Session, source: ScrapeSource, trigger_type: str = "manual")
                     else:
                         jobs_unchanged += 1
                 except Exception as e:
-                    all_errors.append(f"Failed to upsert job {scraped_job.external_id}: {e}")
+                    # Savepoint was rolled back, main transaction intact
+                    # Remove from seen_ids since the job wasn't actually persisted
+                    seen_ids.discard(scraped_job.external_id)
+                    logger.error(f"Failed to upsert job {scraped_job.external_id}: {e}")
+                    all_errors.append(f"Failed to upsert job {scraped_job.external_id}")
 
             # Update source's last_scraped_at
             source.last_scraped_at = datetime.now(timezone.utc)
@@ -240,10 +248,37 @@ def run_scraper(db: Session, source: ScrapeSource, trigger_type: str = "manual")
 def run_all_scrapers(
     db: Session, sources: list[ScrapeSource], trigger_type: str = "manual"
 ) -> list[ScrapeResult]:
-    """Run all scrapers for the given sources."""
+    """Run all scrapers for the given sources.
+
+    Each source is committed independently so failures in one source
+    don't roll back successful jobs from other sources.
+    """
     results = []
     for source in sources:
         logger.info(f"Running scraper for {source.name}...")
-        result = run_scraper(db, source, trigger_type)
+        started_at = datetime.now(timezone.utc)
+        try:
+            result = run_scraper(db, source, trigger_type)
+            # Commit after each source to isolate transactions
+            db.commit()
+        except Exception as e:
+            # If something catastrophic happens, rollback this source and continue
+            logger.error(f"Scraper for {source.name} failed catastrophically: {e}")
+            db.rollback()
+            result = ScrapeResult(
+                source_name=source.name,
+                jobs_found=0,
+                jobs_new=0,
+                jobs_updated=0,
+                errors=[f"Scraper failed: {type(e).__name__}"],
+                duration_seconds=0,
+            )
+            # Log the failure to scrape history (session is clean after rollback)
+            try:
+                log_scrape_result(db, source, result, trigger_type, started_at)
+                db.commit()
+            except Exception as log_error:
+                logger.error(f"Failed to log scrape failure for {source.name}: {log_error}")
+                db.rollback()
         results.append(result)
     return results

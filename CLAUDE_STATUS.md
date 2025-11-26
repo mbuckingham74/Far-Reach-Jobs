@@ -1,6 +1,6 @@
 # Far Reach Jobs - Implementation Status
 
-**Last Updated:** 2025-11-25
+**Last Updated:** 2025-11-26
 **Repository:** https://github.com/mbuckingham74/Far-Reach-Jobs
 **Domain:** far-reach-jobs.tachyonfuture.com
 
@@ -178,6 +178,21 @@ class MyOrgScraper(BaseScraper):
 ADMIN_EMAIL=michael.buckingham74@gmail.com
 ```
 
+### Phase 1J: Error Handling & Transaction Safety ✅
+- [x] Per-source transaction isolation (commit after each source)
+- [x] Per-job savepoints (failed jobs don't roll back successful ones)
+- [x] Sanitized error messages in UI (no DB internals exposed)
+- [x] Full exception logging for debugging
+- [x] Catastrophic failure logging (ScrapeLog written even when scraper crashes)
+- [x] Accurate stats in ScrapeLog and email notifications
+
+**Key Changes:**
+- `run_all_scrapers()` commits after each source for isolation
+- `db.begin_nested()` creates savepoints for each job upsert
+- Failed savepoints roll back only that job, counters/seen_ids stay accurate
+- Admin routes log full exceptions, show user-friendly messages
+- Catastrophic scraper failures still write ScrapeLog entries
+
 ## Remaining Work
 
 ### Scrapers (Phase 2)
@@ -255,6 +270,12 @@ ADMIN_EMAIL=<email>  # Receives scrape notification emails
 2. Seen again: `last_seen_at = now`, content fields updated if changed
 3. Not seen for 48h: `is_stale = True` (2 missed daily scrapes)
 4. Stale for 7 days: Deleted from database
+
+### Scraper Transaction Handling
+- **Per-source isolation:** Each source commits independently so failures don't affect other sources
+- **Per-job savepoints:** `db.begin_nested()` wraps each job upsert; failures roll back only that job
+- **Accurate accounting:** Counters and `seen_ids` only updated after successful savepoint
+- **Catastrophic failures:** Even if `run_scraper()` crashes, a ScrapeLog entry is written
 
 ### robots.txt Handling
 - Respects Disallow rules and Crawl-delay
