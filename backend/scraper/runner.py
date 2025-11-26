@@ -207,6 +207,8 @@ def run_scraper(db: Session, source: ScrapeSource, trigger_type: str = "manual")
                     else:
                         jobs_unchanged += 1
                 except Exception as e:
+                    # Rollback the failed transaction to allow subsequent operations
+                    db.rollback()
                     all_errors.append(f"Failed to upsert job {scraped_job.external_id}: {e}")
 
             # Update source's last_scraped_at

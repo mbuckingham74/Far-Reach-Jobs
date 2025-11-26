@@ -141,7 +141,16 @@ async def create_source(request: Request, db: Session = Depends(get_db)):
         is_active=True,
     )
     db.add(source)
-    db.commit()
+
+    try:
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        sources = db.query(ScrapeSource).order_by(ScrapeSource.created_at.desc()).all()
+        return templates.TemplateResponse(
+            "admin/partials/source_list.html",
+            {"request": request, "sources": sources, "error": f"Failed to create source: {e}"},
+        )
 
     sources = db.query(ScrapeSource).order_by(ScrapeSource.created_at.desc()).all()
     response = templates.TemplateResponse(
@@ -161,7 +170,15 @@ def delete_source(source_id: int, request: Request, db: Session = Depends(get_db
     source = db.query(ScrapeSource).filter(ScrapeSource.id == source_id).first()
     if source:
         db.delete(source)
-        db.commit()
+        try:
+            db.commit()
+        except Exception as e:
+            db.rollback()
+            sources = db.query(ScrapeSource).order_by(ScrapeSource.created_at.desc()).all()
+            return templates.TemplateResponse(
+                "admin/partials/source_list.html",
+                {"request": request, "sources": sources, "error": f"Failed to delete source: {e}"},
+            )
 
     sources = db.query(ScrapeSource).order_by(ScrapeSource.created_at.desc()).all()
     return templates.TemplateResponse(
@@ -179,7 +196,15 @@ def toggle_source(source_id: int, request: Request, db: Session = Depends(get_db
     source = db.query(ScrapeSource).filter(ScrapeSource.id == source_id).first()
     if source:
         source.is_active = not source.is_active
-        db.commit()
+        try:
+            db.commit()
+        except Exception as e:
+            db.rollback()
+            sources = db.query(ScrapeSource).order_by(ScrapeSource.created_at.desc()).all()
+            return templates.TemplateResponse(
+                "admin/partials/source_list.html",
+                {"request": request, "sources": sources, "error": f"Failed to toggle source: {e}"},
+            )
 
     sources = db.query(ScrapeSource).order_by(ScrapeSource.created_at.desc()).all()
     return templates.TemplateResponse(
