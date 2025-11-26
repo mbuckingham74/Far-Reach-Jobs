@@ -75,8 +75,14 @@ class GenericScraper(BaseScraper):
             return element.get_text(strip=True)
         return None
 
-    def _extract_url(self, container: BeautifulSoup, selector: str | None) -> str | None:
-        """Extract URL from an element's attribute."""
+    def _extract_url(self, container: BeautifulSoup, selector: str | None, page_url: str) -> str | None:
+        """Extract URL from an element's attribute.
+
+        Args:
+            container: BeautifulSoup element containing the job
+            selector: CSS selector for the URL element
+            page_url: Current page URL for resolving relative links
+        """
         if not selector:
             return None
         element = container.select_one(selector)
@@ -84,8 +90,9 @@ class GenericScraper(BaseScraper):
             attr = self.config.get("url_attribute", "href") or "href"
             url = element.get(attr)
             if url:
-                # Make URL absolute if it's relative
-                return urljoin(self._base_url, url)
+                # Make URL absolute relative to the current page URL
+                # This correctly handles ./job/123 and ../job/123 paths
+                return urljoin(page_url, url)
         return None
 
     def parse_job_listing_page(self, soup: BeautifulSoup, url: str) -> list[ScrapedJob]:
@@ -103,7 +110,7 @@ class GenericScraper(BaseScraper):
         for container in containers:
             # Extract required fields
             title = self._extract_text(container, self.config.get("selector_title"))
-            job_url = self._extract_url(container, self.config.get("selector_url"))
+            job_url = self._extract_url(container, self.config.get("selector_url"), url)
 
             if not title:
                 logger.debug("Skipping container - no title found")
