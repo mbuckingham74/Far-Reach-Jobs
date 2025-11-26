@@ -1,0 +1,25 @@
+[mysqld]
+# InnoDB Buffer Pool - increased from 128MB default
+# Server has 15GB RAM, allocating 512MB for MySQL buffer pool
+innodb_buffer_pool_size = 512M
+
+# Log file size - larger for better write performance during bulk inserts
+innodb_log_file_size = 128M
+
+# Flush logs once per second instead of every transaction
+# Trades tiny durability risk for much better bulk insert performance
+innodb_flush_log_at_trx_commit = 2
+
+# Keep default max_connections (151) - our app uses a small connection pool
+# Per-connection buffers kept conservative to avoid memory bloat
+sort_buffer_size = 1M
+join_buffer_size = 1M
+
+# Temp table size for in-memory temp tables (modest increase)
+tmp_table_size = 32M
+max_heap_table_size = 32M
+
+# Slow query logging disabled by default to avoid unbounded log growth
+# Enable temporarily for debugging: SET GLOBAL slow_query_log = 1;
+slow_query_log = 0
+long_query_time = 2
