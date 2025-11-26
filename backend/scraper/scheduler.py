@@ -15,11 +15,16 @@ DELETE_AFTER_DAYS = 7   # Delete if stale for 7 days
 
 def run_scrapers():
     """Run all active scrapers and upsert jobs to database."""
+    import time
     from app.database import SessionLocal
     from app.models import Job, ScrapeSource
+    from app.services.email import send_scrape_notification, ScrapeNotificationData
     from scraper.runner import run_all_scrapers
 
     logger.info("Starting scheduled scrape run...")
+
+    start_time = time.time()
+    execution_time = datetime.now(timezone.utc)
 
     db = SessionLocal()
     try:
@@ -43,6 +48,31 @@ def run_scrapers():
                     logger.error(f"[{result.source_name}] {error}")
 
         db.commit()
+
+        # Run stale job cleanup and get count of deleted jobs
+        jobs_removed = cleanup_stale_jobs()
+
+        duration = time.time() - start_time
+
+        # Collect errors with source names
+        errors_with_source = []
+        for result in results:
+            for error in result.errors:
+                errors_with_source.append((result.source_name, error))
+
+        # Send notification email
+        notification_data = ScrapeNotificationData(
+            execution_time=execution_time,
+            trigger_type="scheduled",
+            duration_seconds=duration,
+            sources_processed=len(results),
+            jobs_added=sum(r.jobs_new for r in results),
+            jobs_updated=sum(r.jobs_updated for r in results),
+            jobs_removed=jobs_removed,
+            errors=errors_with_source,
+        )
+        send_scrape_notification(notification_data)
+
         logger.info("Scrape run completed successfully")
 
     except Exception as e:
@@ -52,14 +82,18 @@ def run_scrapers():
         db.close()
 
 
-def cleanup_stale_jobs():
-    """Mark jobs as stale if not seen in 24h, delete if stale for 7 days."""
+def cleanup_stale_jobs() -> int:
+    """Mark jobs as stale if not seen in 24h, delete if stale for 7 days.
+
+    Returns the number of jobs deleted.
+    """
     from app.database import SessionLocal
     from app.models import Job
 
     logger.info("Running stale job cleanup...")
 
     db = SessionLocal()
+    delete_count = 0
     try:
         now = datetime.now(timezone.utc)
         stale_threshold = now - timedelta(hours=STALE_AFTER_HOURS)
@@ -92,12 +126,17 @@ def cleanup_stale_jobs():
     finally:
         db.close()
 
+    return delete_count
+
 
 def start_scheduler():
     """Start the APScheduler with configured jobs.
 
     Uses America/Anchorage timezone for Alaska-centric scheduling.
     Noon and midnight in Alaska time (handles DST automatically).
+
+    Note: Stale job cleanup runs as part of each scrape run to track
+    jobs_removed count for the notification email.
     """
     global scheduler
     scheduler = BackgroundScheduler()
@@ -115,20 +154,6 @@ def start_scheduler():
         run_scrapers,
         CronTrigger(hour=12, minute=0, timezone=alaska_tz),  # Noon Alaska
         id="scrape_noon",
-        replace_existing=True,
-    )
-
-    # Run cleanup after each scrape (with 30 min delay to allow scraping to finish)
-    scheduler.add_job(
-        cleanup_stale_jobs,
-        CronTrigger(hour=0, minute=30, timezone=alaska_tz),
-        id="cleanup_midnight",
-        replace_existing=True,
-    )
-    scheduler.add_job(
-        cleanup_stale_jobs,
-        CronTrigger(hour=12, minute=30, timezone=alaska_tz),
-        id="cleanup_noon",
         replace_existing=True,
     )
 

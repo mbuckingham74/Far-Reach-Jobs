@@ -1,5 +1,7 @@
 import logging
 import smtplib
+from dataclasses import dataclass
+from datetime import datetime
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
@@ -7,6 +9,19 @@ from app.config import get_settings
 
 settings = get_settings()
 logger = logging.getLogger(__name__)
+
+
+@dataclass
+class ScrapeNotificationData:
+    """Data for scrape notification email."""
+    execution_time: datetime
+    trigger_type: str  # "manual" or "scheduled"
+    duration_seconds: float
+    sources_processed: int
+    jobs_added: int
+    jobs_updated: int
+    jobs_removed: int
+    errors: list[tuple[str, str]]  # List of (url/source, error_message)
 
 
 def send_verification_email(to_email: str, verification_token: str) -> bool:
@@ -91,3 +106,147 @@ def _send_email(to_email: str, subject: str, html_body: str, text_body: str) -> 
     except Exception as e:
         logger.error(f"Failed to send email to {to_email}: {e}")
         return False
+
+
+def send_scrape_notification(data: ScrapeNotificationData) -> bool:
+    """Send a scrape run notification email to the admin.
+
+    Returns True if email was sent successfully, False otherwise.
+    """
+    if not settings.admin_email:
+        logger.debug("No admin_email configured, skipping scrape notification")
+        return False
+
+    # Format duration nicely
+    minutes, seconds = divmod(int(data.duration_seconds), 60)
+    if minutes > 0:
+        duration_str = f"{minutes}m {seconds}s"
+    else:
+        duration_str = f"{seconds}s"
+
+    # Determine success/failure status
+    has_errors = len(data.errors) > 0
+    status_emoji = "⚠️" if has_errors else "✅"
+    status_text = "Completed with Errors" if has_errors else "Completed Successfully"
+
+    subject = f"{status_emoji} Far Reach Jobs Scrape: {status_text}"
+
+    # Build the errors table HTML
+    errors_html = ""
+    errors_text = ""
+    if data.errors:
+        error_rows = ""
+        for source, error in data.errors:
+            # Escape HTML in error messages
+            safe_source = source.replace("<", "&lt;").replace(">", "&gt;")
+            safe_error = error.replace("<", "&lt;").replace(">", "&gt;")
+            error_rows += f"""
+                <tr>
+                    <td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0; font-size: 13px; word-break: break-word;">{safe_source}</td>
+                    <td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0; font-size: 13px; color: #c53030; word-break: break-word;">{safe_error}</td>
+                </tr>
+            """
+            errors_text += f"  - {source}: {error}\n"
+
+        errors_html = f"""
+            <h2 style="color: #c53030; margin-top: 30px; margin-bottom: 15px; font-size: 18px;">Errors ({len(data.errors)})</h2>
+            <table style="width: 100%; border-collapse: collapse; background: #fff5f5; border-radius: 8px; overflow: hidden;">
+                <thead>
+                    <tr style="background: #fed7d7;">
+                        <th style="padding: 10px 12px; text-align: left; font-weight: 600; font-size: 13px;">Source/URL</th>
+                        <th style="padding: 10px 12px; text-align: left; font-weight: 600; font-size: 13px;">Error</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {error_rows}
+                </tbody>
+            </table>
+        """
+        errors_text = f"\nErrors ({len(data.errors)}):\n{errors_text}"
+
+    html_body = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <style>
+            body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f7fafc; margin: 0; padding: 20px; }}
+            .container {{ max-width: 600px; margin: 0 auto; background: white; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); padding: 30px; }}
+            h1 {{ color: #2d3748; margin-top: 0; font-size: 24px; }}
+            .status {{ display: inline-block; padding: 6px 12px; border-radius: 4px; font-weight: 600; margin-bottom: 20px; }}
+            .status.success {{ background: #c6f6d5; color: #276749; }}
+            .status.warning {{ background: #feebc8; color: #c05621; }}
+            table {{ width: 100%; border-collapse: collapse; margin-top: 10px; }}
+            .summary-table td {{ padding: 10px 12px; border-bottom: 1px solid #e2e8f0; }}
+            .summary-table td:first-child {{ font-weight: 600; color: #4a5568; width: 50%; }}
+            .summary-table td:last-child {{ color: #2d3748; }}
+            .footer {{ margin-top: 30px; padding-top: 20px; border-top: 1px solid #e2e8f0; color: #718096; font-size: 12px; }}
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h1>Scrape Run Report</h1>
+            <div class="status {'warning' if has_errors else 'success'}">{status_emoji} {status_text}</div>
+
+            <h2 style="color: #4a5568; margin-top: 25px; margin-bottom: 15px; font-size: 18px;">Summary</h2>
+            <table class="summary-table" style="background: #f7fafc; border-radius: 8px; overflow: hidden;">
+                <tr>
+                    <td>Execution Time</td>
+                    <td>{data.execution_time.strftime("%Y-%m-%d %H:%M:%S UTC")}</td>
+                </tr>
+                <tr>
+                    <td>Trigger Type</td>
+                    <td style="text-transform: capitalize;">{data.trigger_type}</td>
+                </tr>
+                <tr>
+                    <td>Duration</td>
+                    <td>{duration_str}</td>
+                </tr>
+                <tr>
+                    <td>Sources Processed</td>
+                    <td>{data.sources_processed}</td>
+                </tr>
+                <tr>
+                    <td>Jobs Added</td>
+                    <td style="color: #276749; font-weight: 600;">{data.jobs_added}</td>
+                </tr>
+                <tr>
+                    <td>Jobs Updated</td>
+                    <td>{data.jobs_updated}</td>
+                </tr>
+                <tr>
+                    <td>Jobs Removed (Stale)</td>
+                    <td style="color: #c53030;">{data.jobs_removed}</td>
+                </tr>
+            </table>
+
+            {errors_html}
+
+            <div class="footer">
+                <p>This is an automated notification from Far Reach Jobs.</p>
+                <p><a href="{settings.app_url}/admin/history" style="color: #2b6cb0;">View full scrape history</a></p>
+            </div>
+        </div>
+    </body>
+    </html>
+    """
+
+    text_body = f"""
+Far Reach Jobs - Scrape Run Report
+==================================
+
+Status: {status_text}
+
+Summary:
+  - Execution Time: {data.execution_time.strftime("%Y-%m-%d %H:%M:%S UTC")}
+  - Trigger Type: {data.trigger_type.capitalize()}
+  - Duration: {duration_str}
+  - Sources Processed: {data.sources_processed}
+  - Jobs Added: {data.jobs_added}
+  - Jobs Updated: {data.jobs_updated}
+  - Jobs Removed (Stale): {data.jobs_removed}
+{errors_text}
+---
+View full scrape history: {settings.app_url}/admin/history
+"""
+
+    return _send_email(settings.admin_email, subject, html_body, text_body)
