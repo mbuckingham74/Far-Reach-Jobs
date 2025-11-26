@@ -207,9 +207,9 @@ def run_scraper(db: Session, source: ScrapeSource, trigger_type: str = "manual")
                     else:
                         jobs_unchanged += 1
                 except Exception as e:
-                    # Rollback the failed transaction to allow subsequent operations
-                    db.rollback()
-                    all_errors.append(f"Failed to upsert job {scraped_job.external_id}: {e}")
+                    # Log the full error for debugging, but only include sanitized message in results
+                    logger.error(f"Failed to upsert job {scraped_job.external_id}: {e}")
+                    all_errors.append(f"Failed to upsert job {scraped_job.external_id}")
 
             # Update source's last_scraped_at
             source.last_scraped_at = datetime.now(timezone.utc)
@@ -242,10 +242,29 @@ def run_scraper(db: Session, source: ScrapeSource, trigger_type: str = "manual")
 def run_all_scrapers(
     db: Session, sources: list[ScrapeSource], trigger_type: str = "manual"
 ) -> list[ScrapeResult]:
-    """Run all scrapers for the given sources."""
+    """Run all scrapers for the given sources.
+
+    Each source is committed independently so failures in one source
+    don't roll back successful jobs from other sources.
+    """
     results = []
     for source in sources:
         logger.info(f"Running scraper for {source.name}...")
-        result = run_scraper(db, source, trigger_type)
+        try:
+            result = run_scraper(db, source, trigger_type)
+            # Commit after each source to isolate transactions
+            db.commit()
+        except Exception as e:
+            # If something catastrophic happens, rollback this source and continue
+            logger.error(f"Scraper for {source.name} failed catastrophically: {e}")
+            db.rollback()
+            result = ScrapeResult(
+                source_name=source.name,
+                jobs_found=0,
+                jobs_new=0,
+                jobs_updated=0,
+                errors=[f"Scraper failed: {type(e).__name__}"],
+                duration_seconds=0,
+            )
         results.append(result)
     return results

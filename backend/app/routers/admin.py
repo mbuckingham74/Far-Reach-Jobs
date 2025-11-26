@@ -1,3 +1,4 @@
+import logging
 import secrets
 from fastapi import APIRouter, Request, Depends, HTTPException
 from fastapi.responses import RedirectResponse, HTMLResponse
@@ -5,6 +6,8 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
 from sqlalchemy import func as sql_func
+
+logger = logging.getLogger(__name__)
 
 from app.config import get_settings
 from app.database import get_db
@@ -145,11 +148,12 @@ async def create_source(request: Request, db: Session = Depends(get_db)):
     try:
         db.commit()
     except Exception as e:
+        logger.error(f"Failed to create source '{name}': {e}")
         db.rollback()
         sources = db.query(ScrapeSource).order_by(ScrapeSource.created_at.desc()).all()
         return templates.TemplateResponse(
             "admin/partials/source_list.html",
-            {"request": request, "sources": sources, "error": f"Failed to create source: {e}"},
+            {"request": request, "sources": sources, "error": "Failed to create source. Please try again."},
         )
 
     sources = db.query(ScrapeSource).order_by(ScrapeSource.created_at.desc()).all()
@@ -169,15 +173,17 @@ def delete_source(source_id: int, request: Request, db: Session = Depends(get_db
 
     source = db.query(ScrapeSource).filter(ScrapeSource.id == source_id).first()
     if source:
+        source_name = source.name
         db.delete(source)
         try:
             db.commit()
         except Exception as e:
+            logger.error(f"Failed to delete source {source_id}: {e}")
             db.rollback()
             sources = db.query(ScrapeSource).order_by(ScrapeSource.created_at.desc()).all()
             return templates.TemplateResponse(
                 "admin/partials/source_list.html",
-                {"request": request, "sources": sources, "error": f"Failed to delete source: {e}"},
+                {"request": request, "sources": sources, "error": "Failed to delete source. Please try again."},
             )
 
     sources = db.query(ScrapeSource).order_by(ScrapeSource.created_at.desc()).all()
@@ -199,11 +205,12 @@ def toggle_source(source_id: int, request: Request, db: Session = Depends(get_db
         try:
             db.commit()
         except Exception as e:
+            logger.error(f"Failed to toggle source {source_id}: {e}")
             db.rollback()
             sources = db.query(ScrapeSource).order_by(ScrapeSource.created_at.desc()).all()
             return templates.TemplateResponse(
                 "admin/partials/source_list.html",
-                {"request": request, "sources": sources, "error": f"Failed to toggle source: {e}"},
+                {"request": request, "sources": sources, "error": "Failed to toggle source. Please try again."},
             )
 
     sources = db.query(ScrapeSource).order_by(ScrapeSource.created_at.desc()).all()
@@ -283,10 +290,8 @@ async def trigger_scrape(request: Request, db: Session = Depends(get_db)):
         execution_time = datetime.now(timezone.utc)
 
         # Run scrapers - returns list of ScrapeResult
+        # Note: run_all_scrapers commits after each source for transaction isolation
         results = run_all_scrapers(db, sources)
-
-        # Commit the changes made by scrapers
-        db.commit()
 
         duration = time.time() - start_time
 
@@ -322,8 +327,9 @@ async def trigger_scrape(request: Request, db: Session = Depends(get_db)):
             {"request": request, "result": aggregate, "success": True},
         )
     except Exception as e:
+        logger.error(f"Manual scrape failed: {e}")
         db.rollback()
         return templates.TemplateResponse(
             "admin/partials/scrape_result.html",
-            {"request": request, "error": str(e), "success": False},
+            {"request": request, "error": "Scrape failed. Check logs for details.", "success": False},
         )
