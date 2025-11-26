@@ -228,3 +228,38 @@
     </div>
 </div>
 {% endblock %}
+
+{% block scripts %}
+<script>
+// Apply selector value to target form field
+function applySelector(button) {
+    const targetId = button.dataset.target;
+    const codeEl = button.parentElement.querySelector('.selector-value');
+    const field = document.getElementById(targetId);
+
+    if (field && codeEl) {
+        field.value = codeEl.textContent;
+        field.classList.add('ring-2', 'ring-purple-500');
+        setTimeout(() => field.classList.remove('ring-2', 'ring-purple-500'), 1500);
+    }
+}
+
+// Initialize Apply buttons after HTMX swaps in AI suggestions
+document.body.addEventListener('htmx:afterSwap', function(event) {
+    if (event.detail.target.id === 'ai-results') {
+        // Attach click handlers to Apply buttons
+        event.detail.target.querySelectorAll('.apply-btn').forEach(btn => {
+            btn.addEventListener('click', () => applySelector(btn));
+        });
+
+        // Apply All button
+        const applyAllBtn = event.detail.target.querySelector('#apply-all-btn');
+        if (applyAllBtn) {
+            applyAllBtn.addEventListener('click', () => {
+                event.detail.target.querySelectorAll('.apply-btn').forEach(btn => applySelector(btn));
+            });
+        }
+    }
+});
+</script>
+{% endblock %}

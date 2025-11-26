@@ -199,32 +199,3 @@
     {% endif %}
 </div>
 
-<script>
-(function() {
-    // Apply a single selector value to its target field
-    function applySelector(button) {
-        const targetId = button.dataset.target;
-        const codeEl = button.parentElement.querySelector('.selector-value');
-        const field = document.getElementById(targetId);
-
-        if (field && codeEl) {
-            field.value = codeEl.textContent;
-            field.classList.add('ring-2', 'ring-purple-500');
-            setTimeout(() => field.classList.remove('ring-2', 'ring-purple-500'), 1500);
-        }
-    }
-
-    // Attach click handlers to all Apply buttons
-    document.querySelectorAll('.apply-btn').forEach(btn => {
-        btn.addEventListener('click', () => applySelector(btn));
-    });
-
-    // Apply All button
-    const applyAllBtn = document.getElementById('apply-all-btn');
-    if (applyAllBtn) {
-        applyAllBtn.addEventListener('click', () => {
-            document.querySelectorAll('.apply-btn').forEach(btn => applySelector(btn));
-        });
-    }
-})();
-</script>
