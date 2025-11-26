@@ -168,6 +168,9 @@ def run_scraper(db: Session, source: ScrapeSource, trigger_type: str = "manual")
     # Get the scraper class
     scraper_class = get_scraper_class(source.scraper_class)
     if scraper_class is None:
+        # Mark source as failed before returning
+        source.last_scraped_at = datetime.now(timezone.utc)
+        source.last_scrape_success = False
         result = ScrapeResult(
             source_name=source.name,
             jobs_found=0,
@@ -223,6 +226,9 @@ def run_scraper(db: Session, source: ScrapeSource, trigger_type: str = "manual")
     except Exception as e:
         all_errors.append(f"Scraper execution failed: {e}")
 
+    # Update source's last_scrape_success status
+    source.last_scrape_success = len(all_errors) == 0
+
     duration = time.time() - start_time
 
     logger.info(
@@ -275,6 +281,9 @@ def run_all_scrapers(
             )
             # Log the failure to scrape history (session is clean after rollback)
             try:
+                # Mark source as failed
+                source.last_scraped_at = datetime.now(timezone.utc)
+                source.last_scrape_success = False
                 log_scrape_result(db, source, result, trigger_type, started_at)
                 db.commit()
             except Exception as log_error:

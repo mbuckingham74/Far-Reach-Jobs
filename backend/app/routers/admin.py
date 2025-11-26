@@ -266,7 +266,7 @@ def scrape_history(request: Request, db: Session = Depends(get_db)):
 
 @router.post("/scrape")
 async def trigger_scrape(request: Request, db: Session = Depends(get_db)):
-    """Manually trigger a scrape run."""
+    """Manually trigger a scrape run for all active sources."""
     if not get_admin_user(request):
         raise HTTPException(status_code=401)
 
@@ -331,4 +331,81 @@ async def trigger_scrape(request: Request, db: Session = Depends(get_db)):
         return templates.TemplateResponse(
             "admin/partials/scrape_result.html",
             {"request": request, "error": "Scrape failed. Check logs for details.", "success": False},
+        )
+
+
+@router.post("/sources/{source_id}/scrape")
+async def trigger_single_source_scrape(source_id: int, request: Request, db: Session = Depends(get_db)):
+    """Manually trigger a scrape for a single source."""
+    if not get_admin_user(request):
+        raise HTTPException(status_code=401)
+
+    import time
+    from datetime import datetime, timezone
+    from scraper.runner import run_scraper
+    from app.services.email import send_scrape_notification, ScrapeNotificationData
+
+    source = db.query(ScrapeSource).filter(ScrapeSource.id == source_id).first()
+    if not source:
+        sources = db.query(ScrapeSource).order_by(ScrapeSource.created_at.desc()).all()
+        return templates.TemplateResponse(
+            "admin/partials/source_list.html",
+            {"request": request, "sources": sources, "error": "Source not found"},
+        )
+
+    try:
+        # Track timing
+        start_time = time.time()
+        execution_time = datetime.now(timezone.utc)
+
+        # Run scraper for single source
+        result = run_scraper(db, source, trigger_type="manual")
+        db.commit()
+
+        duration = time.time() - start_time
+
+        # Send notification email
+        errors_with_source = [(source.name, e) for e in result.errors]
+
+        notification_data = ScrapeNotificationData(
+            execution_time=execution_time,
+            trigger_type=f"manual (single: {source.name})",
+            duration_seconds=duration,
+            sources_processed=1,
+            jobs_added=result.jobs_new,
+            jobs_updated=result.jobs_updated,
+            jobs_removed=0,
+            errors=errors_with_source,
+        )
+        send_scrape_notification(notification_data)
+
+        # Return updated source list with success/error message
+        sources = db.query(ScrapeSource).order_by(ScrapeSource.created_at.desc()).all()
+
+        if result.errors:
+            return templates.TemplateResponse(
+                "admin/partials/source_list.html",
+                {
+                    "request": request,
+                    "sources": sources,
+                    "error": f"Scrape of '{source.name}' completed with errors: {result.jobs_new} new, {result.jobs_updated} updated",
+                },
+            )
+
+        return templates.TemplateResponse(
+            "admin/partials/source_list.html",
+            {
+                "request": request,
+                "sources": sources,
+                "success": f"Scrape of '{source.name}' complete: {result.jobs_new} new, {result.jobs_updated} updated",
+            },
+        )
+
+    except Exception as e:
+        logger.exception(f"Single source scrape failed for {source.name}: {e}")
+        db.rollback()
+        sources = db.query(ScrapeSource).order_by(ScrapeSource.created_at.desc()).all()
+        return templates.TemplateResponse(
+            "admin/partials/source_list.html",
+            {"request": request, "sources": sources, "error": f"Scrape of '{source.name}' failed. Check logs."},
         )
