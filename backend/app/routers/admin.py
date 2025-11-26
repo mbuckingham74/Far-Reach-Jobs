@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from app.config import get_settings
 from app.database import get_db
 from app.models.scrape_source import ScrapeSource
+from app.models.scrape_log import ScrapeLog
 from app.models.job import Job
 
 router = APIRouter()
@@ -182,6 +183,43 @@ def toggle_source(source_id: int, request: Request, db: Session = Depends(get_db
     return templates.TemplateResponse(
         "admin/partials/source_list.html",
         {"request": request, "sources": sources},
+    )
+
+
+@router.get("/history")
+def scrape_history(request: Request, db: Session = Depends(get_db)):
+    """Scrape history page showing all past scrape runs."""
+    if not get_admin_user(request):
+        return RedirectResponse(url="/admin/login", status_code=302)
+
+    # Get recent scrape logs, most recent first
+    logs = (
+        db.query(ScrapeLog)
+        .order_by(ScrapeLog.started_at.desc())
+        .limit(100)
+        .all()
+    )
+
+    # Calculate summary stats
+    total_runs = len(logs)
+    successful_runs = sum(1 for log in logs if log.success)
+    failed_runs = total_runs - successful_runs
+    total_jobs_added = sum(log.jobs_added for log in logs)
+    total_jobs_updated = sum(log.jobs_updated for log in logs)
+
+    return templates.TemplateResponse(
+        "admin/history.html",
+        {
+            "request": request,
+            "logs": logs,
+            "stats": {
+                "total_runs": total_runs,
+                "successful_runs": successful_runs,
+                "failed_runs": failed_runs,
+                "total_jobs_added": total_jobs_added,
+                "total_jobs_updated": total_jobs_updated,
+            },
+        },
     )
 
 

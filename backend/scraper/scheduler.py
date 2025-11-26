@@ -29,8 +29,8 @@ def run_scrapers():
             logger.warning("No active scrape sources configured")
             return
 
-        # Run scrapers and get results
-        results = run_all_scrapers(db, sources)
+        # Run scrapers and get results (scheduled trigger type)
+        results = run_all_scrapers(db, sources, trigger_type="scheduled")
 
         for result in results:
             logger.info(
