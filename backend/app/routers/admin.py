@@ -409,3 +409,98 @@ async def trigger_single_source_scrape(source_id: int, request: Request, db: Ses
             "admin/partials/source_list.html",
             {"request": request, "sources": sources, "error": f"Scrape of '{source.name}' failed. Check logs."},
         )
+
+
+@router.get("/sources/{source_id}/configure")
+def configure_source_page(source_id: int, request: Request, db: Session = Depends(get_db)):
+    """Source configuration page for CSS selectors."""
+    if not get_admin_user(request):
+        return RedirectResponse(url="/admin/login", status_code=302)
+
+    source = db.query(ScrapeSource).filter(ScrapeSource.id == source_id).first()
+    if not source:
+        return RedirectResponse(url="/admin", status_code=302)
+
+    return templates.TemplateResponse(
+        "admin/configure_source.html",
+        {"request": request, "source": source},
+    )
+
+
+@router.post("/sources/{source_id}/configure")
+async def save_source_configuration(source_id: int, request: Request, db: Session = Depends(get_db)):
+    """Save source CSS selector configuration."""
+    if not get_admin_user(request):
+        raise HTTPException(status_code=401)
+
+    source = db.query(ScrapeSource).filter(ScrapeSource.id == source_id).first()
+    if not source:
+        return RedirectResponse(url="/admin", status_code=302)
+
+    form = await request.form()
+
+    # Extract and validate form values
+    name = form.get("name", "").strip()
+    base_url = form.get("base_url", "").strip()
+    selector_job_container = form.get("selector_job_container", "").strip() or None
+    selector_title = form.get("selector_title", "").strip() or None
+    selector_url = form.get("selector_url", "").strip() or None
+
+    # Server-side validation for required fields
+    errors = []
+    if not name:
+        errors.append("Source name is required")
+    if not base_url:
+        errors.append("Base URL is required")
+    if base_url and not (base_url.startswith("http://") or base_url.startswith("https://")):
+        errors.append("Base URL must start with http:// or https://")
+
+    # Validate that required selectors are set for GenericScraper
+    if source.scraper_class == "GenericScraper":
+        if not selector_job_container:
+            errors.append("Job Container Selector is required for GenericScraper")
+        if not selector_title:
+            errors.append("Title Selector is required for GenericScraper")
+        if not selector_url:
+            errors.append("URL Selector is required for GenericScraper")
+
+    if errors:
+        return templates.TemplateResponse(
+            "admin/configure_source.html",
+            {"request": request, "source": source, "error": "; ".join(errors)},
+        )
+
+    # Update source configuration
+    source.name = name
+    source.base_url = base_url
+    source.listing_url = form.get("listing_url", "").strip() or None
+    source.selector_job_container = selector_job_container
+    source.selector_title = selector_title
+    source.selector_url = selector_url
+    source.selector_organization = form.get("selector_organization", "").strip() or None
+    source.selector_location = form.get("selector_location", "").strip() or None
+    source.selector_job_type = form.get("selector_job_type", "").strip() or None
+    source.selector_salary = form.get("selector_salary", "").strip() or None
+    source.selector_description = form.get("selector_description", "").strip() or None
+    source.url_attribute = form.get("url_attribute", "href").strip() or "href"
+    source.selector_next_page = form.get("selector_next_page", "").strip() or None
+
+    max_pages_str = form.get("max_pages", "10").strip()
+    try:
+        source.max_pages = int(max_pages_str) if max_pages_str else 10
+    except ValueError:
+        source.max_pages = 10
+
+    try:
+        db.commit()
+        return templates.TemplateResponse(
+            "admin/configure_source.html",
+            {"request": request, "source": source, "success": "Configuration saved successfully"},
+        )
+    except Exception as e:
+        logger.error(f"Failed to save source configuration for {source_id}: {e}")
+        db.rollback()
+        return templates.TemplateResponse(
+            "admin/configure_source.html",
+            {"request": request, "source": source, "error": "Failed to save configuration. Please try again."},
+        )
