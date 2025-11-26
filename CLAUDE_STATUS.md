@@ -1,6 +1,6 @@
 # Far Reach Jobs - Implementation Status
 
-**Last Updated:** 2024-11-25
+**Last Updated:** 2025-11-25
 **Repository:** https://github.com/mbuckingham74/Far-Reach-Jobs
 **Domain:** far-reach-jobs.tachyonfuture.com
 
@@ -140,6 +140,14 @@ class MyOrgScraper(BaseScraper):
 - [x] Let's Encrypt SSL certificate
 - [ ] Initial scrape run (awaiting scraper URLs)
 - [ ] Beta launch
+
+### Phase 1G: Dark Mode ✅
+- [x] Dark mode toggle in header (sun/moon icons)
+- [x] System preference detection (prefers-color-scheme)
+- [x] LocalStorage persistence across sessions
+- [x] No flash on page load (dark mode applied before render)
+- [x] All templates updated with dark: variants
+- [x] Works for all users (logged in or not)
 
 ## Remaining Work
 
