@@ -27,7 +27,7 @@ We respect `robots.txt` and identify ourselves as `FarReachJobsBot/1.0`.
 - Save jobs to your account for later
 - Dark mode support
 - Mobile-friendly design
-- Scheduled scraping (noon and midnight Alaska time)
+- Daily scraping at noon Alaska time
 
 ## Tech Stack
 
