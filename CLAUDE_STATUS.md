@@ -1,6 +1,6 @@
 # Far Reach Jobs - Implementation Status
 
-**Last Updated:** 2025-11-26
+**Last Updated:** 2025-11-27
 **Repository:** https://github.com/mbuckingham74/Far-Reach-Jobs
 **Domain:** far-reach-jobs.tachyonfuture.com
 
@@ -274,6 +274,46 @@ ADMIN_EMAIL=michael.buckingham74@gmail.com
 **API Endpoints:**
 - GET `/admin/sources/{id}/configure` - Configuration page
 - POST `/admin/sources/{id}/configure` - Save configuration
+
+### Phase 1N: Homepage Stats Banner ✅
+- [x] Stats banner on homepage showing key metrics
+- [x] Three stats: Sources count, Jobs Available, New This Week
+- [x] "New This Week" uses rolling 7-day window based on `first_seen_at`
+- [x] HTMX-loaded with placeholder while fetching
+- [x] Responsive grid (stacked on mobile, 3-col on sm+)
+- [x] Semantic colors: blue (sources), purple (jobs), green (new)
+- [x] Dark mode support
+
+**Key Files:**
+- `backend/app/routers/jobs.py` - `/api/jobs/stats` endpoint
+- `backend/app/templates/index.html` - Stats banner placeholder
+- `backend/app/templates/partials/stats_banner.html` - HTMX partial
+
+**API Endpoints:**
+- GET `/api/jobs/stats` - Returns `sources_count`, `jobs_count`, `new_this_week`
+
+### Phase 1O: Testing Infrastructure ✅
+- [x] Pytest configuration (`backend/pytest.ini`)
+- [x] Test fixtures for database, client, sources, jobs (`backend/tests/conftest.py`)
+- [x] Dev dependencies in separate file (`backend/requirements-dev.txt`)
+- [x] Stats endpoint tests covering edge cases
+
+**Key Files:**
+- `backend/pytest.ini` - Pytest configuration
+- `backend/requirements-dev.txt` - Test dependencies (includes base requirements)
+- `backend/tests/conftest.py` - Fixtures for DB, client, sample data
+- `backend/tests/test_stats.py` - Stats endpoint tests
+
+**Running Tests:**
+```bash
+# Install dev dependencies
+pip install -r backend/requirements-dev.txt
+
+# Run tests
+cd backend && pytest tests/ -v
+```
+
+**Note:** Tests currently use SQLite for speed. See `ROADMAP.md` for planned MySQL test migration.
 
 ## Remaining Work
 
