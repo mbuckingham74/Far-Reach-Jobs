@@ -8,6 +8,26 @@
     <p class="text-gray-600 dark:text-gray-300">Discover job opportunities in Alaska bush communities and rural US towns.</p>
 </div>
 
+<!-- Stats Banner -->
+<div class="grid grid-cols-3 gap-4 mb-6 sm:mb-8"
+     hx-get="/api/jobs/stats"
+     hx-trigger="load"
+     hx-swap="innerHTML">
+    <!-- Placeholder while loading -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 text-center">
+        <div class="text-2xl sm:text-3xl font-bold text-primary-600 dark:text-primary-400">-</div>
+        <div class="text-sm text-gray-600 dark:text-gray-400">Sources</div>
+    </div>
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 text-center">
+        <div class="text-2xl sm:text-3xl font-bold text-primary-600 dark:text-primary-400">-</div>
+        <div class="text-sm text-gray-600 dark:text-gray-400">Jobs Available</div>
+    </div>
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 text-center">
+        <div class="text-2xl sm:text-3xl font-bold text-primary-600 dark:text-primary-400">-</div>
+        <div class="text-sm text-gray-600 dark:text-gray-400">New This Week</div>
+    </div>
+</div>
+
 <!-- Search and Filters -->
 <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 sm:p-6 mb-6 transition-colors">
     <form id="job-filters"
