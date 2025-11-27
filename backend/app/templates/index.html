@@ -73,13 +73,82 @@
                 </select>
             </div>
         </div>
-        <div class="mt-4 flex flex-col sm:flex-row gap-2">
-            <button type="submit" class="w-full sm:w-auto px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-md transition-colors">
-                Search
+
+        <!-- Advanced Filters Toggle -->
+        <div class="mt-4 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+            <div class="flex gap-2">
+                <button type="submit" class="w-full sm:w-auto px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-md transition-colors">
+                    Search
+                </button>
+                <button type="button" onclick="clearFilters()" class="w-full sm:w-auto px-4 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 font-medium rounded-md transition-colors">
+                    Clear Filters
+                </button>
+            </div>
+            <button type="button" onclick="toggleAdvancedFilters()" class="flex items-center gap-1 text-sm text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
+                <svg id="advanced-toggle-icon" class="w-4 h-4 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                </svg>
+                <span id="advanced-toggle-text">Advanced Filters</span>
             </button>
-            <button type="button" onclick="clearFilters()" class="w-full sm:w-auto px-4 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 font-medium rounded-md transition-colors">
-                Clear Filters
-            </button>
+        </div>
+
+        <!-- Advanced Filters Panel (collapsed by default) -->
+        <div id="advanced-filters" class="hidden mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div>
+                    <label for="date_posted" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Date Posted</label>
+                    <select id="date_posted" name="date_posted"
+                            hx-get="/api/jobs"
+                            hx-target="#job-list"
+                            hx-trigger="change"
+                            hx-include="#job-filters"
+                            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white dark:bg-gray-700 dark:text-white">
+                        <option value="">Any time</option>
+                        <option value="1">Last 24 hours</option>
+                        <option value="7">Last 7 days</option>
+                        <option value="30">Last 30 days</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="organization" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Organization</label>
+                    <select id="organization" name="organization"
+                            hx-get="/api/jobs"
+                            hx-target="#job-list"
+                            hx-trigger="change"
+                            hx-include="#job-filters"
+                            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white dark:bg-gray-700 dark:text-white">
+                        <option value="">All Organizations</option>
+                        {% for org in organizations %}
+                        <option value="{{ org }}">{{ org }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label for="source_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Source</label>
+                    <select id="source_id" name="source_id"
+                            hx-get="/api/jobs"
+                            hx-target="#job-list"
+                            hx-trigger="change"
+                            hx-include="#job-filters"
+                            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white dark:bg-gray-700 dark:text-white">
+                        <option value="">All Sources</option>
+                        {% for source in sources %}
+                        <option value="{{ source.id }}">{{ source.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <div class="mt-4 flex flex-wrap gap-4">
+                <label class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300 cursor-pointer">
+                    <input type="checkbox" id="has_salary" name="has_salary" value="1"
+                           hx-get="/api/jobs"
+                           hx-target="#job-list"
+                           hx-trigger="change"
+                           hx-include="#job-filters"
+                           class="w-4 h-4 text-primary-600 border-gray-300 dark:border-gray-600 rounded focus:ring-primary-500 dark:bg-gray-700">
+                    Has Salary Info
+                </label>
+            </div>
         </div>
     </form>
 </div>
@@ -113,7 +182,27 @@ function clearFilters() {
     document.getElementById('q').value = '';
     document.getElementById('location').value = '';
     document.getElementById('job_type').value = '';
+    document.getElementById('date_posted').value = '';
+    document.getElementById('organization').value = '';
+    document.getElementById('source_id').value = '';
+    document.getElementById('has_salary').checked = false;
     htmx.trigger('#job-filters', 'submit');
+}
+
+function toggleAdvancedFilters() {
+    const panel = document.getElementById('advanced-filters');
+    const icon = document.getElementById('advanced-toggle-icon');
+    const text = document.getElementById('advanced-toggle-text');
+
+    if (panel.classList.contains('hidden')) {
+        panel.classList.remove('hidden');
+        icon.style.transform = 'rotate(180deg)';
+        text.textContent = 'Hide Advanced Filters';
+    } else {
+        panel.classList.add('hidden');
+        icon.style.transform = 'rotate(0deg)';
+        text.textContent = 'Advanced Filters';
+    }
 }
 </script>
 {% endblock %}
