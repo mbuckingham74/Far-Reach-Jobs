@@ -2,7 +2,10 @@ import logging
 import os
 from pathlib import Path
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Depends
+from sqlalchemy.orm import Session
+
+from app.database import get_db
 
 logger = logging.getLogger(__name__)
 from fastapi.staticfiles import StaticFiles
@@ -59,11 +62,27 @@ app.include_router(admin.router, prefix="/admin", tags=["admin"])
 
 # Page routes
 @app.get("/")
-def home(request: Request):
+def home(request: Request, db: Session = Depends(get_db)):
     """Home page with job listings."""
     from app.dependencies import get_optional_current_user
+    from app.models import Job
     user = get_optional_current_user(request)
-    return templates.TemplateResponse("index.html", {"request": request, "user": user})
+
+    # Pre-load locations for the filter dropdown (server-side render as fallback)
+    locations = (
+        db.query(Job.location)
+        .filter(Job.is_stale == False, Job.location.isnot(None), Job.location != "")
+        .distinct()
+        .order_by(Job.location)
+        .all()
+    )
+    location_list = [loc[0] for loc in locations if loc[0]]
+
+    return templates.TemplateResponse("index.html", {
+        "request": request,
+        "user": user,
+        "locations": location_list,
+    })
 
 
 @app.get("/login")
