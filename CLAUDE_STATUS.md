@@ -482,6 +482,56 @@ ADMIN_EMAIL=<email>  # Receives scrape notification emails
 7. ✅ NPM proxy host configured with SSL
 8. ✅ Health endpoint verified: https://far-reach-jobs.tachyonfuture.com/api/health
 
+## Working Source Configurations
+
+This section documents CSS selectors that have been tested and work for specific job sources.
+
+### City of Kotzebue
+- **URL:** `http://www.cityofkotzebue.com/jobs`
+- **Browser Mode:** Enabled (Cloudflare protection)
+- **Container:** `tbody tr`
+- **Title:** `td.views-field-title .tablesaw-cell-content a`
+- **URL:** `td.views-field-title .tablesaw-cell-content a`
+- **Notes:** The page uses a responsive table (tablesaw). The title selector must target `td.views-field-title` (not just `.views-field-title`) to avoid matching the `<th>` header row's sort link.
+
+### City of Dillingham
+- **URL:** `https://www.dillinghamak.us/jobs`
+- **Browser Mode:** Disabled
+- **Container:** `tr.odd, tr.even`
+- **Title:** `.views-field-title a`
+- **URL:** `.views-field-title a`
+
+### Foraker Group
+- **URL:** `https://www.forakergroup.org/site/index.cfm/cboard`
+- **Browser Mode:** Disabled
+- **Container:** `.row.cboardrow`
+- **Title:** `h4`
+- **URL:** `.row.cboardrow`
+
+## CSS Selector Troubleshooting
+
+Common issues when configuring GenericScraper:
+
+1. **Matching header rows instead of data rows**
+   - Problem: Selector like `.views-field-title a` matches both `<th>` and `<td>` elements
+   - Solution: Be specific with `td.views-field-title a` to exclude headers
+
+2. **Only one job found when page has many**
+   - Check if selector matches header row (common with table-based layouts)
+   - Verify container selector matches ALL job rows, not just the first
+
+3. **Title is blank or generic text**
+   - Inspect what text the selector actually captures
+   - May need to add intermediate selectors (e.g., `.tablesaw-cell-content a`)
+
+4. **URLs are relative or malformed**
+   - GenericScraper automatically resolves relative URLs against the page URL
+   - Check `url_attribute` is set correctly (usually "href")
+
+5. **Cloudflare/bot protection blocking**
+   - Enable Browser Mode (use_playwright) for the source
+   - Check Playwright service logs: `docker compose logs playwright`
+
 ## Notes
 
 1. **Gitleaks** is used to prevent secret leaks - all secrets in server .env only
