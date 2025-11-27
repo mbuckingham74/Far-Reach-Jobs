@@ -80,15 +80,28 @@ class GenericScraper(BaseScraper):
         Returns:
             BeautifulSoup object or None on error
         """
+        # Always check robots.txt compliance first
+        if not self.can_fetch(url):
+            logger.warning(f"robots.txt disallows fetching: {url}")
+            return None
+
         if self._use_playwright and self._playwright_fetcher:
             if self._playwright_fetcher.is_available:
                 logger.info(f"Using Playwright to fetch: {url}")
-                return self._playwright_fetcher.fetch(url, wait_for=wait_for)
-            else:
-                logger.warning("Playwright requested but service not available, falling back to httpx")
+                result = self._playwright_fetcher.fetch(url, wait_for=wait_for)
+                if result is not None:
+                    return result
+                # Playwright failed, fall back to httpx
+                logger.warning(f"Playwright fetch failed for {url}, falling back to httpx")
 
-        # Fall back to standard httpx fetch
-        return self.fetch_page(url)
+        # Use standard httpx fetch (skip robots check since we already did it)
+        try:
+            response = self.client.get(url)
+            response.raise_for_status()
+            return BeautifulSoup(response.text, "lxml")
+        except Exception as e:
+            logger.error(f"Failed to fetch {url}: {e}")
+            return None
 
     def _extract_text(self, container: BeautifulSoup, selector: str | None) -> str | None:
         """Extract text content using a CSS selector."""
