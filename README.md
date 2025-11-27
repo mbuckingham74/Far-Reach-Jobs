@@ -23,7 +23,7 @@ We respect `robots.txt` and identify ourselves as `FarReachJobs/1.0` in our User
 
 ## Features
 
-- Search and filter by keyword, state, and job type
+- Search and filter by keyword, city/community, and job type
 - Save jobs to your account for later
 - Dark mode support
 - Mobile-friendly design
@@ -46,7 +46,8 @@ Far Reach Jobs uses a configurable scraper system. New job sources can be added 
 4. Use browser DevTools to inspect the job listing page structure
 5. Enter CSS selectors for job container, title, and URL (required)
 6. Optionally add selectors for organization, location, salary, etc.
-7. Save configuration and click "Scrape" to test
+7. Set a **Default Location** (e.g., "Bethel") for sources where jobs don't have individual locations
+8. Save configuration and click "Scrape" to test
 
 The scraper respects `robots.txt` rules and uses crawl delays when specified.
 

@@ -101,7 +101,8 @@ class MyOrgScraper(BaseScraper):
 - [x] Filter UI components (search input, location dropdown, job type dropdown)
 - [x] Job card component with "Apply" link
 - [x] Pagination with HTMX navigation
-- [x] Dynamic location filter (loads cities/communities from database)
+- [x] Dynamic location filter (server-side rendered from database)
+- [x] Default location fallback for sources without location selectors
 
 **Key Files:**
 - `backend/app/routers/jobs.py` - Job listing API with filters
@@ -269,6 +270,7 @@ ADMIN_EMAIL=michael.buckingham74@gmail.com
 - `url_attribute` - Attribute to extract URL from (default: "href")
 - `selector_next_page` - CSS selector for pagination next link
 - `max_pages` - Maximum pages to scrape (default: 10)
+- `default_location` - Fallback location when scraper doesn't extract one (e.g., "Bethel" for City of Bethel jobs)
 
 **How to Add a New Job Source:**
 1. Go to Admin Dashboard → Add Scrape Source
@@ -392,6 +394,7 @@ PLAYWRIGHT_SERVICE_URL=http://playwright:3000
 - selector_salary, selector_description
 - url_attribute, selector_next_page, max_pages
 - use_playwright (enables headless browser for bot-protected sites)
+- default_location (fallback location when selector doesn't find one)
 
 ## Environment Variables
 
@@ -486,7 +489,7 @@ ADMIN_EMAIL=<email>  # Receives scrape notification emails
 3. ✅ MySQL container auto-creates database and user
 4. ✅ docker-compose.yml joins NPM network
 5. ✅ `docker compose up -d --build`
-6. ✅ Alembic migrations applied (001, 002, 003, 004, 005, 006)
+6. ✅ Alembic migrations applied (001, 002, 003, 004, 005, 006, 007, 008)
 7. ✅ NPM proxy host configured with SSL
 8. ✅ Health endpoint verified: https://far-reach-jobs.tachyonfuture.com/api/health
 
