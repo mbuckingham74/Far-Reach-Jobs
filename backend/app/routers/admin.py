@@ -152,6 +152,19 @@ def list_disabled_sources(request: Request, db: Session = Depends(get_db)):
     )
 
 
+@router.get("/sources/disabled-count")
+def disabled_count_link(request: Request, db: Session = Depends(get_db)):
+    """Return the disabled sources count link (HTMX partial)."""
+    if not get_admin_user(request):
+        raise HTTPException(status_code=401)
+
+    disabled_count = db.query(ScrapeSource).filter(ScrapeSource.is_active == False).count()
+    return templates.TemplateResponse(
+        "admin/partials/disabled_count_link.html",
+        {"request": request, "disabled_count": disabled_count},
+    )
+
+
 @router.post("/sources")
 async def create_source(request: Request, db: Session = Depends(get_db)):
     """Create a new scrape source."""
@@ -164,7 +177,7 @@ async def create_source(request: Request, db: Session = Depends(get_db)):
     scraper_class = form.get("scraper_class", "GenericScraper").strip()
 
     if not name or not base_url:
-        sources = db.query(ScrapeSource).order_by(ScrapeSource.created_at.desc()).all()
+        sources = db.query(ScrapeSource).filter(ScrapeSource.is_active == True).order_by(ScrapeSource.created_at.desc()).all()
         return templates.TemplateResponse(
             "admin/partials/source_list.html",
             {"request": request, "sources": sources, "error": "Name and URL are required"},
@@ -183,13 +196,13 @@ async def create_source(request: Request, db: Session = Depends(get_db)):
     except Exception as e:
         logger.error(f"Failed to create source '{name}': {e}")
         db.rollback()
-        sources = db.query(ScrapeSource).order_by(ScrapeSource.created_at.desc()).all()
+        sources = db.query(ScrapeSource).filter(ScrapeSource.is_active == True).order_by(ScrapeSource.created_at.desc()).all()
         return templates.TemplateResponse(
             "admin/partials/source_list.html",
             {"request": request, "sources": sources, "error": "Failed to create source. Please try again."},
         )
 
-    sources = db.query(ScrapeSource).order_by(ScrapeSource.created_at.desc()).all()
+    sources = db.query(ScrapeSource).filter(ScrapeSource.is_active == True).order_by(ScrapeSource.created_at.desc()).all()
     response = templates.TemplateResponse(
         "admin/partials/source_list.html",
         {"request": request, "sources": sources, "success": f"Source '{name}' created"},

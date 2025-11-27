@@ -96,6 +96,7 @@
                             hx-confirm="Delete source '{{ source.name }}'? This will also delete all jobs from this source.">
                             Delete
                         </button>
+                        {% if not show_disabled %}
                         <button
                             class="px-3 py-1 text-sm bg-blue-500 hover:bg-blue-600 text-white rounded transition-colors inline-flex items-center"
                             hx-post="/admin/sources/{{ source.id }}/scrape"
@@ -104,6 +105,7 @@
                             onclick="openScrapeModal('{{ source.name }}')">
                             Scrape
                         </button>
+                        {% endif %}
                     </div>
                 </td>
             </tr>
