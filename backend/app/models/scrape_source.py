@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Boolean, DateTime
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, Text
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
@@ -13,6 +13,9 @@ class ScrapeSource(Base):
     base_url = Column(String(1000), nullable=False)
     scraper_class = Column(String(255), nullable=False, default="GenericScraper")
     is_active = Column(Boolean, default=True)
+
+    # AI-generated custom scraper code (for sites that can't use GenericScraper)
+    custom_scraper_code = Column(Text, nullable=True)
     last_scraped_at = Column(DateTime, nullable=True)
     last_scrape_success = Column(Boolean, nullable=True)  # True=success, False=fail, None=never run
     created_at = Column(DateTime, server_default=func.now())

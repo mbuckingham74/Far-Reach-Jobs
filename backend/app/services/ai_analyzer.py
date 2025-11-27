@@ -1,11 +1,13 @@
 """
 AI-powered job listing page analyzer using Claude API.
 
-Analyzes HTML pages to suggest CSS selectors for the GenericScraper.
+Analyzes HTML pages to suggest CSS selectors for the GenericScraper,
+and generates custom scraper code for sites that can't use GenericScraper.
 """
 
 import json
 import logging
+import re
 import httpx
 from dataclasses import dataclass
 from anthropic import AsyncAnthropic
@@ -257,5 +259,239 @@ async def analyze_job_page(url: str, use_playwright: bool = False) -> SelectorSu
         return SelectorSuggestions(
             can_use_generic_scraper=False,
             reason="Analysis failed",
+            error=str(e)
+        )
+
+
+# --- Custom Scraper Generation ---
+
+SCRAPER_GENERATION_PROMPT = """You are an expert Python developer specializing in web scraping. Generate a custom scraper class for the given job listings page.
+
+The scraper must:
+1. Inherit from BaseScraper
+2. Implement these required properties and methods:
+   - source_name (str property): Human-readable name for this source
+   - base_url (str property): The base URL of the website
+   - get_job_listing_urls(): Return a list of URLs to scrape
+   - parse_job_listing_page(soup, url): Parse BeautifulSoup and return list of ScrapedJob objects
+
+Here's the base class and ScrapedJob dataclass for reference:
+
+```python
+@dataclass
+class ScrapedJob:
+    external_id: str        # Unique ID (use self.generate_external_id(url))
+    title: str              # Job title (required)
+    url: str                # Full URL to job posting (required)
+    organization: str | None = None   # Company/org name
+    location: str | None = None       # Job location
+    state: str | None = None          # US state abbreviation (e.g., "AK")
+    description: str | None = None    # Job description/summary
+    job_type: str | None = None       # full-time, part-time, etc.
+    salary_info: str | None = None    # Salary information
+
+class BaseScraper(ABC):
+    def generate_external_id(self, url: str) -> str:
+        # Generate unique ID from URL - use this!
+    def fetch_page(self, url: str) -> BeautifulSoup | None:
+        # Fetch and parse a page - available to use
+```
+
+Guidelines:
+- Use BeautifulSoup selectors (.select(), .select_one(), .find(), .find_all())
+- Always use self.generate_external_id(job_url) for external_id
+- Convert relative URLs to absolute using urljoin
+- Handle missing elements gracefully (check if None before accessing)
+- Extract as much information as possible from the HTML
+- Add comments explaining non-obvious selector choices
+- For Alaska-based sources, default state to "AK" if not specified
+
+Source configuration:
+- Source name: {source_name}
+- Base URL: {base_url}
+- Listing URL: {listing_url}
+
+Return ONLY the Python class code (no markdown, no explanation), starting with any needed imports and ending with the class definition. The class name should be a valid Python identifier based on the source name.
+
+Here is the HTML to analyze:
+
+"""
+
+
+@dataclass
+class GeneratedScraper:
+    """Result of AI scraper generation."""
+    success: bool
+    code: str | None = None
+    class_name: str | None = None
+    error: str | None = None
+
+
+def sanitize_class_name(name: str) -> str:
+    """Convert a source name to a valid Python class name."""
+    # Remove special characters, keep alphanumeric and spaces
+    clean = re.sub(r'[^a-zA-Z0-9\s]', '', name)
+    # Convert to PascalCase
+    words = clean.split()
+    pascal = ''.join(word.capitalize() for word in words)
+    # Ensure it starts with a letter
+    if pascal and not pascal[0].isalpha():
+        pascal = 'Source' + pascal
+    return pascal + 'Scraper' if pascal else 'CustomScraper'
+
+
+async def generate_custom_scraper(
+    source_name: str,
+    base_url: str,
+    listing_url: str,
+    html: str
+) -> GeneratedScraper:
+    """Generate a custom scraper class using AI.
+
+    Args:
+        source_name: Human-readable name for the source
+        base_url: Base URL of the website
+        listing_url: URL of the job listings page
+        html: HTML content of the listings page
+
+    Returns:
+        GeneratedScraper with the generated code or error
+    """
+    settings = get_settings()
+
+    if not settings.anthropic_api_key:
+        return GeneratedScraper(
+            success=False,
+            error="ANTHROPIC_API_KEY not set in environment"
+        )
+
+    client = AsyncAnthropic(api_key=settings.anthropic_api_key)
+
+    # Truncate HTML
+    truncated_html = truncate_html(html)
+
+    # Build the prompt with source info
+    prompt = SCRAPER_GENERATION_PROMPT.format(
+        source_name=source_name,
+        base_url=base_url,
+        listing_url=listing_url
+    ) + truncated_html
+
+    try:
+        message = await client.messages.create(
+            model="claude-sonnet-4-20250514",
+            max_tokens=4000,
+            messages=[
+                {
+                    "role": "user",
+                    "content": prompt
+                }
+            ]
+        )
+
+        response_text = message.content[0].text.strip()
+
+        # Remove markdown code blocks if present
+        if response_text.startswith("```"):
+            lines = response_text.split("\n")
+            # Find the first and last ``` lines
+            start_idx = 0
+            end_idx = len(lines)
+            for i, line in enumerate(lines):
+                if line.startswith("```") and i == 0:
+                    start_idx = 1
+                elif line.startswith("```"):
+                    end_idx = i
+                    break
+            response_text = "\n".join(lines[start_idx:end_idx])
+
+        # Validate the generated code
+        if not response_text or len(response_text.strip()) < 50:
+            return GeneratedScraper(
+                success=False,
+                error="AI returned empty or too short response"
+            )
+
+        # Check for required class definition
+        class_match = re.search(r'class\s+(\w+)\s*\(\s*BaseScraper\s*\)', response_text)
+        if not class_match:
+            # Try looser match (any class inheriting from something)
+            class_match = re.search(r'class\s+(\w+)\s*\(', response_text)
+            if not class_match:
+                return GeneratedScraper(
+                    success=False,
+                    error="Generated code does not contain a valid class definition"
+                )
+            logger.warning(f"Generated scraper class doesn't explicitly inherit from BaseScraper")
+
+        class_name = class_match.group(1)
+
+        # Check for required methods
+        required_patterns = [
+            (r'def\s+source_name\s*\(|source_name\s*=', "source_name property"),
+            (r'def\s+base_url\s*\(|base_url\s*=', "base_url property"),
+            (r'def\s+get_job_listing_urls\s*\(', "get_job_listing_urls method"),
+            (r'def\s+parse_job_listing_page\s*\(', "parse_job_listing_page method"),
+        ]
+
+        missing = []
+        for pattern, name in required_patterns:
+            if not re.search(pattern, response_text):
+                missing.append(name)
+
+        if missing:
+            return GeneratedScraper(
+                success=False,
+                error=f"Generated code missing required: {', '.join(missing)}"
+            )
+
+        return GeneratedScraper(
+            success=True,
+            code=response_text,
+            class_name=class_name
+        )
+
+    except Exception as e:
+        logger.exception(f"Error generating custom scraper: {e}")
+        return GeneratedScraper(
+            success=False,
+            error=str(e)
+        )
+
+
+async def generate_scraper_for_url(
+    source_name: str,
+    base_url: str,
+    listing_url: str,
+    use_playwright: bool = False
+) -> GeneratedScraper:
+    """Fetch a page and generate a custom scraper for it.
+
+    Args:
+        source_name: Human-readable name for the source
+        base_url: Base URL of the website
+        listing_url: URL of the job listings page
+        use_playwright: If True, use Playwright for browser-based fetch
+
+    Returns:
+        GeneratedScraper with the generated code or error
+    """
+    try:
+        html = await fetch_page_html(listing_url, use_playwright=use_playwright)
+        return await generate_custom_scraper(source_name, base_url, listing_url, html)
+    except httpx.HTTPStatusError as e:
+        return GeneratedScraper(
+            success=False,
+            error=f"HTTP {e.response.status_code}: {e.response.reason_phrase}"
+        )
+    except httpx.RequestError as e:
+        return GeneratedScraper(
+            success=False,
+            error=str(e)
+        )
+    except Exception as e:
+        logger.exception(f"Error generating scraper for {listing_url}: {e}")
+        return GeneratedScraper(
+            success=False,
             error=str(e)
         )

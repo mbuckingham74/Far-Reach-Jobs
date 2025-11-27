@@ -43,11 +43,17 @@ Far Reach Jobs uses a configurable scraper system. New job sources can be added 
 1. Go to Admin Dashboard → Add Scrape Source
 2. Enter the source name and base URL
 3. Click "Configure" on the new source
-4. Use browser DevTools to inspect the job listing page structure
-5. Enter CSS selectors for job container, title, and URL (required)
-6. Optionally add selectors for organization, location, salary, etc.
-7. Set a **Default Location** (e.g., "Bethel") for sources where jobs don't have individual locations
-8. Save configuration and click "Scrape" to test
+4. Click **"Analyze Page with AI"** to automatically detect CSS selectors
+5. Review the suggested selectors and click "Apply All Suggestions"
+6. Set a **Default Location** (e.g., "Bethel") for sources where jobs don't have individual locations
+7. Save configuration and click "Scrape" to test
+
+### AI-Powered Configuration
+
+The admin panel includes AI-powered tools to simplify scraper setup:
+
+- **Analyze Page with AI** - Automatically suggests CSS selectors by analyzing the page structure
+- **Generate Custom Scraper** - For complex sites that can't use the generic scraper, AI generates Python code tailored to that site's unique structure
 
 The scraper respects `robots.txt` rules and uses crawl delays when specified.
 
