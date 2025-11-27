@@ -281,7 +281,7 @@ async def trigger_scrape(request: Request, db: Session = Depends(get_db)):
         sources = db.query(ScrapeSource).filter(ScrapeSource.is_active == True).all()
         if not sources:
             return templates.TemplateResponse(
-                "admin/partials/scrape_result.html",
+                "admin/partials/scrape_modal_result.html",
                 {"request": request, "error": "No active scrape sources configured", "success": False},
             )
 
@@ -323,14 +323,14 @@ async def trigger_scrape(request: Request, db: Session = Depends(get_db)):
         send_scrape_notification(notification_data)
 
         return templates.TemplateResponse(
-            "admin/partials/scrape_result.html",
+            "admin/partials/scrape_modal_result.html",
             {"request": request, "result": aggregate, "success": True},
         )
     except Exception as e:
         logger.error(f"Manual scrape failed: {e}")
         db.rollback()
         return templates.TemplateResponse(
-            "admin/partials/scrape_result.html",
+            "admin/partials/scrape_modal_result.html",
             {"request": request, "error": "Scrape failed. Check logs for details.", "success": False},
         )
 
@@ -348,10 +348,9 @@ async def trigger_single_source_scrape(source_id: int, request: Request, db: Ses
 
     source = db.query(ScrapeSource).filter(ScrapeSource.id == source_id).first()
     if not source:
-        sources = db.query(ScrapeSource).order_by(ScrapeSource.created_at.desc()).all()
         return templates.TemplateResponse(
-            "admin/partials/source_list.html",
-            {"request": request, "sources": sources, "error": "Source not found"},
+            "admin/partials/scrape_modal_result.html",
+            {"request": request, "error": "Source not found", "success": False},
         )
 
     try:
@@ -380,35 +379,36 @@ async def trigger_single_source_scrape(source_id: int, request: Request, db: Ses
         )
         send_scrape_notification(notification_data)
 
-        # Return updated source list with success/error message
-        sources = db.query(ScrapeSource).order_by(ScrapeSource.created_at.desc()).all()
-
-        if result.errors:
-            return templates.TemplateResponse(
-                "admin/partials/source_list.html",
-                {
-                    "request": request,
-                    "sources": sources,
-                    "error": f"Scrape of '{source.name}' completed with errors: {result.jobs_new} new, {result.jobs_updated} updated",
-                },
-            )
+        # Build result for modal display
+        modal_result = {
+            "sources_processed": 1,
+            "jobs_found": result.jobs_found,
+            "jobs_new": result.jobs_new,
+            "jobs_updated": result.jobs_updated,
+            "errors": result.errors,
+        }
 
         return templates.TemplateResponse(
-            "admin/partials/source_list.html",
+            "admin/partials/scrape_modal_result.html",
             {
                 "request": request,
-                "sources": sources,
-                "success": f"Scrape of '{source.name}' complete: {result.jobs_new} new, {result.jobs_updated} updated",
+                "result": modal_result,
+                "source_name": source.name,
+                "success": True,
             },
         )
 
     except Exception as e:
         logger.exception(f"Single source scrape failed for {source.name}: {e}")
         db.rollback()
-        sources = db.query(ScrapeSource).order_by(ScrapeSource.created_at.desc()).all()
         return templates.TemplateResponse(
-            "admin/partials/source_list.html",
-            {"request": request, "sources": sources, "error": f"Scrape of '{source.name}' failed. Check logs."},
+            "admin/partials/scrape_modal_result.html",
+            {
+                "request": request,
+                "source_name": source.name,
+                "error": "Scrape failed. Check logs for details.",
+                "success": False,
+            },
         )
 
 

@@ -3,6 +3,25 @@
 {% block title %}Admin Dashboard - Far Reach Jobs{% endblock %}
 
 {% block content %}
+<!-- Scrape Progress Modal -->
+<div id="scrape-modal" class="fixed inset-0 z-50 hidden">
+    <!-- Backdrop -->
+    <div class="fixed inset-0 bg-black/50 backdrop-blur-sm" onclick="closeScrapeModal()"></div>
+    <!-- Modal content -->
+    <div class="fixed inset-0 flex items-center justify-center p-4 pointer-events-none">
+        <div id="scrape-modal-content" class="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full p-6 pointer-events-auto">
+            <!-- Initial loading state -->
+            <div id="scrape-modal-loading" class="text-center py-4">
+                <div class="inline-block w-12 h-12 border-4 border-primary-200 border-t-primary-600 rounded-full animate-spin mb-4"></div>
+                <h3 id="scrape-modal-title" class="text-lg font-semibold text-gray-900 dark:text-white mb-2">Running Scrape...</h3>
+                <p id="scrape-modal-source" class="text-gray-600 dark:text-gray-400 text-sm"></p>
+            </div>
+            <!-- Result will be swapped here -->
+            <div id="scrape-modal-result"></div>
+        </div>
+    </div>
+</div>
+
 <div class="mb-6 flex justify-between items-center">
     <div>
         <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Admin Dashboard</h2>
@@ -39,14 +58,12 @@
 <!-- Manual Scrape -->
 <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-8 transition-colors">
     <h3 class="text-lg font-semibold dark:text-white mb-4">Manual Scrape</h3>
-    <div id="scrape-result"></div>
     <button
         class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-md transition-colors inline-flex items-center justify-center"
         hx-post="/admin/scrape"
-        hx-target="#scrape-result"
+        hx-target="#scrape-modal-result"
         hx-swap="innerHTML"
-        hx-indicator="#scrape-spinner">
-        <span id="scrape-spinner" class="htmx-indicator inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></span>
+        onclick="openScrapeModal()">
         Run Scraper Now
     </button>
     <p class="text-sm text-gray-500 dark:text-gray-400 mt-2">
@@ -96,4 +113,51 @@
         <div class="text-center py-8 text-gray-500 dark:text-gray-400">Loading sources...</div>
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function openScrapeModal(sourceName) {
+        const modal = document.getElementById('scrape-modal');
+        const loading = document.getElementById('scrape-modal-loading');
+        const result = document.getElementById('scrape-modal-result');
+        const sourceText = document.getElementById('scrape-modal-source');
+        const titleText = document.getElementById('scrape-modal-title');
+
+        // Reset modal state
+        loading.classList.remove('hidden');
+        result.innerHTML = '';
+        titleText.textContent = 'Running Scrape...';
+        sourceText.textContent = sourceName ? `Scraping: ${sourceName}` : 'Scraping all active sources...';
+
+        // Show modal
+        modal.classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeScrapeModal() {
+        const modal = document.getElementById('scrape-modal');
+        modal.classList.add('hidden');
+        document.body.style.overflow = '';
+    }
+
+    function onScrapeComplete() {
+        const loading = document.getElementById('scrape-modal-loading');
+        loading.classList.add('hidden');
+    }
+
+    // Close modal on Escape key
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            closeScrapeModal();
+        }
+    });
+
+    // Listen for HTMX after swap to hide loading spinner
+    document.body.addEventListener('htmx:afterSwap', function(evt) {
+        if (evt.detail.target.id === 'scrape-modal-result') {
+            onScrapeComplete();
+        }
+    });
+</script>
 {% endblock %}
