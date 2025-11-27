@@ -45,11 +45,16 @@ app.post('/fetch', async (req, res) => {
     const pageTimeout = timeout || 30000;
     page.setDefaultTimeout(pageTimeout);
 
-    // Navigate to page
+    // Navigate to page - use 'domcontentloaded' instead of 'networkidle'
+    // because many sites have continuous background activity that prevents
+    // networkidle from ever completing (analytics, websockets, polling, etc.)
     await page.goto(url, {
-      waitUntil: 'networkidle',
+      waitUntil: 'domcontentloaded',
       timeout: pageTimeout
     });
+
+    // Give JavaScript a moment to render dynamic content
+    await page.waitForTimeout(2000);
 
     // Optional: wait for a specific selector
     if (waitFor) {
