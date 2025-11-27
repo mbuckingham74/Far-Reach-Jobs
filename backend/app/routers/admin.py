@@ -613,7 +613,8 @@ async def analyze_source_page(source_id: int, request: Request, db: Session = De
     url_to_analyze = source.listing_url or source.base_url
 
     try:
-        suggestions = await analyze_job_page(url_to_analyze)
+        # Use Playwright if Browser Mode is enabled for this source
+        suggestions = await analyze_job_page(url_to_analyze, use_playwright=source.use_playwright)
 
         return templates.TemplateResponse(
             "admin/partials/ai_suggestions.html",

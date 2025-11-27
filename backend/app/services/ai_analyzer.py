@@ -11,6 +11,7 @@ from dataclasses import dataclass
 from anthropic import AsyncAnthropic
 
 from app.config import get_settings
+from scraper.playwright_fetcher import get_playwright_fetcher
 
 logger = logging.getLogger(__name__)
 
@@ -95,9 +96,26 @@ def is_ai_analysis_available() -> bool:
     return bool(settings.anthropic_api_key)
 
 
-async def fetch_page_html(url: str) -> str:
-    """Fetch HTML content from a URL."""
-    # Use browser-like headers to avoid WAF blocks
+async def fetch_page_html(url: str, use_playwright: bool = False) -> str:
+    """Fetch HTML content from a URL.
+
+    Args:
+        url: URL to fetch
+        use_playwright: If True, use Playwright service for browser-based fetch
+    """
+    # Try Playwright first if enabled
+    if use_playwright:
+        fetcher = get_playwright_fetcher()
+        if fetcher.is_available:
+            logger.info(f"Using Playwright to fetch page for AI analysis: {url}")
+            soup = fetcher.fetch(url)
+            if soup is not None:
+                return str(soup)
+            logger.warning(f"Playwright fetch failed for {url}, falling back to httpx")
+        else:
+            logger.warning("Playwright requested but service not available, using httpx")
+
+    # Fall back to httpx
     headers = {
         "User-Agent": "Mozilla/5.0 (compatible; FarReachJobs/1.0; +https://far-reach-jobs.tachyonfuture.com)",
         "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
@@ -207,14 +225,18 @@ async def analyze_with_claude(html: str) -> SelectorSuggestions:
         )
 
 
-async def analyze_job_page(url: str) -> SelectorSuggestions:
+async def analyze_job_page(url: str, use_playwright: bool = False) -> SelectorSuggestions:
     """
     Fetch a job listing page and analyze it with Claude.
+
+    Args:
+        url: URL to analyze
+        use_playwright: If True, use Playwright service for browser-based fetch
 
     Returns SelectorSuggestions with recommended CSS selectors.
     """
     try:
-        html = await fetch_page_html(url)
+        html = await fetch_page_html(url, use_playwright=use_playwright)
         return await analyze_with_claude(html)
     except httpx.HTTPStatusError as e:
         logger.error(f"HTTP error fetching {url}: {e}")
