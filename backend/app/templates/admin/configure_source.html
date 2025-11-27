@@ -252,6 +252,31 @@
     </div>
 </form>
 
+<!-- Scrape Modal -->
+<div id="scrape-modal" class="hidden fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+    <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:p-0">
+        <!-- Background overlay -->
+        <div class="fixed inset-0 bg-gray-500 dark:bg-gray-900 bg-opacity-75 dark:bg-opacity-75 transition-opacity" onclick="closeScrapeModal()"></div>
+
+        <!-- Modal panel -->
+        <div class="relative inline-block align-bottom bg-white dark:bg-gray-800 rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-md sm:w-full sm:p-6">
+            <!-- Loading state -->
+            <div id="scrape-modal-loading">
+                <div class="flex flex-col items-center justify-center py-8">
+                    <div class="relative">
+                        <div class="w-16 h-16 border-4 border-blue-200 dark:border-blue-800 rounded-full"></div>
+                        <div class="absolute top-0 left-0 w-16 h-16 border-4 border-blue-600 rounded-full animate-spin border-t-transparent"></div>
+                    </div>
+                    <p class="mt-4 text-lg font-medium text-gray-900 dark:text-white">Running scraper...</p>
+                    <p id="scrape-modal-source" class="mt-1 text-sm text-gray-500 dark:text-gray-400"></p>
+                </div>
+            </div>
+            <!-- Results will be loaded here -->
+            <div id="scrape-modal-result"></div>
+        </div>
+    </div>
+</div>
+
 <!-- Help Section -->
 <div class="mt-8 bg-blue-50 dark:bg-blue-900/30 rounded-lg border border-blue-200 dark:border-blue-800 p-6">
     <h3 class="text-lg font-semibold text-blue-800 dark:text-blue-200 mb-2">How to Find CSS Selectors</h3>
@@ -282,6 +307,44 @@
     const analyzeText = document.getElementById('analyze-text');
     const loadingDiv = document.getElementById('ai-loading');
     const resultsDiv = document.getElementById('ai-results');
+
+    // Scrape modal functions
+    window.showScrapeModal = function(sourceName) {
+        const modal = document.getElementById('scrape-modal');
+        const loadingDiv = document.getElementById('scrape-modal-loading');
+        const resultDiv = document.getElementById('scrape-modal-result');
+        const sourceText = document.getElementById('scrape-modal-source');
+
+        // Reset state
+        loadingDiv.classList.remove('hidden');
+        resultDiv.innerHTML = '';
+        sourceText.textContent = sourceName || '';
+
+        // Show modal
+        modal.classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+    };
+
+    window.closeScrapeModal = function() {
+        // Navigate back to admin page
+        window.location.href = '/admin';
+    };
+
+    window.onScrapeComplete = function() {
+        // Hide loading, show results
+        const loadingDiv = document.getElementById('scrape-modal-loading');
+        loadingDiv.classList.add('hidden');
+    };
+
+    // Handle Escape key to close modal
+    document.addEventListener('keydown', function(event) {
+        if (event.key === 'Escape') {
+            const modal = document.getElementById('scrape-modal');
+            if (!modal.classList.contains('hidden')) {
+                closeScrapeModal();
+            }
+        }
+    });
 
     // Show loading state when analysis starts
     document.body.addEventListener('htmx:beforeRequest', function(event) {
