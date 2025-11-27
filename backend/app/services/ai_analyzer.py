@@ -275,27 +275,28 @@ The scraper must:
    - get_job_listing_urls(): Return a list of URLs to scrape
    - parse_job_listing_page(soup, url): Parse BeautifulSoup and return list of ScrapedJob objects
 
-Here's the base class and ScrapedJob dataclass for reference:
+IMPORTANT: The following are ALREADY IMPORTED and available. DO NOT redefine them:
+- BaseScraper (the base class to inherit from)
+- ScrapedJob (the dataclass to return)
+- BeautifulSoup
+- urljoin (from urllib.parse)
+- re
+- json
 
-```python
-@dataclass
-class ScrapedJob:
-    external_id: str        # Unique ID (use self.generate_external_id(url))
-    title: str              # Job title (required)
-    url: str                # Full URL to job posting (required)
-    organization: str | None = None   # Company/org name
-    location: str | None = None       # Job location
-    state: str | None = None          # US state abbreviation (e.g., "AK")
-    description: str | None = None    # Job description/summary
-    job_type: str | None = None       # full-time, part-time, etc.
-    salary_info: str | None = None    # Salary information
+ScrapedJob fields for reference (DO NOT redefine this class):
+- external_id: str        # Use self.generate_external_id(url)
+- title: str              # Job title (required)
+- url: str                # Full URL to job posting (required)
+- organization: str | None = None
+- location: str | None = None
+- state: str | None = None   # US state abbreviation (e.g., "AK")
+- description: str | None = None
+- job_type: str | None = None
+- salary_info: str | None = None
 
-class BaseScraper(ABC):
-    def generate_external_id(self, url: str) -> str:
-        # Generate unique ID from URL - use this!
-    def fetch_page(self, url: str) -> BeautifulSoup | None:
-        # Fetch and parse a page - available to use
-```
+BaseScraper methods available (DO NOT redefine this class):
+- self.generate_external_id(url: str) -> str  # Generate unique ID from URL
+- self.fetch_page(url: str) -> BeautifulSoup | None  # Fetch and parse a page
 
 Guidelines:
 - Use BeautifulSoup selectors (.select(), .select_one(), .find(), .find_all())
@@ -311,7 +312,11 @@ Source configuration:
 - Base URL: {base_url}
 - Listing URL: {listing_url}
 
-Return ONLY the Python class code (no markdown, no explanation), starting with any needed imports and ending with the class definition. The class name should be a valid Python identifier based on the source name.
+Return ONLY your scraper class definition. DO NOT include:
+- Import statements (already available)
+- BaseScraper or ScrapedJob class definitions (already available)
+- Markdown code blocks
+- Explanations
 
 Here is the HTML to analyze:
 
@@ -407,6 +412,46 @@ async def generate_custom_scraper(
                     end_idx = i
                     break
             response_text = "\n".join(lines[start_idx:end_idx])
+
+        # Strip out any import statements and class redefinitions that the AI shouldn't have included
+        # These are already provided in the exec namespace
+        lines = response_text.split("\n")
+        cleaned_lines = []
+        skip_until_class = False
+        in_unwanted_class = False
+        unwanted_class_indent = 0
+
+        for line in lines:
+            stripped = line.lstrip()
+            current_indent = len(line) - len(stripped)
+
+            # Skip import statements
+            if stripped.startswith(("from ", "import ")):
+                continue
+
+            # Skip @dataclass decorator
+            if stripped.startswith("@dataclass"):
+                continue
+
+            # Detect unwanted class definitions (BaseScraper, ScrapedJob)
+            if stripped.startswith("class BaseScraper") or stripped.startswith("class ScrapedJob"):
+                in_unwanted_class = True
+                unwanted_class_indent = current_indent
+                continue
+
+            # If we're in an unwanted class, skip until we hit a line at same or lower indent
+            if in_unwanted_class:
+                if stripped and current_indent <= unwanted_class_indent:
+                    in_unwanted_class = False
+                    # Don't skip this line - check if it's wanted
+                    if not stripped.startswith("class BaseScraper") and not stripped.startswith("class ScrapedJob"):
+                        cleaned_lines.append(line)
+                continue
+
+            cleaned_lines.append(line)
+
+        response_text = "\n".join(cleaned_lines).strip()
+        logger.info(f"Cleaned code (first 300 chars): {response_text[:300]}")
 
         # Validate the generated code
         if not response_text or len(response_text.strip()) < 50:
