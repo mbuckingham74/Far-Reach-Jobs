@@ -25,7 +25,6 @@ def list_jobs(
     date_posted: str | None = Query(None, description="Filter by days since posted (1, 7, 30)"),
     organization: str | None = Query(None, description="Filter by organization"),
     source_id: str | None = Query(None, description="Filter by source ID"),
-    has_salary: str | None = Query(None, description="Filter jobs with salary info (1 or true)"),
     page: int = Query(1, ge=1, description="Page number"),
     per_page: int = Query(20, ge=1, le=100, description="Items per page"),
     db: Session = Depends(get_db),
@@ -57,7 +56,6 @@ def list_jobs(
     # Advanced filters (coerce strings to proper types, handle empty strings)
     date_posted_days = int(date_posted) if date_posted and date_posted.isdigit() else None
     source_id_int = int(source_id) if source_id and source_id.isdigit() else None
-    has_salary_bool = has_salary in ("1", "true") if has_salary else False
 
     if date_posted_days:
         cutoff_date = datetime.utcnow() - timedelta(days=date_posted_days)
@@ -66,8 +64,6 @@ def list_jobs(
         query = query.filter(Job.organization == organization)
     if source_id_int:
         query = query.filter(Job.source_id == source_id_int)
-    if has_salary_bool:
-        query = query.filter(Job.salary_info.isnot(None), Job.salary_info != "")
 
     # Get total count before pagination
     total = query.count()
@@ -102,7 +98,6 @@ def list_jobs(
                 "date_posted": date_posted_days or "",
                 "organization": organization or "",
                 "source_id": source_id_int or "",
-                "has_salary": has_salary_bool,
                 "user": user,
                 "saved_job_ids": saved_job_ids,
             },
