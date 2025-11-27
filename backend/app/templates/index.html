@@ -138,17 +138,6 @@
                     </select>
                 </div>
             </div>
-            <div class="mt-4 flex flex-wrap gap-4">
-                <label class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300 cursor-pointer">
-                    <input type="checkbox" id="has_salary" name="has_salary" value="1"
-                           hx-get="/api/jobs"
-                           hx-target="#job-list"
-                           hx-trigger="change"
-                           hx-include="#job-filters"
-                           class="w-4 h-4 text-primary-600 border-gray-300 dark:border-gray-600 rounded focus:ring-primary-500 dark:bg-gray-700">
-                    Has Salary Info
-                </label>
-            </div>
         </div>
     </form>
 </div>
@@ -185,7 +174,6 @@ function clearFilters() {
     document.getElementById('date_posted').value = '';
     document.getElementById('organization').value = '';
     document.getElementById('source_id').value = '';
-    document.getElementById('has_salary').checked = false;
     htmx.trigger('#job-filters', 'submit');
 }
 

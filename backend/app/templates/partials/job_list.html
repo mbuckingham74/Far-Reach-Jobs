@@ -82,7 +82,6 @@
 {% if date_posted %}{% set _ = filter_params.append('date_posted=' ~ date_posted) %}{% endif %}
 {% if organization %}{% set _ = filter_params.append('organization=' ~ organization) %}{% endif %}
 {% if source_id %}{% set _ = filter_params.append('source_id=' ~ source_id) %}{% endif %}
-{% if has_salary %}{% set _ = filter_params.append('has_salary=1') %}{% endif %}
 {% set filter_query = '&' ~ filter_params|join('&') if filter_params else '' %}
 
 <div class="flex justify-center items-center gap-2 mt-6">
@@ -119,7 +118,7 @@
     </svg>
     <h3 class="text-lg font-medium text-gray-700 dark:text-gray-300 mb-2">No jobs found</h3>
     <p class="text-gray-500 dark:text-gray-400">
-        {% if q or location or job_type or date_posted or organization or source_id or has_salary %}
+        {% if q or location or job_type or date_posted or organization or source_id %}
         Try adjusting your search filters or check back later for new listings.
         {% else %}
         No jobs available yet. Check back soon!<br>
