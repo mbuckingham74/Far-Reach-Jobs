@@ -178,6 +178,7 @@ def get_source_config(source: ScrapeSource) -> dict:
         "selector_next_page": source.selector_next_page,
         "max_pages": source.max_pages,
         "use_playwright": source.use_playwright,
+        "default_location": source.default_location,
     }
 
 

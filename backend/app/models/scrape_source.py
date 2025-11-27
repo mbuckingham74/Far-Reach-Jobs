@@ -41,4 +41,8 @@ class ScrapeSource(Base):
     # Useful for sites with bot protection or JavaScript-rendered content
     use_playwright = Column(Boolean, default=False)
 
+    # Default location to use when scraper doesn't extract location from page
+    # e.g., "Bethel" for City of Bethel jobs, "Kotzebue" for City of Kotzebue
+    default_location = Column(String(255), nullable=True)
+
     jobs = relationship("Job", back_populates="source", cascade="all, delete-orphan")

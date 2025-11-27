@@ -559,6 +559,7 @@ async def save_source_configuration(source_id: int, request: Request, db: Sessio
     source.selector_description = form.get("selector_description", "").strip() or None
     source.url_attribute = form.get("url_attribute", "href").strip() or "href"
     source.selector_next_page = form.get("selector_next_page", "").strip() or None
+    source.default_location = form.get("default_location", "").strip() or None
 
     max_pages_str = form.get("max_pages", "10").strip()
     try:
