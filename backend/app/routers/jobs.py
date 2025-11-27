@@ -78,7 +78,7 @@ def list_jobs(
                 "per_page": per_page,
                 "total_pages": total_pages,
                 "q": q or "",
-                "state": state or "",
+                "location": location or "",
                 "job_type": job_type or "",
                 "user": user,
                 "saved_job_ids": saved_job_ids,
@@ -105,6 +105,31 @@ def get_states(db: Session = Depends(get_db)):
         .all()
     )
     return {"states": [s[0] for s in states if s[0]]}
+
+
+@router.get("/locations")
+def get_locations(request: Request, db: Session = Depends(get_db)):
+    """Get list of unique locations (cities/communities) that have active jobs."""
+    import html
+
+    locations = (
+        db.query(Job.location)
+        .filter(Job.is_stale == False, Job.location.isnot(None), Job.location != "")
+        .distinct()
+        .order_by(Job.location)
+        .all()
+    )
+    location_list = [loc[0] for loc in locations if loc[0]]
+
+    # Return HTML options for HTMX requests
+    if request.headers.get("HX-Request"):
+        options_html = '<option value="">All Locations</option>'
+        for loc in location_list:
+            escaped_loc = html.escape(loc)
+            options_html += f'<option value="{escaped_loc}">{escaped_loc}</option>'
+        return HTMLResponse(content=options_html)
+
+    return {"locations": location_list}
 
 
 @router.get("/job-types")

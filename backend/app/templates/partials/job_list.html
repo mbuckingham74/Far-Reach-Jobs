@@ -78,7 +78,7 @@
     {% if page > 1 %}
     <button
         class="px-4 py-2 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded-md transition-colors"
-        hx-get="/api/jobs?page={{ page - 1 }}{% if q %}&q={{ q }}{% endif %}{% if state %}&state={{ state }}{% endif %}{% if job_type %}&job_type={{ job_type }}{% endif %}"
+        hx-get="/api/jobs?page={{ page - 1 }}{% if q %}&q={{ q }}{% endif %}{% if location %}&location={{ location }}{% endif %}{% if job_type %}&job_type={{ job_type }}{% endif %}"
         hx-target="#job-list"
         hx-swap="innerHTML">
         Previous
@@ -92,7 +92,7 @@
     {% if page < total_pages %}
     <button
         class="px-4 py-2 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded-md transition-colors"
-        hx-get="/api/jobs?page={{ page + 1 }}{% if q %}&q={{ q }}{% endif %}{% if state %}&state={{ state }}{% endif %}{% if job_type %}&job_type={{ job_type }}{% endif %}"
+        hx-get="/api/jobs?page={{ page + 1 }}{% if q %}&q={{ q }}{% endif %}{% if location %}&location={{ location }}{% endif %}{% if job_type %}&job_type={{ job_type }}{% endif %}"
         hx-target="#job-list"
         hx-swap="innerHTML">
         Next
@@ -108,7 +108,7 @@
     </svg>
     <h3 class="text-lg font-medium text-gray-700 dark:text-gray-300 mb-2">No jobs found</h3>
     <p class="text-gray-500 dark:text-gray-400">
-        {% if q or state or job_type %}
+        {% if q or location or job_type %}
         Try adjusting your search filters or check back later for new listings.
         {% else %}
         No jobs available yet. Check back soon!<br>
