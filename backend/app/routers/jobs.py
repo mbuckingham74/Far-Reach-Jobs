@@ -1,9 +1,10 @@
+from datetime import datetime, timedelta
+
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
-from sqlalchemy import and_, or_, text
+from sqlalchemy import and_, or_
 from sqlalchemy.orm import Session
-from sqlalchemy.sql import func
 
 from app.database import get_db
 from app.dependencies import get_optional_current_user
@@ -129,8 +130,8 @@ def get_stats(request: Request, db: Session = Depends(get_db)):
     jobs_count = db.query(Job).filter(Job.is_stale == False).count()
 
     # Count jobs first seen in the last 7 days
-    # Use DB-side date calculation to match func.now() used in Job.first_seen_at
-    seven_days_ago = func.date_sub(func.now(), text("INTERVAL 7 DAY"))
+    # Use Python datetime for dialect-agnostic comparison (works with MySQL and SQLite)
+    seven_days_ago = datetime.utcnow() - timedelta(days=7)
     new_this_week = (
         db.query(Job)
         .filter(
