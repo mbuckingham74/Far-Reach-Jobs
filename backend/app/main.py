@@ -129,6 +129,14 @@ def saved_jobs_page(request: Request):
     return templates.TemplateResponse("saved.html", {"request": request, "user": user})
 
 
+@app.get("/contact")
+def contact_page(request: Request):
+    """Contact page."""
+    from app.dependencies import get_optional_current_user
+    user = get_optional_current_user(request)
+    return templates.TemplateResponse("contact.html", {"request": request, "user": user})
+
+
 # Error handlers
 def _wants_json(request: Request) -> bool:
     """Check if request expects JSON response (API routes or Accept header)."""
