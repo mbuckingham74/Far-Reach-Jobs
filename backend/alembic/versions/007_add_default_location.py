@@ -50,11 +50,16 @@ def upgrade() -> None:
         ("Northwest Arctic Borough School District (NWABSD)", "Kotzebue"),
     ]
 
+    # Use SQLAlchemy text() with bound parameters for safe SQL execution
+    conn = op.get_bind()
     for source_name, location in location_mappings:
-        # Use LIKE to match partial names (some sources have additional text)
-        op.execute(
-            f"UPDATE scrape_sources SET default_location = '{location}' "
-            f"WHERE name LIKE '%{source_name}%' AND default_location IS NULL"
+        # Use bound parameters to prevent SQL injection
+        conn.execute(
+            sa.text(
+                "UPDATE scrape_sources SET default_location = :location "
+                "WHERE name LIKE :pattern AND default_location IS NULL"
+            ),
+            {"location": location, "pattern": f"%{source_name}%"}
         )
 
 
