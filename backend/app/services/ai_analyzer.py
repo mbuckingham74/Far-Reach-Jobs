@@ -391,6 +391,9 @@ async def generate_custom_scraper(
 
         response_text = message.content[0].text.strip()
 
+        # Log the first part of the response for debugging
+        logger.info(f"AI scraper generation response (first 500 chars): {response_text[:500]}")
+
         # Remove markdown code blocks if present
         if response_text.startswith("```"):
             lines = response_text.split("\n")
@@ -418,6 +421,7 @@ async def generate_custom_scraper(
             # Try looser match (any class inheriting from something)
             class_match = re.search(r'class\s+(\w+)\s*\(', response_text)
             if not class_match:
+                logger.error(f"No class definition found in response. Response length: {len(response_text)}")
                 return GeneratedScraper(
                     success=False,
                     error="Generated code does not contain a valid class definition"
