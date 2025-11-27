@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import and_, or_
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from app.database import get_db
 from app.dependencies import get_optional_current_user
@@ -27,8 +27,8 @@ def list_jobs(
     db: Session = Depends(get_db),
 ):
     """List jobs with optional filters and search."""
-    # Base query - exclude stale jobs
-    query = db.query(Job).filter(Job.is_stale == False)
+    # Base query - exclude stale jobs and eager load source for display
+    query = db.query(Job).options(joinedload(Job.source)).filter(Job.is_stale == False)
 
     # Apply search filter (searches title, organization, description)
     if q:
