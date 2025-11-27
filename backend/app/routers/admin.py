@@ -626,8 +626,11 @@ async def analyze_source_page(source_id: int, request: Request, db: Session = De
     form = await request.form()
     use_playwright = form.get("use_playwright") == "1"
 
-    # Use listing_url if set, otherwise fall back to base_url
-    url_to_analyze = source.listing_url or source.base_url
+    # Use first non-empty listing_url if set (supports multiple URLs separated by newlines),
+    # otherwise fall back to base_url
+    listing_url = source.listing_url or ""
+    listing_urls = [url.strip() for url in listing_url.split('\n') if url.strip()]
+    url_to_analyze = listing_urls[0] if listing_urls else source.base_url
 
     try:
         # Use Playwright if Browser Mode toggle is checked
