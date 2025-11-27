@@ -456,15 +456,6 @@ async def save_source_configuration(source_id: int, request: Request, db: Sessio
     if base_url and not (base_url.startswith("http://") or base_url.startswith("https://")):
         errors.append("Base URL must start with http:// or https://")
 
-    # Validate that required selectors are set for GenericScraper
-    if source.scraper_class == "GenericScraper":
-        if not selector_job_container:
-            errors.append("Job Container Selector is required for GenericScraper")
-        if not selector_title:
-            errors.append("Title Selector is required for GenericScraper")
-        if not selector_url:
-            errors.append("URL Selector is required for GenericScraper")
-
     if errors:
         return templates.TemplateResponse(
             "admin/configure_source.html",
@@ -494,6 +485,23 @@ async def save_source_configuration(source_id: int, request: Request, db: Sessio
 
     try:
         db.commit()
+        # Check if selectors are missing and add warning
+        missing_selectors = []
+        if source.scraper_class == "GenericScraper":
+            if not selector_job_container:
+                missing_selectors.append("Job Container")
+            if not selector_title:
+                missing_selectors.append("Title")
+            if not selector_url:
+                missing_selectors.append("URL")
+
+        if missing_selectors:
+            warning = f"Configuration saved, but scraping won't work until these selectors are set: {', '.join(missing_selectors)}"
+            return templates.TemplateResponse(
+                "admin/configure_source.html",
+                {"request": request, "source": source, "success": "Configuration saved", "warning": warning},
+            )
+
         return templates.TemplateResponse(
             "admin/configure_source.html",
             {"request": request, "source": source, "success": "Configuration saved successfully"},
