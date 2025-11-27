@@ -3,8 +3,10 @@ import json
 import logging
 import time
 from datetime import datetime, timezone
+from urllib.parse import urljoin
 
 from sqlalchemy.orm import Session
+from bs4 import BeautifulSoup
 
 from app.models import Job, ScrapeSource, ScrapeLog
 from scraper.base import BaseScraper, ScrapedJob, ScrapeResult
@@ -53,6 +55,58 @@ def get_scraper_class(class_name: str) -> type[BaseScraper] | None:
         pass
 
     return None
+
+
+def create_dynamic_scraper(source: ScrapeSource) -> type[BaseScraper] | None:
+    """Dynamically compile and return a scraper class from custom_scraper_code.
+
+    Args:
+        source: ScrapeSource with custom_scraper_code field populated
+
+    Returns:
+        A scraper class ready to instantiate, or None if compilation fails
+    """
+    if not source.custom_scraper_code:
+        logger.error(f"No custom_scraper_code for source {source.name}")
+        return None
+
+    # Create a namespace with all the imports the generated code might need
+    namespace = {
+        "BaseScraper": BaseScraper,
+        "ScrapedJob": ScrapedJob,
+        "BeautifulSoup": BeautifulSoup,
+        "urljoin": urljoin,
+        # Common imports the AI might use
+        "re": __import__("re"),
+        "json": __import__("json"),
+    }
+
+    try:
+        # Compile and execute the code in our namespace
+        exec(source.custom_scraper_code, namespace)
+
+        # Find the scraper class (should be the only class inheriting from BaseScraper)
+        scraper_class = None
+        for name, obj in namespace.items():
+            if (isinstance(obj, type) and
+                issubclass(obj, BaseScraper) and
+                obj is not BaseScraper):
+                scraper_class = obj
+                break
+
+        if scraper_class is None:
+            logger.error(f"No BaseScraper subclass found in custom code for {source.name}")
+            return None
+
+        logger.info(f"Successfully compiled dynamic scraper {scraper_class.__name__} for {source.name}")
+        return scraper_class
+
+    except SyntaxError as e:
+        logger.error(f"Syntax error in custom scraper code for {source.name}: {e}")
+        return None
+    except Exception as e:
+        logger.error(f"Failed to compile custom scraper for {source.name}: {e}")
+        return None
 
 
 def upsert_job(db: Session, source_id: int, scraped_job: ScrapedJob) -> tuple[bool, bool]:
@@ -187,8 +241,26 @@ def run_scraper(db: Session, source: ScrapeSource, trigger_type: str = "manual")
     start_time = time.time()
     started_at = datetime.now(timezone.utc)
 
-    # Get the scraper class
-    scraper_class = get_scraper_class(source.scraper_class)
+    # Handle DynamicScraper - compile from custom_scraper_code
+    if source.scraper_class == "DynamicScraper":
+        scraper_class = create_dynamic_scraper(source)
+        if scraper_class is None:
+            source.last_scraped_at = datetime.now(timezone.utc)
+            source.last_scrape_success = False
+            result = ScrapeResult(
+                source_name=source.name,
+                jobs_found=0,
+                jobs_new=0,
+                jobs_updated=0,
+                errors=["Failed to compile custom scraper code. Check logs for details."],
+                duration_seconds=0,
+            )
+            log_scrape_result(db, source, result, trigger_type, started_at)
+            return result
+    else:
+        # Get the scraper class from registry
+        scraper_class = get_scraper_class(source.scraper_class)
+
     if scraper_class is None:
         # Mark source as failed before returning
         source.last_scraped_at = datetime.now(timezone.utc)
@@ -217,7 +289,7 @@ def run_scraper(db: Session, source: ScrapeSource, trigger_type: str = "manual")
     source_config = get_source_config(source)
 
     try:
-        # GenericScraper needs configuration, other scrapers don't
+        # GenericScraper needs configuration, DynamicScraper and others don't
         if source.scraper_class == "GenericScraper":
             scraper_instance = scraper_class(source_config=source_config)
         else:

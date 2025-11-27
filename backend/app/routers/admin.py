@@ -755,8 +755,9 @@ async def generate_custom_scraper_code(source_id: int, request: Request, db: Ses
         )
 
         if result.success:
-            # Save the generated code to the source
+            # Save the generated code and set scraper_class to DynamicScraper
             source.custom_scraper_code = result.code
+            source.scraper_class = "DynamicScraper"
             db.commit()
 
         return templates.TemplateResponse(
