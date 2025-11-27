@@ -412,6 +412,73 @@ async def trigger_single_source_scrape(source_id: int, request: Request, db: Ses
         )
 
 
+@router.get("/sources/{source_id}/edit")
+def edit_source_page(source_id: int, request: Request, db: Session = Depends(get_db)):
+    """Edit source basic info (name, URLs)."""
+    if not get_admin_user(request):
+        return RedirectResponse(url="/admin/login", status_code=302)
+
+    source = db.query(ScrapeSource).filter(ScrapeSource.id == source_id).first()
+    if not source:
+        return RedirectResponse(url="/admin", status_code=302)
+
+    return templates.TemplateResponse(
+        "admin/edit_source.html",
+        {"request": request, "source": source},
+    )
+
+
+@router.post("/sources/{source_id}/edit")
+async def save_source_edit(source_id: int, request: Request, db: Session = Depends(get_db)):
+    """Save source basic info changes."""
+    if not get_admin_user(request):
+        raise HTTPException(status_code=401)
+
+    source = db.query(ScrapeSource).filter(ScrapeSource.id == source_id).first()
+    if not source:
+        return RedirectResponse(url="/admin", status_code=302)
+
+    form = await request.form()
+    name = form.get("name", "").strip()
+    base_url = form.get("base_url", "").strip()
+    listing_url = form.get("listing_url", "").strip() or None
+
+    # Validation
+    errors = []
+    if not name:
+        errors.append("Source name is required")
+    if not base_url:
+        errors.append("Base URL is required")
+    if base_url and not (base_url.startswith("http://") or base_url.startswith("https://")):
+        errors.append("Base URL must start with http:// or https://")
+    if listing_url and not (listing_url.startswith("http://") or listing_url.startswith("https://")):
+        errors.append("Listing URL must start with http:// or https://")
+
+    if errors:
+        return templates.TemplateResponse(
+            "admin/edit_source.html",
+            {"request": request, "source": source, "error": "; ".join(errors)},
+        )
+
+    source.name = name
+    source.base_url = base_url
+    source.listing_url = listing_url
+
+    try:
+        db.commit()
+        return templates.TemplateResponse(
+            "admin/edit_source.html",
+            {"request": request, "source": source, "success": "Source updated successfully"},
+        )
+    except Exception as e:
+        logger.error(f"Failed to update source {source_id}: {e}")
+        db.rollback()
+        return templates.TemplateResponse(
+            "admin/edit_source.html",
+            {"request": request, "source": source, "error": "Failed to save changes. Please try again."},
+        )
+
+
 @router.get("/sources/{source_id}/configure")
 def configure_source_page(source_id: int, request: Request, db: Session = Depends(get_db)):
     """Source configuration page for CSS selectors."""
