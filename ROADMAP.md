@@ -13,3 +13,5 @@
 ## Future Enhancements
 
 - [ ] **Salary scraping** - Configure `selector_salary` for sources that display salary info on job listings. Once data is available, re-enable the "Has Salary Info" filter in advanced filters. Priority sources to check: ANTHC, Alaska Job Center Network, state/municipal jobs.
+
+- [ ] **Map view** - Overlay job postings on an interactive map of Alaska. Show markers for each community with job counts, click to filter jobs by location. Consider using Leaflet.js with OpenStreetMap tiles or Mapbox. Requires geocoding job locations to lat/lng coordinates (could use a lookup table for known Alaska communities).

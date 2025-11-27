@@ -92,7 +92,8 @@ def admin_dashboard(request: Request, db: Session = Depends(get_db)):
     if not get_admin_user(request):
         return RedirectResponse(url="/admin/login", status_code=302)
 
-    sources = db.query(ScrapeSource).order_by(ScrapeSource.created_at.desc()).all()
+    active_sources = db.query(ScrapeSource).filter(ScrapeSource.is_active == True).order_by(ScrapeSource.created_at.desc()).all()
+    disabled_count = db.query(ScrapeSource).filter(ScrapeSource.is_active == False).count()
     job_count = db.query(Job).filter(Job.is_stale == False).count()
     stale_count = db.query(Job).filter(Job.is_stale == True).count()
 
@@ -100,7 +101,8 @@ def admin_dashboard(request: Request, db: Session = Depends(get_db)):
         "admin/dashboard.html",
         {
             "request": request,
-            "sources": sources,
+            "sources": active_sources,
+            "disabled_count": disabled_count,
             "job_count": job_count,
             "stale_count": stale_count,
         },
@@ -109,14 +111,57 @@ def admin_dashboard(request: Request, db: Session = Depends(get_db)):
 
 @router.get("/sources")
 def list_sources(request: Request, db: Session = Depends(get_db)):
-    """List all scrape sources (HTMX partial)."""
+    """List active scrape sources (HTMX partial)."""
     if not get_admin_user(request):
         raise HTTPException(status_code=401)
 
-    sources = db.query(ScrapeSource).order_by(ScrapeSource.created_at.desc()).all()
+    sources = db.query(ScrapeSource).filter(ScrapeSource.is_active == True).order_by(ScrapeSource.created_at.desc()).all()
     return templates.TemplateResponse(
         "admin/partials/source_list.html",
         {"request": request, "sources": sources},
+    )
+
+
+@router.get("/sources/disabled")
+def disabled_sources_page(request: Request, db: Session = Depends(get_db)):
+    """Disabled sources page."""
+    if not get_admin_user(request):
+        return RedirectResponse(url="/admin/login", status_code=302)
+
+    disabled_sources = db.query(ScrapeSource).filter(ScrapeSource.is_active == False).order_by(ScrapeSource.created_at.desc()).all()
+
+    return templates.TemplateResponse(
+        "admin/disabled_sources.html",
+        {
+            "request": request,
+            "sources": disabled_sources,
+        },
+    )
+
+
+@router.get("/sources/disabled/list")
+def list_disabled_sources(request: Request, db: Session = Depends(get_db)):
+    """List disabled scrape sources (HTMX partial)."""
+    if not get_admin_user(request):
+        raise HTTPException(status_code=401)
+
+    sources = db.query(ScrapeSource).filter(ScrapeSource.is_active == False).order_by(ScrapeSource.created_at.desc()).all()
+    return templates.TemplateResponse(
+        "admin/partials/source_list.html",
+        {"request": request, "sources": sources, "show_disabled": True},
+    )
+
+
+@router.get("/sources/disabled-count")
+def disabled_count_link(request: Request, db: Session = Depends(get_db)):
+    """Return the disabled sources count link (HTMX partial)."""
+    if not get_admin_user(request):
+        raise HTTPException(status_code=401)
+
+    disabled_count = db.query(ScrapeSource).filter(ScrapeSource.is_active == False).count()
+    return templates.TemplateResponse(
+        "admin/partials/disabled_count_link.html",
+        {"request": request, "disabled_count": disabled_count},
     )
 
 
@@ -132,7 +177,7 @@ async def create_source(request: Request, db: Session = Depends(get_db)):
     scraper_class = form.get("scraper_class", "GenericScraper").strip()
 
     if not name or not base_url:
-        sources = db.query(ScrapeSource).order_by(ScrapeSource.created_at.desc()).all()
+        sources = db.query(ScrapeSource).filter(ScrapeSource.is_active == True).order_by(ScrapeSource.created_at.desc()).all()
         return templates.TemplateResponse(
             "admin/partials/source_list.html",
             {"request": request, "sources": sources, "error": "Name and URL are required"},
@@ -151,13 +196,13 @@ async def create_source(request: Request, db: Session = Depends(get_db)):
     except Exception as e:
         logger.error(f"Failed to create source '{name}': {e}")
         db.rollback()
-        sources = db.query(ScrapeSource).order_by(ScrapeSource.created_at.desc()).all()
+        sources = db.query(ScrapeSource).filter(ScrapeSource.is_active == True).order_by(ScrapeSource.created_at.desc()).all()
         return templates.TemplateResponse(
             "admin/partials/source_list.html",
             {"request": request, "sources": sources, "error": "Failed to create source. Please try again."},
         )
 
-    sources = db.query(ScrapeSource).order_by(ScrapeSource.created_at.desc()).all()
+    sources = db.query(ScrapeSource).filter(ScrapeSource.is_active == True).order_by(ScrapeSource.created_at.desc()).all()
     response = templates.TemplateResponse(
         "admin/partials/source_list.html",
         {"request": request, "sources": sources, "success": f"Source '{name}' created"},
@@ -172,6 +217,10 @@ def delete_source(source_id: int, request: Request, db: Session = Depends(get_db
     if not get_admin_user(request):
         raise HTTPException(status_code=401)
 
+    # Check if request came from disabled sources page
+    hx_target = request.headers.get("HX-Target", "")
+    show_disabled = hx_target == "disabled-source-list"
+
     source = db.query(ScrapeSource).filter(ScrapeSource.id == source_id).first()
     if source:
         db.delete(source)
@@ -180,16 +229,22 @@ def delete_source(source_id: int, request: Request, db: Session = Depends(get_db
         except Exception as e:
             logger.error(f"Failed to delete source {source_id}: {e}")
             db.rollback()
-            sources = db.query(ScrapeSource).order_by(ScrapeSource.created_at.desc()).all()
+            if show_disabled:
+                sources = db.query(ScrapeSource).filter(ScrapeSource.is_active == False).order_by(ScrapeSource.created_at.desc()).all()
+            else:
+                sources = db.query(ScrapeSource).filter(ScrapeSource.is_active == True).order_by(ScrapeSource.created_at.desc()).all()
             return templates.TemplateResponse(
                 "admin/partials/source_list.html",
-                {"request": request, "sources": sources, "error": "Failed to delete source. Please try again."},
+                {"request": request, "sources": sources, "show_disabled": show_disabled, "error": "Failed to delete source. Please try again."},
             )
 
-    sources = db.query(ScrapeSource).order_by(ScrapeSource.created_at.desc()).all()
+    if show_disabled:
+        sources = db.query(ScrapeSource).filter(ScrapeSource.is_active == False).order_by(ScrapeSource.created_at.desc()).all()
+    else:
+        sources = db.query(ScrapeSource).filter(ScrapeSource.is_active == True).order_by(ScrapeSource.created_at.desc()).all()
     return templates.TemplateResponse(
         "admin/partials/source_list.html",
-        {"request": request, "sources": sources},
+        {"request": request, "sources": sources, "show_disabled": show_disabled},
     )
 
 
@@ -199,6 +254,10 @@ def toggle_source(source_id: int, request: Request, db: Session = Depends(get_db
     if not get_admin_user(request):
         raise HTTPException(status_code=401)
 
+    # Check if request came from disabled sources page
+    hx_target = request.headers.get("HX-Target", "")
+    show_disabled = hx_target == "disabled-source-list"
+
     source = db.query(ScrapeSource).filter(ScrapeSource.id == source_id).first()
     if source:
         source.is_active = not source.is_active
@@ -207,16 +266,23 @@ def toggle_source(source_id: int, request: Request, db: Session = Depends(get_db
         except Exception as e:
             logger.error(f"Failed to toggle source {source_id}: {e}")
             db.rollback()
-            sources = db.query(ScrapeSource).order_by(ScrapeSource.created_at.desc()).all()
+            if show_disabled:
+                sources = db.query(ScrapeSource).filter(ScrapeSource.is_active == False).order_by(ScrapeSource.created_at.desc()).all()
+            else:
+                sources = db.query(ScrapeSource).filter(ScrapeSource.is_active == True).order_by(ScrapeSource.created_at.desc()).all()
             return templates.TemplateResponse(
                 "admin/partials/source_list.html",
-                {"request": request, "sources": sources, "error": "Failed to toggle source. Please try again."},
+                {"request": request, "sources": sources, "show_disabled": show_disabled, "error": "Failed to toggle source. Please try again."},
             )
 
-    sources = db.query(ScrapeSource).order_by(ScrapeSource.created_at.desc()).all()
+    # After toggling, return the appropriate list
+    if show_disabled:
+        sources = db.query(ScrapeSource).filter(ScrapeSource.is_active == False).order_by(ScrapeSource.created_at.desc()).all()
+    else:
+        sources = db.query(ScrapeSource).filter(ScrapeSource.is_active == True).order_by(ScrapeSource.created_at.desc()).all()
     return templates.TemplateResponse(
         "admin/partials/source_list.html",
-        {"request": request, "sources": sources},
+        {"request": request, "sources": sources, "show_disabled": show_disabled},
     )
 
 
