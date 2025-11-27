@@ -19,7 +19,7 @@ Job seekers interested in remote Alaska face a fragmented landscape - positions 
 3. **Click "Apply"** to go directly to the original listing
 4. **Save jobs** to track positions you're interested in
 
-We respect `robots.txt` and identify ourselves as `FarReachJobsBot/1.0`.
+We respect `robots.txt` and identify ourselves as `FarReachJobs/1.0` in our User-Agent string.
 
 ## Features
 
