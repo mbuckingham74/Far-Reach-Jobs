@@ -1,12 +1,14 @@
+from datetime import datetime, timedelta
+
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
-from sqlalchemy import or_
+from sqlalchemy import and_, or_
 from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.dependencies import get_optional_current_user
-from app.models import Job, SavedJob
+from app.models import Job, SavedJob, ScrapeSource
 from app.schemas import JobResponse, JobListResponse
 
 router = APIRouter()
@@ -116,6 +118,45 @@ def get_job_types(db: Session = Depends(get_db)):
         .all()
     )
     return {"job_types": [jt[0] for jt in job_types if jt[0]]}
+
+
+@router.get("/stats")
+def get_stats(request: Request, db: Session = Depends(get_db)):
+    """Get homepage statistics: active sources, total jobs, new jobs this week."""
+    # Count active scrape sources
+    sources_count = db.query(ScrapeSource).filter(ScrapeSource.is_active == True).count()
+
+    # Count active (non-stale) jobs
+    jobs_count = db.query(Job).filter(Job.is_stale == False).count()
+
+    # Count jobs first seen in the last 7 days
+    # Use Python datetime for dialect-agnostic comparison (works with MySQL and SQLite)
+    seven_days_ago = datetime.utcnow() - timedelta(days=7)
+    new_this_week = (
+        db.query(Job)
+        .filter(
+            and_(
+                Job.is_stale == False,
+                Job.first_seen_at >= seven_days_ago,
+            )
+        )
+        .count()
+    )
+
+    stats = {
+        "sources_count": sources_count,
+        "jobs_count": jobs_count,
+        "new_this_week": new_this_week,
+    }
+
+    # Return HTML partial for HTMX requests
+    if request.headers.get("HX-Request"):
+        return templates.TemplateResponse(
+            "partials/stats_banner.html",
+            {"request": request, **stats},
+        )
+
+    return stats
 
 
 @router.get("/{job_id}", response_model=JobResponse)
