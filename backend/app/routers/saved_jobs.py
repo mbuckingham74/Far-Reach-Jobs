@@ -2,7 +2,7 @@ import logging
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.templating import Jinja2Templates
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from app.database import get_db
 from app.dependencies import get_current_user
@@ -22,8 +22,8 @@ def list_saved_jobs(
     """List user's saved jobs."""
     saved_jobs = (
         db.query(SavedJob)
+        .options(joinedload(SavedJob.job).joinedload(Job.source))
         .filter(SavedJob.user_id == user.id)
-        .join(Job)
         .order_by(SavedJob.saved_at.desc())
         .all()
     )
@@ -146,8 +146,8 @@ def unsave_job(
                 # Re-render the saved jobs list (job was already removed)
                 saved_jobs = (
                     db.query(SavedJob)
+                    .options(joinedload(SavedJob.job).joinedload(Job.source))
                     .filter(SavedJob.user_id == user.id)
-                    .join(Job)
                     .order_by(SavedJob.saved_at.desc())
                     .all()
                 )
@@ -193,8 +193,8 @@ def unsave_job(
             # Re-render the saved jobs list
             saved_jobs = (
                 db.query(SavedJob)
+                .options(joinedload(SavedJob.job).joinedload(Job.source))
                 .filter(SavedJob.user_id == user.id)
-                .join(Job)
                 .order_by(SavedJob.saved_at.desc())
                 .all()
             )
