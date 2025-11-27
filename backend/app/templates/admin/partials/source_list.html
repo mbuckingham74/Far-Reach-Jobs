@@ -81,14 +81,14 @@
                             class="px-3 py-1 text-sm {% if source.is_active %}bg-amber-500 hover:bg-amber-600{% else %}bg-green-500 hover:bg-green-600{% endif %} text-white rounded transition-colors"
                             hx-post="/admin/sources/{{ source.id }}/toggle"
                             hx-target="#source-list"
-                            hx-swap="innerHTML">
+                            hx-swap="innerHTML show:none">
                             {% if source.is_active %}Disable{% else %}Enable{% endif %}
                         </button>
                         <button
                             class="px-3 py-1 text-sm bg-red-500 hover:bg-red-600 text-white rounded transition-colors"
                             hx-delete="/admin/sources/{{ source.id }}"
                             hx-target="#source-list"
-                            hx-swap="innerHTML"
+                            hx-swap="innerHTML show:none"
                             hx-confirm="Delete source '{{ source.name }}'? This will also delete all jobs from this source.">
                             Delete
                         </button>
