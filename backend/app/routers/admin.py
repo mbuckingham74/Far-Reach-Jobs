@@ -609,12 +609,16 @@ async def analyze_source_page(source_id: int, request: Request, db: Session = De
             status_code=400
         )
 
+    # Read Browser Mode toggle from form (not database) so it works without saving first
+    form = await request.form()
+    use_playwright = form.get("use_playwright") == "1"
+
     # Use listing_url if set, otherwise fall back to base_url
     url_to_analyze = source.listing_url or source.base_url
 
     try:
-        # Use Playwright if Browser Mode is enabled for this source
-        suggestions = await analyze_job_page(url_to_analyze, use_playwright=source.use_playwright)
+        # Use Playwright if Browser Mode toggle is checked
+        suggestions = await analyze_job_page(url_to_analyze, use_playwright=use_playwright)
 
         return templates.TemplateResponse(
             "admin/partials/ai_suggestions.html",
