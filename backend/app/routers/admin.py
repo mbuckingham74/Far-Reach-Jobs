@@ -413,7 +413,7 @@ async def trigger_single_source_scrape(source_id: int, request: Request, db: Ses
 
 
 @router.get("/sources/{source_id}/edit")
-def edit_source_page(source_id: int, request: Request, db: Session = Depends(get_db)):
+def edit_source_page(source_id: int, request: Request, saved: str = None, db: Session = Depends(get_db)):
     """Edit source basic info (name, URLs)."""
     if not get_admin_user(request):
         return RedirectResponse(url="/admin/login", status_code=302)
@@ -422,10 +422,11 @@ def edit_source_page(source_id: int, request: Request, db: Session = Depends(get
     if not source:
         return RedirectResponse(url="/admin", status_code=302)
 
-    return templates.TemplateResponse(
-        "admin/edit_source.html",
-        {"request": request, "source": source},
-    )
+    context = {"request": request, "source": source}
+    if saved:
+        context["success"] = "Source updated successfully"
+
+    return templates.TemplateResponse("admin/edit_source.html", context)
 
 
 @router.post("/sources/{source_id}/edit")
@@ -455,6 +456,10 @@ async def save_source_edit(source_id: int, request: Request, db: Session = Depen
         errors.append("Listing URL must start with http:// or https://")
 
     if errors:
+        # Pass back submitted values so user doesn't lose their input
+        source.name = name
+        source.base_url = base_url
+        source.listing_url = listing_url
         return templates.TemplateResponse(
             "admin/edit_source.html",
             {"request": request, "source": source, "error": "; ".join(errors)},
@@ -466,10 +471,9 @@ async def save_source_edit(source_id: int, request: Request, db: Session = Depen
 
     try:
         db.commit()
-        return templates.TemplateResponse(
-            "admin/edit_source.html",
-            {"request": request, "source": source, "success": "Source updated successfully"},
-        )
+        # PRG pattern: redirect to GET to avoid form resubmission on refresh
+        response = RedirectResponse(url=f"/admin/sources/{source_id}/edit?saved=1", status_code=303)
+        return response
     except Exception as e:
         logger.error(f"Failed to update source {source_id}: {e}")
         db.rollback()
@@ -563,10 +567,11 @@ async def save_source_configuration(source_id: int, request: Request, db: Sessio
                 missing_selectors.append("URL")
 
         if missing_selectors:
+            # Only show warning, no success banner - scraping won't work without selectors
             warning = f"Configuration saved, but scraping won't work until these selectors are set: {', '.join(missing_selectors)}"
             return templates.TemplateResponse(
                 "admin/configure_source.html",
-                {"request": request, "source": source, "success": "Configuration saved", "warning": warning},
+                {"request": request, "source": source, "warning": warning},
             )
 
         return templates.TemplateResponse(
