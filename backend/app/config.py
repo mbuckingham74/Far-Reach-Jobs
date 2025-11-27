@@ -35,6 +35,9 @@ class Settings(BaseSettings):
     # AI (Anthropic API for selector analysis)
     anthropic_api_key: str = ""  # Optional: enables AI-powered selector suggestions
 
+    # Playwright service for browser-based scraping
+    playwright_service_url: str = ""  # e.g., http://playwright:3000
+
     @model_validator(mode="after")
     def validate_secrets(self) -> "Settings":
         """Ensure secrets are set properly in non-development environments."""

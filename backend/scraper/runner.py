@@ -177,6 +177,7 @@ def get_source_config(source: ScrapeSource) -> dict:
         "url_attribute": source.url_attribute,
         "selector_next_page": source.selector_next_page,
         "max_pages": source.max_pages,
+        "use_playwright": source.use_playwright,
     }
 
 

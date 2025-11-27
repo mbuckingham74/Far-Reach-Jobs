@@ -28,6 +28,7 @@ services:
       - ADMIN_PASSWORD=${ADMIN_PASSWORD}
       - ADMIN_EMAIL=${ADMIN_EMAIL}
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - PLAYWRIGHT_SERVICE_URL=http://playwright:3000
     volumes:
       - ./backend:/app
       - ./frontend/static:/app/static
@@ -56,6 +57,20 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - default
+
+  playwright:
+    build:
+      context: ./playwright-service
+      dockerfile: Dockerfile
+    container_name: far-reach-jobs-playwright
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
     networks:
       - default
 
