@@ -110,6 +110,8 @@ def get_states(db: Session = Depends(get_db)):
 @router.get("/locations")
 def get_locations(request: Request, db: Session = Depends(get_db)):
     """Get list of unique locations (cities/communities) that have active jobs."""
+    import html
+
     locations = (
         db.query(Job.location)
         .filter(Job.is_stale == False, Job.location.isnot(None), Job.location != "")
@@ -123,7 +125,8 @@ def get_locations(request: Request, db: Session = Depends(get_db)):
     if request.headers.get("HX-Request"):
         options_html = '<option value="">All Locations</option>'
         for loc in location_list:
-            options_html += f'<option value="{loc}">{loc}</option>'
+            escaped_loc = html.escape(loc)
+            options_html += f'<option value="{escaped_loc}">{escaped_loc}</option>'
         return HTMLResponse(content=options_html)
 
     return {"locations": location_list}
