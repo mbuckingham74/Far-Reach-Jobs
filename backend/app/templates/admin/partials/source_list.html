@@ -18,14 +18,16 @@
                 <th class="px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-300">Name</th>
                 <th class="px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-300 text-center">URL</th>
                 <th class="px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-300 text-center">Type</th>
+                {% if not show_disabled %}
                 <th class="px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-300 text-center">Status</th>
+                {% endif %}
                 <th class="px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-300 text-center">Last Scraped</th>
                 <th class="px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-300 text-center">Actions</th>
             </tr>
         </thead>
         <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
             {% for source in sources %}
-            <tr class="{% if not source.is_active %}opacity-50{% endif %}">
+            <tr>
                 <td class="px-4 py-3 font-medium dark:text-white">{{ source.name }}</td>
                 <td class="px-4 py-3 text-sm">
                     <a href="{{ source.base_url }}" target="_blank" rel="noopener noreferrer"
@@ -34,6 +36,7 @@
                     </a>
                 </td>
                 <td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">{{ source.scraper_class }}</td>
+                {% if not show_disabled %}
                 <td class="px-4 py-3">
                     {% if source.is_active %}
                     <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-200">
@@ -45,6 +48,7 @@
                     </span>
                     {% endif %}
                 </td>
+                {% endif %}
                 <td class="px-4 py-3 text-sm">
                     {% if source.last_scraped_at %}
                     <div class="text-gray-600 dark:text-gray-400">
@@ -80,14 +84,14 @@
                         <button
                             class="px-3 py-1 text-sm {% if source.is_active %}bg-amber-500 hover:bg-amber-600{% else %}bg-green-500 hover:bg-green-600{% endif %} text-white rounded transition-colors"
                             hx-post="/admin/sources/{{ source.id }}/toggle"
-                            hx-target="#source-list"
+                            hx-target="{% if show_disabled %}#disabled-source-list{% else %}#source-list{% endif %}"
                             hx-swap="innerHTML show:none">
                             {% if source.is_active %}Disable{% else %}Enable{% endif %}
                         </button>
                         <button
                             class="px-3 py-1 text-sm bg-red-500 hover:bg-red-600 text-white rounded transition-colors"
                             hx-delete="/admin/sources/{{ source.id }}"
-                            hx-target="#source-list"
+                            hx-target="{% if show_disabled %}#disabled-source-list{% else %}#source-list{% endif %}"
                             hx-swap="innerHTML show:none"
                             hx-confirm="Delete source '{{ source.name }}'? This will also delete all jobs from this source.">
                             Delete
@@ -109,7 +113,12 @@
 </div>
 {% else %}
 <div class="text-center py-8 text-gray-500 dark:text-gray-400">
+    {% if show_disabled %}
+    <p>No disabled sources.</p>
+    <p class="text-sm mt-1"><a href="/admin" class="text-primary-600 dark:text-primary-400 hover:underline">Back to dashboard</a></p>
+    {% else %}
     <p>No scrape sources configured yet.</p>
     <p class="text-sm mt-1">Add a source above to start scraping jobs.</p>
+    {% endif %}
 </div>
 {% endif %}

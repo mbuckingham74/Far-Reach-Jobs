@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+
+{% block title %}Disabled Sources - Admin - Far Reach Jobs{% endblock %}
+
+{% block content %}
+<div class="mb-6 flex justify-between items-center">
+    <div>
+        <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Disabled Sources</h2>
+        <p class="text-gray-600 dark:text-gray-300">Sources that are currently inactive and not being scraped</p>
+    </div>
+    <div class="flex gap-2">
+        <a href="/admin" class="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white font-medium rounded-md transition-colors">
+            ← Back to Dashboard
+        </a>
+    </div>
+</div>
+
+<!-- Disabled Source List -->
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 transition-colors">
+    <div id="disabled-source-list" hx-get="/admin/sources/disabled/list" hx-trigger="load, refreshSourceList from:body">
+        <div class="text-center py-8 text-gray-500 dark:text-gray-400">Loading disabled sources...</div>
+    </div>
+</div>
+{% endblock %}
