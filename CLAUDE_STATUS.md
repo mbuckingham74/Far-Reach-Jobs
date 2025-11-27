@@ -315,6 +315,41 @@ cd backend && pytest tests/ -v
 
 **Note:** Tests currently use SQLite for speed. See `ROADMAP.md` for planned MySQL test migration.
 
+### Phase 1P: Playwright Browser Mode ✅
+- [x] Separate `playwright-service` Docker container (Node.js + Playwright)
+- [x] `use_playwright` toggle per source in admin configuration
+- [x] GenericScraper uses Playwright when enabled for bot-protected sites
+- [x] Automatic fallback to httpx if Playwright fails
+- [x] robots.txt compliance checked before any fetch (Playwright or httpx)
+- [x] Test suite for fallback behavior (`test_playwright_fallback.py`)
+
+**Key Files:**
+- `playwright-service/` - Node.js service with Express API
+- `backend/scraper/playwright_fetcher.py` - Python client for Playwright service
+- `backend/scraper/sources/generic.py` - `_fetch_page()` with Playwright/httpx logic
+- `backend/app/models/scrape_source.py` - `use_playwright` field
+- `backend/app/templates/admin/configure_source.html` - Browser Mode toggle
+- `backend/alembic/versions/006_add_use_playwright.py` - Migration
+
+**Architecture:**
+```
+┌─────────────────┐    HTTP POST     ┌─────────────────────┐
+│  web container  │ ───────────────► │ playwright container │
+│  (FastAPI)      │    /fetch        │ (Node.js + Chromium) │
+└─────────────────┘                  └─────────────────────┘
+```
+
+**When to Enable Browser Mode:**
+- Site returns HTTP 403 Forbidden
+- Jobs load via JavaScript (SPA)
+- Site has bot protection (Cloudflare, etc.)
+
+**Configuration:**
+```env
+# Set automatically by docker-compose
+PLAYWRIGHT_SERVICE_URL=http://playwright:3000
+```
+
 ## Remaining Work
 
 ### Scrapers (Phase 2)
@@ -348,6 +383,7 @@ cd backend && pytest tests/ -v
 - selector_organization, selector_location, selector_job_type
 - selector_salary, selector_description
 - url_attribute, selector_next_page, max_pages
+- use_playwright (enables headless browser for bot-protected sites)
 
 ## Environment Variables
 
@@ -442,7 +478,7 @@ ADMIN_EMAIL=<email>  # Receives scrape notification emails
 3. ✅ MySQL container auto-creates database and user
 4. ✅ docker-compose.yml joins NPM network
 5. ✅ `docker compose up -d --build`
-6. ✅ Alembic migrations applied (001, 002, 003, 004)
+6. ✅ Alembic migrations applied (001, 002, 003, 004, 005, 006)
 7. ✅ NPM proxy host configured with SSL
 8. ✅ Health endpoint verified: https://far-reach-jobs.tachyonfuture.com/api/health
 
