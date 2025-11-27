@@ -37,4 +37,8 @@ class ScrapeSource(Base):
     # Optional: max pages to scrape (default: 10)
     max_pages = Column(Integer, nullable=True, default=10)
 
+    # Use Playwright (headless browser) instead of httpx for fetching
+    # Useful for sites with bot protection or JavaScript-rendered content
+    use_playwright = Column(Boolean, default=False)
+
     jobs = relationship("Job", back_populates="source", cascade="all, delete-orphan")

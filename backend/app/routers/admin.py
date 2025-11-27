@@ -554,6 +554,9 @@ async def save_source_configuration(source_id: int, request: Request, db: Sessio
     except ValueError:
         source.max_pages = 10
 
+    # Checkbox: present in form data only when checked
+    source.use_playwright = form.get("use_playwright") == "1"
+
     try:
         db.commit()
         # Check if selectors are missing and add warning

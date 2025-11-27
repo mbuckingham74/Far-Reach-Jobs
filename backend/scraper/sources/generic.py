@@ -10,6 +10,7 @@ from bs4 import BeautifulSoup
 
 from scraper.base import BaseScraper, ScrapedJob
 from scraper.runner import register_scraper
+from scraper.playwright_fetcher import get_playwright_fetcher
 
 logger = logging.getLogger(__name__)
 
@@ -37,6 +38,7 @@ class GenericScraper(BaseScraper):
     - url_attribute: Attribute to extract URL from (default: "href")
     - selector_next_page: CSS selector for pagination next link
     - max_pages: Maximum pages to scrape (default: 10)
+    - use_playwright: Use headless browser instead of httpx (for bot-protected sites)
     """
 
     def __init__(self, source_config: dict | None = None):
@@ -51,6 +53,8 @@ class GenericScraper(BaseScraper):
         self._source_name = self.config.get("name", "Generic Source")
         self._base_url = self.config.get("base_url", "")
         self._listing_url = self.config.get("listing_url") or self._base_url
+        self._use_playwright = self.config.get("use_playwright", False)
+        self._playwright_fetcher = get_playwright_fetcher() if self._use_playwright else None
 
     @property
     def source_name(self) -> str:
@@ -65,6 +69,39 @@ class GenericScraper(BaseScraper):
         if not self._listing_url:
             return []
         return [self._listing_url]
+
+    def _fetch_page(self, url: str, wait_for: str | None = None) -> BeautifulSoup | None:
+        """Fetch a page using either Playwright or httpx.
+
+        Args:
+            url: URL to fetch
+            wait_for: CSS selector to wait for (Playwright only)
+
+        Returns:
+            BeautifulSoup object or None on error
+        """
+        # Always check robots.txt compliance first
+        if not self.can_fetch(url):
+            logger.warning(f"robots.txt disallows fetching: {url}")
+            return None
+
+        if self._use_playwright and self._playwright_fetcher:
+            if self._playwright_fetcher.is_available:
+                logger.info(f"Using Playwright to fetch: {url}")
+                result = self._playwright_fetcher.fetch(url, wait_for=wait_for)
+                if result is not None:
+                    return result
+                # Playwright failed, fall back to httpx
+                logger.warning(f"Playwright fetch failed for {url}, falling back to httpx")
+
+        # Use standard httpx fetch (skip robots check since we already did it)
+        try:
+            response = self.client.get(url)
+            response.raise_for_status()
+            return BeautifulSoup(response.text, "lxml")
+        except Exception as e:
+            logger.error(f"Failed to fetch {url}: {e}")
+            return None
 
     def _extract_text(self, container: BeautifulSoup, selector: str | None) -> str | None:
         """Extract text content using a CSS selector."""
@@ -171,7 +208,9 @@ class GenericScraper(BaseScraper):
 
             logger.info(f"Scraping page {pages_scraped + 1}: {current_url}")
 
-            soup = self.fetch_page(current_url)
+            # Wait for job container selector when using Playwright
+            wait_for = container_selector if self._use_playwright else None
+            soup = self._fetch_page(current_url, wait_for=wait_for)
             if soup is None:
                 errors.append(f"Failed to fetch {current_url}")
                 break
