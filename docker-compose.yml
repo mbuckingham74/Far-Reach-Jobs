@@ -6,6 +6,9 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     container_name: far-reach-jobs-web
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
     ports:
       - "8000:8000"
     environment:
