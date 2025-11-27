@@ -101,7 +101,7 @@
                             class="px-3 py-1 text-sm bg-blue-500 hover:bg-blue-600 text-white rounded transition-colors inline-flex items-center"
                             hx-post="/admin/sources/{{ source.id }}/scrape"
                             hx-target="#scrape-modal-result"
-                            hx-swap="innerHTML"
+                            hx-swap="innerHTML show:none"
                             onclick="openScrapeModal('{{ source.name }}')">
                             Scrape
                         </button>

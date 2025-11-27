@@ -62,7 +62,7 @@
         class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-md transition-colors inline-flex items-center justify-center"
         hx-post="/admin/scrape"
         hx-target="#scrape-modal-result"
-        hx-swap="innerHTML"
+        hx-swap="innerHTML show:none"
         onclick="openScrapeModal()">
         Run Scraper Now
     </button>
@@ -74,7 +74,7 @@
 <!-- Add Source Form -->
 <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-8 transition-colors">
     <h3 class="text-lg font-semibold dark:text-white mb-4">Add Scrape Source</h3>
-    <form id="add-source-form" hx-post="/admin/sources" hx-target="#source-list" hx-swap="innerHTML" class="space-y-4">
+    <form id="add-source-form" hx-post="/admin/sources" hx-target="#source-list" hx-swap="innerHTML show:none" class="space-y-4">
     <script>
         document.body.addEventListener('sourceCreated', function() {
             document.getElementById('add-source-form').reset();
