@@ -95,12 +95,13 @@ class MyOrgScraper(BaseScraper):
 ```
 
 ### Phase 1D: Job Display & Search ✅
-- [x] Job listing API with filters (state, location, job_type, keyword)
+- [x] Job listing API with filters (location, job_type, keyword)
 - [x] Full-text search implementation (ILIKE on title, org, description, location)
 - [x] Home page with HTMX job list
-- [x] Filter UI components (search input, state dropdown, job type dropdown)
+- [x] Filter UI components (search input, location dropdown, job type dropdown)
 - [x] Job card component with "Apply" link
 - [x] Pagination with HTMX navigation
+- [x] Dynamic location filter (loads cities/communities from database)
 
 **Key Files:**
 - `backend/app/routers/jobs.py` - Job listing API with filters
@@ -109,7 +110,8 @@ class MyOrgScraper(BaseScraper):
 - `backend/app/templates/partials/job_list.html` - HTMX job list partial
 
 **API Endpoints:**
-- GET `/api/jobs` - List jobs with filters (q, state, job_type, page, per_page)
+- GET `/api/jobs` - List jobs with filters (q, location, job_type, page, per_page)
+- GET `/api/jobs/locations` - Get unique locations with active jobs (HTMX-aware)
 - GET `/api/jobs/states` - Get states with active jobs
 - GET `/api/jobs/job-types` - Get job types with active jobs
 - GET `/api/jobs/{id}` - Get single job by ID
@@ -220,11 +222,17 @@ ADMIN_EMAIL=michael.buckingham74@gmail.com
 - [x] Single-source scrapes logged to scrape history
 - [x] Email notifications sent for single-source scrapes
 - [x] Edge cases handled: unknown scraper class, catastrophic failures
+- [x] Scrape progress modal with loading spinner and results display
+- [x] Modal shows stats (jobs found, new, updated) on success
+- [x] Modal shows error with "View Logs" link on failure
+- [x] Source list auto-refreshes after scrape completes (via HX-Trigger)
 
 **Key Files:**
 - `backend/app/routers/admin.py` - `trigger_single_source_scrape()` endpoint
 - `backend/app/models/scrape_source.py` - `last_scrape_success` field
 - `backend/app/templates/admin/partials/source_list.html` - Scrape button and status badge
+- `backend/app/templates/admin/partials/scrape_modal_result.html` - Modal result partial
+- `backend/app/templates/admin/dashboard.html` - Modal HTML and JavaScript
 - `backend/scraper/runner.py` - Status tracking in `run_scraper()` and `run_all_scrapers()`
 - `backend/alembic/versions/004_add_last_scrape_success.py` - Migration
 
