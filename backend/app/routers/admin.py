@@ -14,7 +14,7 @@ from app.database import get_db
 from app.models.scrape_source import ScrapeSource
 from app.models.scrape_log import ScrapeLog
 from app.models.job import Job
-from app.services.ai_analyzer import analyze_job_page, is_ai_analysis_available
+from app.services.ai_analyzer import analyze_job_page, is_ai_analysis_available, generate_scraper_for_url
 
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
@@ -714,5 +714,62 @@ async def analyze_source_page(source_id: int, request: Request, db: Session = De
         logger.exception(f"AI analysis failed for source {source_id}: {e}")
         return HTMLResponse(
             f'<div class="text-red-600 dark:text-red-400">Analysis failed: {str(e)}</div>',
+            status_code=500
+        )
+
+
+@router.post("/sources/{source_id}/generate-scraper")
+async def generate_custom_scraper_code(source_id: int, request: Request, db: Session = Depends(get_db)):
+    """Use AI to generate a custom scraper class for sites that can't use GenericScraper."""
+    if not get_admin_user(request):
+        raise HTTPException(status_code=401)
+
+    source = db.query(ScrapeSource).filter(ScrapeSource.id == source_id).first()
+    if not source:
+        return HTMLResponse(
+            '<div class="text-red-600 dark:text-red-400">Source not found</div>',
+            status_code=404
+        )
+
+    if not is_ai_analysis_available():
+        return HTMLResponse(
+            '<div class="text-red-600 dark:text-red-400">AI not available. Set ANTHROPIC_API_KEY in environment.</div>',
+            status_code=400
+        )
+
+    # Read Browser Mode toggle from form
+    form = await request.form()
+    use_playwright = form.get("use_playwright") == "1"
+
+    # Get the listing URL
+    listing_url = source.listing_url or ""
+    listing_urls = [url.strip() for url in listing_url.split('\n') if url.strip()]
+    url_to_analyze = listing_urls[0] if listing_urls else source.base_url
+
+    try:
+        result = await generate_scraper_for_url(
+            source_name=source.name,
+            base_url=source.base_url,
+            listing_url=url_to_analyze,
+            use_playwright=use_playwright
+        )
+
+        if result.success:
+            # Save the generated code to the source
+            source.custom_scraper_code = result.code
+            db.commit()
+
+        return templates.TemplateResponse(
+            "admin/partials/generated_scraper.html",
+            {
+                "request": request,
+                "result": result,
+                "source": source,
+            },
+        )
+    except Exception as e:
+        logger.exception(f"Scraper generation failed for source {source_id}: {e}")
+        return HTMLResponse(
+            f'<div class="text-red-600 dark:text-red-400">Generation failed: {str(e)}</div>',
             status_code=500
         )
