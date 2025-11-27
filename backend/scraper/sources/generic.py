@@ -65,10 +65,16 @@ class GenericScraper(BaseScraper):
         return self._base_url
 
     def get_job_listing_urls(self) -> list[str]:
-        """Return the configured listing URL."""
+        """Return the configured listing URL(s).
+
+        Supports multiple URLs separated by newlines for sources with
+        multiple job listing pages (e.g., certified vs classified positions).
+        """
         if not self._listing_url:
             return []
-        return [self._listing_url]
+        # Split by newlines and filter out empty lines
+        urls = [url.strip() for url in self._listing_url.split('\n') if url.strip()]
+        return urls
 
     def _fetch_page(self, url: str, wait_for: str | None = None) -> BeautifulSoup | None:
         """Fetch a page using either Playwright or httpx.
@@ -180,11 +186,12 @@ class GenericScraper(BaseScraper):
         return jobs
 
     def run(self) -> tuple[list[ScrapedJob], list[str]]:
-        """Run the scraper with pagination support."""
+        """Run the scraper with support for multiple listing URLs and pagination."""
         if not self.config:
             return [], ["GenericScraper requires configuration. Set CSS selectors in the admin panel."]
 
-        if not self._listing_url:
+        listing_urls = self.get_job_listing_urls()
+        if not listing_urls:
             return [], [f"No listing URL configured for {self.source_name}"]
 
         container_selector = self.config.get("selector_job_container")
@@ -203,48 +210,55 @@ class GenericScraper(BaseScraper):
         max_pages = self.config.get("max_pages", 10) or 10
         next_page_selector = self.config.get("selector_next_page")
 
-        current_url = self._listing_url
-        pages_scraped = 0
+        total_pages_scraped = 0
 
-        while current_url and pages_scraped < max_pages:
-            if pages_scraped > 0:
-                import time
-                time.sleep(crawl_delay)
+        # Iterate through all configured listing URLs
+        for listing_url_index, listing_url in enumerate(listing_urls):
+            logger.info(f"Processing listing URL {listing_url_index + 1}/{len(listing_urls)}: {listing_url}")
 
-            logger.info(f"Scraping page {pages_scraped + 1}: {current_url}")
+            current_url = listing_url
+            pages_scraped_for_url = 0
 
-            # Wait for job container selector when using Playwright
-            wait_for = container_selector if self._use_playwright else None
-            soup = self._fetch_page(current_url, wait_for=wait_for)
-            if soup is None:
-                errors.append(f"Failed to fetch {current_url}")
-                break
+            while current_url and pages_scraped_for_url < max_pages:
+                if total_pages_scraped > 0:
+                    import time
+                    time.sleep(crawl_delay)
 
-            try:
-                page_jobs = self.parse_job_listing_page(soup, current_url)
-                all_jobs.extend(page_jobs)
-                logger.info(f"Found {len(page_jobs)} jobs on page {pages_scraped + 1}")
-            except Exception as e:
-                error_msg = f"Error parsing {current_url}: {e}"
-                logger.error(error_msg)
-                errors.append(error_msg)
-                break
+                logger.info(f"Scraping page {pages_scraped_for_url + 1}: {current_url}")
 
-            pages_scraped += 1
+                # Wait for job container selector when using Playwright
+                wait_for = container_selector if self._use_playwright else None
+                soup = self._fetch_page(current_url, wait_for=wait_for)
+                if soup is None:
+                    errors.append(f"Failed to fetch {current_url}")
+                    break
 
-            # Check for next page
-            if next_page_selector and pages_scraped < max_pages:
-                next_link = soup.select_one(next_page_selector)
-                if next_link:
-                    next_url = next_link.get("href")
-                    if next_url:
-                        current_url = urljoin(current_url, next_url)
+                try:
+                    page_jobs = self.parse_job_listing_page(soup, current_url)
+                    all_jobs.extend(page_jobs)
+                    logger.info(f"Found {len(page_jobs)} jobs on page {pages_scraped_for_url + 1}")
+                except Exception as e:
+                    error_msg = f"Error parsing {current_url}: {e}"
+                    logger.error(error_msg)
+                    errors.append(error_msg)
+                    break
+
+                pages_scraped_for_url += 1
+                total_pages_scraped += 1
+
+                # Check for next page
+                if next_page_selector and pages_scraped_for_url < max_pages:
+                    next_link = soup.select_one(next_page_selector)
+                    if next_link:
+                        next_url = next_link.get("href")
+                        if next_url:
+                            current_url = urljoin(current_url, next_url)
+                        else:
+                            break
                     else:
                         break
                 else:
                     break
-            else:
-                break
 
-        logger.info(f"Scrape of {self.source_name} complete: {len(all_jobs)} jobs found across {pages_scraped} pages")
+        logger.info(f"Scrape of {self.source_name} complete: {len(all_jobs)} jobs found across {total_pages_scraped} pages from {len(listing_urls)} listing URL(s)")
         return all_jobs, errors
