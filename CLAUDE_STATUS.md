@@ -395,6 +395,7 @@ PLAYWRIGHT_SERVICE_URL=http://playwright:3000
 - url_attribute, selector_next_page, max_pages
 - use_playwright (enables headless browser for bot-protected sites)
 - default_location (fallback location when selector doesn't find one)
+- custom_scraper_code (AI-generated Python code for custom scrapers)
 
 ## Environment Variables
 
@@ -426,6 +427,9 @@ ENVIRONMENT=development|production
 ADMIN_USERNAME=<username>
 ADMIN_PASSWORD=<password>
 ADMIN_EMAIL=<email>  # Receives scrape notification emails
+
+# AI Features
+ANTHROPIC_API_KEY=<api-key>  # Required for AI selector analysis and custom scraper generation
 ```
 
 ## Important Implementation Details
@@ -518,6 +522,65 @@ This section documents CSS selectors that have been tested and work for specific
 - **Container:** `.row.cboardrow`
 - **Title:** `h4`
 - **URL:** `.row.cboardrow`
+
+### Phase 1Q: AI-Powered Selector Detection ✅
+- [x] AI analysis endpoint using Claude API
+- [x] "Analyze Page with AI" button on source configuration page
+- [x] Claude analyzes HTML and suggests CSS selectors
+- [x] "Apply" buttons to fill individual selectors
+- [x] "Apply All Suggestions" button for one-click configuration
+- [x] Compatibility indicator (Generic Scraper Compatible / May Need Custom Scraper)
+- [x] Sample job preview showing extracted data
+- [x] Browser Mode toggle respected during analysis
+
+**Key Files:**
+- `backend/app/services/ai_analyzer.py` - Claude API integration, HTML analysis
+- `backend/app/routers/admin.py` - `/admin/sources/{id}/analyze` endpoint
+- `backend/app/templates/admin/partials/ai_suggestions.html` - Results UI
+
+**Configuration:**
+```env
+ANTHROPIC_API_KEY=<your-api-key>
+```
+
+### Phase 1R: AI Custom Scraper Generation ✅
+- [x] "Generate Custom Scraper" button when AI indicates site needs custom handling
+- [x] Claude generates complete Python scraper class from HTML
+- [x] Generated code validated for required class structure and methods
+- [x] Code displayed with syntax highlighting and copy button
+- [x] Generated code saved to `custom_scraper_code` field for later use
+- [x] Validation checks: class definition, BaseScraper inheritance, required methods
+
+**Key Files:**
+- `backend/app/services/ai_analyzer.py` - `generate_scraper_for_url()`, `SCRAPER_GENERATION_PROMPT`
+- `backend/app/routers/admin.py` - `/admin/sources/{id}/generate-scraper` endpoint
+- `backend/app/templates/admin/partials/generated_scraper.html` - Code display UI
+- `backend/app/models/scrape_source.py` - `custom_scraper_code` field
+- `backend/alembic/versions/009_add_custom_scraper_code.py` - Migration
+
+**Workflow:**
+1. Add new source in admin panel
+2. Click "Analyze Page with AI"
+3. If "May Need Custom Scraper" appears, click "Generate Custom Scraper"
+4. Review generated Python code
+5. Copy code and create file in `backend/scraper/sources/`
+6. Register scraper and update source's `scraper_class` field
+
+**Validation:**
+Generated code must contain:
+- Class inheriting from `BaseScraper`
+- `source_name` property
+- `base_url` property
+- `get_job_listing_urls()` method
+- `parse_job_listing_page()` method
+
+### Phase 1S: Docker DNS Fix ✅
+- [x] Explicit DNS servers (8.8.8.8, 8.8.4.4) added to web container
+- [x] Fixes intermittent DNS resolution failures in Docker
+- [x] Required for AI analysis to fetch external websites reliably
+
+**Key Files:**
+- `docker-compose.yml` - `dns` configuration for web service
 
 ## CSS Selector Troubleshooting
 
