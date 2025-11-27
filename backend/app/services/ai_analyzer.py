@@ -97,12 +97,19 @@ def is_ai_analysis_available() -> bool:
 
 async def fetch_page_html(url: str) -> str:
     """Fetch HTML content from a URL."""
+    # Use browser-like headers to avoid WAF blocks
+    headers = {
+        "User-Agent": "Mozilla/5.0 (compatible; FarReachJobs/1.0; +https://far-reach-jobs.tachyonfuture.com)",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.9",
+        "Accept-Encoding": "gzip, deflate",
+        "Connection": "keep-alive",
+        "Upgrade-Insecure-Requests": "1",
+    }
     async with httpx.AsyncClient(
         timeout=30.0,
         follow_redirects=True,
-        headers={
-            "User-Agent": "FarReachJobsBot/1.0 (job aggregator; +https://far-reach-jobs.tachyonfuture.com)"
-        }
+        headers=headers
     ) as client:
         response = await client.get(url)
         response.raise_for_status()

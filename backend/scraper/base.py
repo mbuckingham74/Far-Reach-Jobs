@@ -50,8 +50,17 @@ class BaseScraper(ABC):
 
     def __init__(self):
         self.robots_checker: RobotsChecker | None = None
+        # Use browser-like headers to avoid WAF blocks
+        headers = {
+            "User-Agent": USER_AGENT,
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+            "Accept-Language": "en-US,en;q=0.9",
+            "Accept-Encoding": "gzip, deflate",
+            "Connection": "keep-alive",
+            "Upgrade-Insecure-Requests": "1",
+        }
         self.client = httpx.Client(
-            headers={"User-Agent": USER_AGENT},
+            headers=headers,
             timeout=30.0,
             follow_redirects=True,
         )
