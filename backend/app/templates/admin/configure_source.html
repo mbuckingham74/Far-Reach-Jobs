@@ -89,7 +89,8 @@
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
             <h3 class="text-lg font-semibold dark:text-white">Basic Information</h3>
             <!-- Browser Mode Toggle -->
-            <div class="flex items-center gap-3 px-3 py-2 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+            <div class="flex items-center gap-3 px-3 py-2 bg-gray-50 dark:bg-gray-700/50 rounded-lg group relative"
+                 title="Uses a headless browser (Playwright) instead of simple HTTP requests. Slower but bypasses bot protection and renders JavaScript. Enable if you get 403 errors or jobs don't appear.">
                 <label class="relative inline-flex items-center cursor-pointer">
                     <input type="checkbox" id="use_playwright" name="use_playwright" value="1"
                            {% if source.use_playwright %}checked{% endif %}
@@ -98,7 +99,7 @@
                 </label>
                 <div>
                     <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Browser Mode</span>
-                    <p class="text-xs text-gray-500 dark:text-gray-400">Use for 403 errors or JS sites</p>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">Slower; use for 403 errors or JS sites</p>
                 </div>
             </div>
         </div>
