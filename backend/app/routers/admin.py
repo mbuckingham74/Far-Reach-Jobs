@@ -322,17 +322,21 @@ async def trigger_scrape(request: Request, db: Session = Depends(get_db)):
         )
         send_scrape_notification(notification_data)
 
-        return templates.TemplateResponse(
+        response = templates.TemplateResponse(
             "admin/partials/scrape_modal_result.html",
             {"request": request, "result": aggregate, "success": True},
         )
+        response.headers["HX-Trigger"] = "refreshSourceList"
+        return response
     except Exception as e:
         logger.error(f"Manual scrape failed: {e}")
         db.rollback()
-        return templates.TemplateResponse(
+        response = templates.TemplateResponse(
             "admin/partials/scrape_modal_result.html",
             {"request": request, "error": "Scrape failed. Check logs for details.", "success": False},
         )
+        response.headers["HX-Trigger"] = "refreshSourceList"
+        return response
 
 
 @router.post("/sources/{source_id}/scrape")
@@ -388,7 +392,7 @@ async def trigger_single_source_scrape(source_id: int, request: Request, db: Ses
             "errors": result.errors,
         }
 
-        return templates.TemplateResponse(
+        response = templates.TemplateResponse(
             "admin/partials/scrape_modal_result.html",
             {
                 "request": request,
@@ -397,11 +401,13 @@ async def trigger_single_source_scrape(source_id: int, request: Request, db: Ses
                 "success": True,
             },
         )
+        response.headers["HX-Trigger"] = "refreshSourceList"
+        return response
 
     except Exception as e:
         logger.exception(f"Single source scrape failed for {source.name}: {e}")
         db.rollback()
-        return templates.TemplateResponse(
+        response = templates.TemplateResponse(
             "admin/partials/scrape_modal_result.html",
             {
                 "request": request,
@@ -410,6 +416,8 @@ async def trigger_single_source_scrape(source_id: int, request: Request, db: Ses
                 "success": False,
             },
         )
+        response.headers["HX-Trigger"] = "refreshSourceList"
+        return response
 
 
 @router.get("/sources/{source_id}/edit")
