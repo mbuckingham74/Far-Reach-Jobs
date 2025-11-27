@@ -405,9 +405,45 @@ async def generate_custom_scraper(
                     break
             response_text = "\n".join(lines[start_idx:end_idx])
 
-        # Extract the class name from the code
-        class_match = re.search(r'class\s+(\w+)\s*\(', response_text)
-        class_name = class_match.group(1) if class_match else sanitize_class_name(source_name)
+        # Validate the generated code
+        if not response_text or len(response_text.strip()) < 50:
+            return GeneratedScraper(
+                success=False,
+                error="AI returned empty or too short response"
+            )
+
+        # Check for required class definition
+        class_match = re.search(r'class\s+(\w+)\s*\(\s*BaseScraper\s*\)', response_text)
+        if not class_match:
+            # Try looser match (any class inheriting from something)
+            class_match = re.search(r'class\s+(\w+)\s*\(', response_text)
+            if not class_match:
+                return GeneratedScraper(
+                    success=False,
+                    error="Generated code does not contain a valid class definition"
+                )
+            logger.warning(f"Generated scraper class doesn't explicitly inherit from BaseScraper")
+
+        class_name = class_match.group(1)
+
+        # Check for required methods
+        required_patterns = [
+            (r'def\s+source_name\s*\(|source_name\s*=', "source_name property"),
+            (r'def\s+base_url\s*\(|base_url\s*=', "base_url property"),
+            (r'def\s+get_job_listing_urls\s*\(', "get_job_listing_urls method"),
+            (r'def\s+parse_job_listing_page\s*\(', "parse_job_listing_page method"),
+        ]
+
+        missing = []
+        for pattern, name in required_patterns:
+            if not re.search(pattern, response_text):
+                missing.append(name)
+
+        if missing:
+            return GeneratedScraper(
+                success=False,
+                error=f"Generated code missing required: {', '.join(missing)}"
+            )
 
         return GeneratedScraper(
             success=True,
