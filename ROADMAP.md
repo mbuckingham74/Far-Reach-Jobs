@@ -10,4 +10,4 @@
 
 ## Future Enhancements
 
-(Add items as they come up)
+- [ ] **Salary scraping** - Configure `selector_salary` for sources that display salary info on job listings. Once data is available, re-enable the "Has Salary Info" filter in advanced filters. Priority sources to check: ANTHC, Alaska Job Center Network, state/municipal jobs.
