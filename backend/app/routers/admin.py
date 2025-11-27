@@ -280,10 +280,12 @@ async def trigger_scrape(request: Request, db: Session = Depends(get_db)):
         # Get active sources
         sources = db.query(ScrapeSource).filter(ScrapeSource.is_active == True).all()
         if not sources:
-            return templates.TemplateResponse(
+            response = templates.TemplateResponse(
                 "admin/partials/scrape_modal_result.html",
                 {"request": request, "error": "No active scrape sources configured", "success": False},
             )
+            response.headers["HX-Trigger"] = "refreshSourceList"
+            return response
 
         # Track timing
         start_time = time.time()
@@ -352,10 +354,12 @@ async def trigger_single_source_scrape(source_id: int, request: Request, db: Ses
 
     source = db.query(ScrapeSource).filter(ScrapeSource.id == source_id).first()
     if not source:
-        return templates.TemplateResponse(
+        response = templates.TemplateResponse(
             "admin/partials/scrape_modal_result.html",
             {"request": request, "error": "Source not found", "success": False},
         )
+        response.headers["HX-Trigger"] = "refreshSourceList"
+        return response
 
     try:
         # Track timing
