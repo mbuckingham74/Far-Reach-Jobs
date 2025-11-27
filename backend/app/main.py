@@ -65,7 +65,7 @@ app.include_router(admin.router, prefix="/admin", tags=["admin"])
 def home(request: Request, db: Session = Depends(get_db)):
     """Home page with job listings."""
     from app.dependencies import get_optional_current_user
-    from app.models import Job
+    from app.models import Job, ScrapeSource
     user = get_optional_current_user(request)
 
     # Pre-load locations for the filter dropdown (server-side render as fallback)
@@ -78,10 +78,30 @@ def home(request: Request, db: Session = Depends(get_db)):
     )
     location_list = [loc[0] for loc in locations if loc[0]]
 
+    # Pre-load organizations for advanced filters
+    organizations = (
+        db.query(Job.organization)
+        .filter(Job.is_stale == False, Job.organization.isnot(None), Job.organization != "")
+        .distinct()
+        .order_by(Job.organization)
+        .all()
+    )
+    organization_list = [org[0] for org in organizations if org[0]]
+
+    # Pre-load active sources for advanced filters
+    sources = (
+        db.query(ScrapeSource)
+        .filter(ScrapeSource.is_active == True)
+        .order_by(ScrapeSource.name)
+        .all()
+    )
+
     return templates.TemplateResponse("index.html", {
         "request": request,
         "user": user,
         "locations": location_list,
+        "organizations": organization_list,
+        "sources": sources,
     })
 
 
