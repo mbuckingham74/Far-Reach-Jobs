@@ -412,6 +412,77 @@ async def trigger_single_source_scrape(source_id: int, request: Request, db: Ses
         )
 
 
+@router.get("/sources/{source_id}/edit")
+def edit_source_page(source_id: int, request: Request, saved: str = None, db: Session = Depends(get_db)):
+    """Edit source basic info (name, URLs)."""
+    if not get_admin_user(request):
+        return RedirectResponse(url="/admin/login", status_code=302)
+
+    source = db.query(ScrapeSource).filter(ScrapeSource.id == source_id).first()
+    if not source:
+        return RedirectResponse(url="/admin", status_code=302)
+
+    context = {"request": request, "source": source}
+    if saved:
+        context["success"] = "Source updated successfully"
+
+    return templates.TemplateResponse("admin/edit_source.html", context)
+
+
+@router.post("/sources/{source_id}/edit")
+async def save_source_edit(source_id: int, request: Request, db: Session = Depends(get_db)):
+    """Save source basic info changes."""
+    if not get_admin_user(request):
+        raise HTTPException(status_code=401)
+
+    source = db.query(ScrapeSource).filter(ScrapeSource.id == source_id).first()
+    if not source:
+        return RedirectResponse(url="/admin", status_code=302)
+
+    form = await request.form()
+    name = form.get("name", "").strip()
+    base_url = form.get("base_url", "").strip()
+    listing_url = form.get("listing_url", "").strip() or None
+
+    # Validation
+    errors = []
+    if not name:
+        errors.append("Source name is required")
+    if not base_url:
+        errors.append("Base URL is required")
+    if base_url and not (base_url.startswith("http://") or base_url.startswith("https://")):
+        errors.append("Base URL must start with http:// or https://")
+    if listing_url and not (listing_url.startswith("http://") or listing_url.startswith("https://")):
+        errors.append("Listing URL must start with http:// or https://")
+
+    if errors:
+        # Pass back submitted values so user doesn't lose their input
+        source.name = name
+        source.base_url = base_url
+        source.listing_url = listing_url
+        return templates.TemplateResponse(
+            "admin/edit_source.html",
+            {"request": request, "source": source, "error": "; ".join(errors)},
+        )
+
+    source.name = name
+    source.base_url = base_url
+    source.listing_url = listing_url
+
+    try:
+        db.commit()
+        # PRG pattern: redirect to GET to avoid form resubmission on refresh
+        response = RedirectResponse(url=f"/admin/sources/{source_id}/edit?saved=1", status_code=303)
+        return response
+    except Exception as e:
+        logger.error(f"Failed to update source {source_id}: {e}")
+        db.rollback()
+        return templates.TemplateResponse(
+            "admin/edit_source.html",
+            {"request": request, "source": source, "error": "Failed to save changes. Please try again."},
+        )
+
+
 @router.get("/sources/{source_id}/configure")
 def configure_source_page(source_id: int, request: Request, db: Session = Depends(get_db)):
     """Source configuration page for CSS selectors."""
@@ -456,15 +527,6 @@ async def save_source_configuration(source_id: int, request: Request, db: Sessio
     if base_url and not (base_url.startswith("http://") or base_url.startswith("https://")):
         errors.append("Base URL must start with http:// or https://")
 
-    # Validate that required selectors are set for GenericScraper
-    if source.scraper_class == "GenericScraper":
-        if not selector_job_container:
-            errors.append("Job Container Selector is required for GenericScraper")
-        if not selector_title:
-            errors.append("Title Selector is required for GenericScraper")
-        if not selector_url:
-            errors.append("URL Selector is required for GenericScraper")
-
     if errors:
         return templates.TemplateResponse(
             "admin/configure_source.html",
@@ -494,6 +556,24 @@ async def save_source_configuration(source_id: int, request: Request, db: Sessio
 
     try:
         db.commit()
+        # Check if selectors are missing and add warning
+        missing_selectors = []
+        if source.scraper_class == "GenericScraper":
+            if not selector_job_container:
+                missing_selectors.append("Job Container")
+            if not selector_title:
+                missing_selectors.append("Title")
+            if not selector_url:
+                missing_selectors.append("URL")
+
+        if missing_selectors:
+            # Only show warning, no success banner - scraping won't work without selectors
+            warning = f"Configuration saved, but scraping won't work until these selectors are set: {', '.join(missing_selectors)}"
+            return templates.TemplateResponse(
+                "admin/configure_source.html",
+                {"request": request, "source": source, "warning": warning},
+            )
+
         return templates.TemplateResponse(
             "admin/configure_source.html",
             {"request": request, "source": source, "success": "Configuration saved successfully"},

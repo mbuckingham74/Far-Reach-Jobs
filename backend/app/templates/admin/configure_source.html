@@ -32,6 +32,12 @@
 </div>
 {% endif %}
 
+{% if warning %}
+<div class="bg-yellow-50 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-200 border border-yellow-200 dark:border-yellow-800 rounded-md p-3 mb-6">
+    {{ warning }}
+</div>
+{% endif %}
+
 <!-- AI Analysis Section -->
 <div class="bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-200 dark:border-purple-800 p-6 mb-6">
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
