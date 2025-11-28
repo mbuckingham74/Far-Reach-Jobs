@@ -217,8 +217,13 @@ class UltiProScraper(BaseScraper):
             else:
                 state = ""
 
+            # Build location string, avoiding duplication if city already contains state
             if city and state:
-                location = f"{city}, {state}"
+                # Check if state is already in city (e.g., "Anchorage, AK")
+                if state in city:
+                    location = city
+                else:
+                    location = f"{city}, {state}"
             elif city:
                 location = city
             elif state:
