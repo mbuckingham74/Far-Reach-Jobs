@@ -171,12 +171,16 @@ class GenericScraper(BaseScraper):
             if not location:
                 location = self.config.get("default_location")
 
+            # Use source's default_state if configured (for sources that don't provide state)
+            state = self.config.get("default_state")
+
             job = ScrapedJob(
                 external_id=external_id,
                 title=title,
                 url=job_url or url,  # Fallback to listing page URL
                 organization=self._extract_text(container, self.config.get("selector_organization")),
                 location=location,
+                state=state,
                 job_type=self._extract_text(container, self.config.get("selector_job_type")),
                 salary_info=self._extract_text(container, self.config.get("selector_salary")),
                 description=self._extract_text(container, self.config.get("selector_description")),

@@ -48,4 +48,8 @@ class ScrapeSource(Base):
     # e.g., "Bethel" for City of Bethel jobs, "Kotzebue" for City of Kotzebue
     default_location = Column(String(255), nullable=True)
 
+    # Default state to use when scraper doesn't extract state from page
+    # e.g., "AK" for Alaska-only job boards like YKHC
+    default_state = Column(String(50), nullable=True)
+
     jobs = relationship("Job", back_populates="source", cascade="all, delete-orphan")

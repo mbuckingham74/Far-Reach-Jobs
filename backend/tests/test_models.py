@@ -253,6 +253,29 @@ class TestJobModel:
         assert job.location is None
         assert job.state is None
 
+    def test_display_location_combines_location_and_state(self, db, active_source):
+        """display_location combines location and state correctly."""
+        test_cases = [
+            # (location, state, expected)
+            ("Bethel", "AK", "Bethel, AK"),  # Basic case
+            ("Anchorage, AK", "AK", "Anchorage, AK"),  # State already in location
+            (None, "AK", "AK"),  # Only state
+            ("Bethel", None, "Bethel"),  # Only location
+            (None, None, None),  # Neither
+        ]
+        for i, (location, state, expected) in enumerate(test_cases):
+            job = Job(
+                source_id=active_source.id,
+                external_id=f"loc-job-{i}",
+                title="Location Test",
+                url="https://example.com/job",
+                location=location,
+                state=state,
+            )
+            db.add(job)
+            db.commit()
+            assert job.display_location == expected, f"Expected {expected} for location={location}, state={state}"
+
     def test_display_job_type_full_time(self, db, active_source):
         """display_job_type returns Full-Time for full-time variants."""
         test_cases = [

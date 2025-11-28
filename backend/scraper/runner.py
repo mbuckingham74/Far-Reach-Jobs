@@ -250,6 +250,7 @@ def get_source_config(source: ScrapeSource) -> dict:
         # Always use Playwright - overhead is minimal vs failing on JS sites
         "use_playwright": True,
         "default_location": source.default_location,
+        "default_state": source.default_state,
     }
 
 

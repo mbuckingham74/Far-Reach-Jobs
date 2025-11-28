@@ -31,6 +31,31 @@ class Job(Base):
     saved_by = relationship("SavedJob", back_populates="job", cascade="all, delete-orphan")
 
     @property
+    def display_location(self) -> str | None:
+        """Return location with state appended if not already included.
+
+        Examples:
+            - location="Bethel", state="AK" -> "Bethel, AK"
+            - location="Anchorage, AK", state="AK" -> "Anchorage, AK" (no duplication)
+            - location=None, state="AK" -> "AK"
+            - location="Bethel", state=None -> "Bethel"
+        """
+        if not self.location and not self.state:
+            return None
+
+        if not self.location:
+            return self.state
+
+        if not self.state:
+            return self.location
+
+        # Check if state is already in location to avoid duplication
+        if self.state in self.location:
+            return self.location
+
+        return f"{self.location}, {self.state}"
+
+    @property
     def display_job_type(self) -> str | None:
         """Return cleaned job type for display.
 

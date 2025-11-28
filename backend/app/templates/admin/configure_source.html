@@ -115,6 +115,13 @@
                    class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white dark:bg-gray-700 dark:text-white dark:placeholder-gray-500">
             <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Fallback location when jobs don't have location info. Used for filtering by city/community.</p>
         </div>
+        <div class="mt-4">
+            <label for="default_state" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Default State</label>
+            <input type="text" id="default_state" name="default_state" value="{{ source.default_state or '' }}"
+                   placeholder="e.g., AK, WA, CA"
+                   class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white dark:bg-gray-700 dark:text-white dark:placeholder-gray-500">
+            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Fallback state code when jobs don't have state info. Applied to location display (e.g., "Bethel, AK").</p>
+        </div>
     </div>
 
     <!-- Required Selectors -->
