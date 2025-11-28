@@ -11,6 +11,7 @@ from bs4 import BeautifulSoup
 from app.models import Job, ScrapeSource, ScrapeLog
 from scraper.base import BaseScraper, ScrapedJob, ScrapeResult
 from scraper.playwright_fetcher import get_playwright_fetcher
+from scraper.sources.adp_workforce import ADPWorkforceScraper
 
 logger = logging.getLogger(__name__)
 
@@ -215,6 +216,13 @@ def log_scrape_result(
     return log
 
 
+def is_adp_workforce_url(url: str | None) -> bool:
+    """Check if a URL is an ADP WorkforceNow career portal."""
+    if not url:
+        return False
+    return "workforcenow.adp.com" in url.lower()
+
+
 def get_source_config(source: ScrapeSource) -> dict:
     """Extract configuration dictionary from a ScrapeSource model."""
     return {
@@ -238,10 +246,91 @@ def get_source_config(source: ScrapeSource) -> dict:
     }
 
 
+def _run_adp_scraper(
+    db: Session,
+    source: ScrapeSource,
+    listing_url: str,
+    trigger_type: str,
+    started_at: datetime,
+) -> ScrapeResult:
+    """Run the ADP WorkforceNow API scraper for a source."""
+    start_time = time.time()
+
+    jobs_new = 0
+    jobs_updated = 0
+    jobs_unchanged = 0
+    all_errors: list[str] = []
+    seen_ids: set[str] = set()
+
+    try:
+        scraper = ADPWorkforceScraper(
+            source_name=source.name,
+            base_url=source.base_url,
+            listing_url=listing_url,
+        )
+
+        scraped_jobs, errors = scraper.run()
+        all_errors.extend(errors)
+
+        for scraped_job in scraped_jobs:
+            if scraped_job.external_id in seen_ids:
+                continue
+            seen_ids.add(scraped_job.external_id)
+
+            try:
+                with db.begin_nested():
+                    is_new, is_updated = upsert_job(db, source.id, scraped_job)
+                if is_new:
+                    jobs_new += 1
+                elif is_updated:
+                    jobs_updated += 1
+                else:
+                    jobs_unchanged += 1
+            except Exception as e:
+                seen_ids.discard(scraped_job.external_id)
+                logger.error(f"Failed to upsert job {scraped_job.external_id}: {e}")
+                all_errors.append(f"Failed to upsert job {scraped_job.external_id}")
+
+        source.last_scraped_at = datetime.now(timezone.utc)
+
+    except Exception as e:
+        all_errors.append(f"ADP scraper execution failed: {e}")
+        logger.exception(f"ADP scraper failed for {source.name}")
+
+    source.last_scrape_success = len(all_errors) == 0
+    duration = time.time() - start_time
+
+    logger.info(
+        f"[{source.name}] ADP scrape complete: {jobs_new} new, {jobs_updated} updated, "
+        f"{jobs_unchanged} unchanged, {len(all_errors)} errors in {duration:.1f}s"
+    )
+
+    result = ScrapeResult(
+        source_name=source.name,
+        jobs_found=jobs_new + jobs_updated + jobs_unchanged,
+        jobs_new=jobs_new,
+        jobs_updated=jobs_updated,
+        errors=all_errors,
+        duration_seconds=duration,
+    )
+
+    log_scrape_result(db, source, result, trigger_type, started_at)
+    return result
+
+
 def run_scraper(db: Session, source: ScrapeSource, trigger_type: str = "manual") -> ScrapeResult:
     """Run a single scraper and upsert jobs to database."""
     start_time = time.time()
     started_at = datetime.now(timezone.utc)
+
+    # Check if listing URL is ADP WorkforceNow - use specialized API scraper
+    listing_url = source.listing_url or ""
+    listing_urls = [url.strip() for url in listing_url.split('\n') if url.strip()]
+    first_listing_url = listing_urls[0] if listing_urls else source.base_url
+
+    if is_adp_workforce_url(first_listing_url):
+        logger.info(f"Detected ADP WorkforceNow URL for {source.name}, using ADPWorkforceScraper")
+        return _run_adp_scraper(db, source, first_listing_url, trigger_type, started_at)
 
     # Handle DynamicScraper - compile from custom_scraper_code
     if source.scraper_class == "DynamicScraper":
