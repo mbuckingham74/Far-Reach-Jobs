@@ -130,7 +130,11 @@ def verify_email(token: str, db: Session = Depends(get_db)):
     # Check token expiry
     if user.verification_token_created_at:
         from datetime import timedelta
-        expiry_time = user.verification_token_created_at + timedelta(hours=VERIFICATION_TOKEN_EXPIRY_HOURS)
+        # Handle both naive and aware datetimes from database
+        token_created = user.verification_token_created_at
+        if token_created.tzinfo is None:
+            token_created = token_created.replace(tzinfo=timezone.utc)
+        expiry_time = token_created + timedelta(hours=VERIFICATION_TOKEN_EXPIRY_HOURS)
         if datetime.now(timezone.utc) > expiry_time:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,

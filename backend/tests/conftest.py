@@ -15,7 +15,7 @@ os.environ["MYSQL_PASSWORD"] = "test"
 
 from app.database import Base, get_db
 from app.main import app
-from app.models import Job, ScrapeSource
+from app.models import Job, ScrapeSource, User
 
 
 # Use in-memory SQLite for tests

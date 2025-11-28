@@ -1,0 +1,16 @@
+services:
+  test:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    environment:
+      - ENVIRONMENT=development
+      - MYSQL_PASSWORD=test
+      - SECRET_KEY=test-secret-key-for-jwt-signing-needs-to-be-long
+      - JWT_ALGORITHM=HS256
+      - JWT_EXPIRE_HOURS=24
+    volumes:
+      - ./backend:/app
+    command: sh -c "pip install --user pytest && python -m pytest tests/ -v"
+    profiles:
+      - test
