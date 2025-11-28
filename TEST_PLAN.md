@@ -17,10 +17,10 @@ docker compose -f docker-compose.test.yml run --rm test
 | 2 | Jobs API | 34 | ✅ Complete | [#53](https://github.com/mbuckingham74/Far-Reach-Jobs/pull/53) |
 | 3 | Saved Jobs | 18 | ✅ Complete | [#54](https://github.com/mbuckingham74/Far-Reach-Jobs/pull/54) |
 | 4 | Scraper Utilities | 43 | ✅ Complete | [#55](https://github.com/mbuckingham74/Far-Reach-Jobs/pull/55) |
-| 5 | Admin Panel | - | ⏳ Pending | - |
+| 5 | Admin Panel | 62 | ✅ Complete | [#56](https://github.com/mbuckingham74/Far-Reach-Jobs/pull/56) |
 | 6 | Models | - | ⏳ Pending | - |
 
-**Total Tests:** 134 (119 new + 15 existing)
+**Total Tests:** 196 (181 new + 15 existing)
 
 ---
 
@@ -84,41 +84,91 @@ docker compose -f docker-compose.test.yml run --rm test
 
 ---
 
-## 4. Admin Panel Tests ⏳
+## 4. Admin Panel Tests ✅
 
-**File:** `backend/tests/test_admin.py` (to create)
+**File:** `backend/tests/test_admin.py`
 **Endpoints:** `/admin/*`
 
-### Planned Coverage
+### Coverage
 
-#### Authentication
-- [ ] Admin login page render
-- [ ] Admin login success
-- [ ] Admin login wrong credentials
-- [ ] Admin logout
-- [ ] Protected routes redirect to login
+#### Authentication (10 tests)
+- [x] Admin login page render
+- [x] Admin login redirects if already logged in
+- [x] Admin login success
+- [x] Admin login wrong username/password
+- [x] Admin login empty credentials
+- [x] Admin logout success
+- [x] Admin logout clears session
+- [x] Dashboard requires auth
+- [x] Dashboard accessible when authenticated
 
-#### Source Management
-- [ ] List sources
-- [ ] Create source
-- [ ] Edit source
-- [ ] Delete source
-- [ ] Toggle source active/inactive
-- [ ] Configure selectors
-- [ ] View disabled sources
+#### Dashboard (3 tests)
+- [x] Dashboard shows job counts (with regex validation of actual values)
+- [x] Dashboard shows sources via HTMX
+- [x] Dashboard shows disabled source count
 
-#### Scraping
-- [ ] Trigger scrape all
-- [ ] Trigger single source scrape
-- [ ] Scrape history view
+#### Source Management (12 tests)
+- [x] List sources requires auth
+- [x] List sources returns active only
+- [x] Create source requires auth
+- [x] Create source success
+- [x] Create source validation (missing name/URL)
+- [x] Delete source requires auth
+- [x] Delete source success
+- [x] Delete nonexistent source (idempotent)
+- [x] Toggle source requires auth
+- [x] Toggle active to inactive
+- [x] Toggle inactive to active
 
-#### AI Features (if API key available)
-- [ ] Analyze page for selectors
-- [ ] Generate scraper code
+#### Disabled Sources (6 tests)
+- [x] Disabled sources page requires auth
+- [x] Disabled sources page accessible
+- [x] Disabled sources list requires auth
+- [x] Disabled sources list returns inactive only
+- [x] Disabled count link requires auth
+- [x] Disabled count returns count
 
-### Key Test Fixtures Needed
-- Admin session cookie fixture
-- Sources with various configurations
+#### Source Edit (8 tests)
+- [x] Edit page requires auth
+- [x] Edit page accessible
+- [x] Edit page nonexistent source redirects
+- [x] Edit source requires auth
+- [x] Edit source success
+- [x] Edit source validation (name, URL, URL format)
+
+#### Source Configure (7 tests)
+- [x] Configure page requires auth
+- [x] Configure page accessible
+- [x] Configure page nonexistent source redirects
+- [x] Configure source requires auth
+- [x] Configure source success
+- [x] Configure source warns on missing selectors
+- [x] Configure source checkbox (use_playwright)
+
+#### Scrape History (4 tests)
+- [x] History page requires auth
+- [x] History page accessible
+- [x] History page shows logs (verifies table content)
+- [x] History page shows stats (with regex validation of computed aggregates)
+
+#### Trigger Scrape (6 tests)
+- [x] Scrape all requires auth
+- [x] Scrape all no sources
+- [x] Scrape all success (mocked)
+- [x] Scrape single requires auth
+- [x] Scrape single not found
+- [x] Scrape single success (mocked)
+
+#### AI Features (6 tests)
+- [x] Analyze requires auth
+- [x] Analyze nonexistent source
+- [x] Analyze AI not available
+- [x] Generate scraper requires auth
+- [x] Generate scraper nonexistent source
+- [x] Generate scraper AI not available
+
+### Key Test Fixtures
+- `admin_client` - TestClient with admin session cookie
 
 ---
 
