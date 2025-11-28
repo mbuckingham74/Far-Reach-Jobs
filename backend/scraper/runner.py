@@ -11,7 +11,6 @@ from bs4 import BeautifulSoup
 from app.models import Job, ScrapeSource, ScrapeLog
 from scraper.base import BaseScraper, ScrapedJob, ScrapeResult
 from scraper.playwright_fetcher import get_playwright_fetcher
-from scraper.sources.adp_workforce import ADPWorkforceScraper
 
 logger = logging.getLogger(__name__)
 
@@ -254,6 +253,9 @@ def _run_adp_scraper(
     started_at: datetime,
 ) -> ScrapeResult:
     """Run the ADP WorkforceNow API scraper for a source."""
+    # Lazy import to avoid circular dependency
+    from scraper.sources.adp_workforce import ADPWorkforceScraper
+
     start_time = time.time()
 
     jobs_new = 0
