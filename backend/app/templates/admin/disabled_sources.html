@@ -17,7 +17,7 @@
 
 <!-- Disabled Source List -->
 <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 transition-colors">
-    <div id="disabled-source-list" hx-get="/admin/sources/disabled/list" hx-trigger="load, refreshSourceList from:body">
+    <div id="disabled-source-list" hx-get="/admin/sources/disabled/list" hx-trigger="load, refreshSourceList from:body" hx-swap="innerHTML show:none">
         <div class="text-center py-8 text-gray-500 dark:text-gray-400">Loading disabled sources...</div>
     </div>
 </div>
