@@ -618,3 +618,110 @@ class TestIsAdpWorkforceUrl:
     def test_case_insensitive(self):
         """Should match URLs case-insensitively."""
         assert is_adp_workforce_url("https://WORKFORCENOW.ADP.COM/jobs") is True
+
+
+class TestApiScrapersSkipRobotsCheck:
+    """Tests to ensure API scrapers bypass robots.txt checking.
+
+    UltiPro and ADP use public JSON APIs, not HTML crawling, so robots.txt
+    restrictions don't apply. These tests verify the ordering in run_scraper
+    ensures API sources are handled before robots.txt check is called.
+    """
+
+    def test_ultipro_scraper_bypasses_robots_check(self):
+        """UltiPro sources should be handled before robots.txt check."""
+        # This test verifies run_scraper dispatches to _run_ultipro_scraper
+        # BEFORE calling check_robots_blocked
+        from unittest.mock import MagicMock, patch
+
+        mock_db = MagicMock()
+        mock_source = MagicMock()
+        mock_source.name = "Test UltiPro Source"
+        mock_source.listing_url = "https://recruiting2.ultipro.com/TEST/JobBoard/123/"
+
+        # Mock all the functions called in run_scraper
+        with patch("scraper.runner._run_ultipro_scraper") as mock_ultipro, \
+             patch("scraper.runner.check_robots_blocked") as mock_robots:
+
+            mock_ultipro.return_value = MagicMock()  # Return a result
+
+            from scraper.runner import run_scraper
+            run_scraper(mock_db, mock_source)
+
+            # Verify UltiPro scraper was called
+            mock_ultipro.assert_called_once()
+            # Verify robots.txt check was NOT called (bypassed)
+            mock_robots.assert_not_called()
+
+    def test_ukg_pro_scraper_bypasses_robots_check(self):
+        """UKG Pro (rec.pro.ukg.net) sources should bypass robots.txt check."""
+        from unittest.mock import MagicMock, patch
+
+        mock_db = MagicMock()
+        mock_source = MagicMock()
+        mock_source.name = "Test UKG Pro Source"
+        mock_source.listing_url = "https://aht1971.rec.pro.ukg.net/AHT1000AHT/JobBoard/b5e902eb-8919-4dab-bfa8-23d54b8ec174/"
+
+        with patch("scraper.runner._run_ultipro_scraper") as mock_ultipro, \
+             patch("scraper.runner.check_robots_blocked") as mock_robots:
+
+            mock_ultipro.return_value = MagicMock()
+
+            from scraper.runner import run_scraper
+            run_scraper(mock_db, mock_source)
+
+            mock_ultipro.assert_called_once()
+            mock_robots.assert_not_called()
+
+    def test_adp_scraper_bypasses_robots_check(self):
+        """ADP WorkforceNow sources should bypass robots.txt check."""
+        from unittest.mock import MagicMock, patch
+
+        mock_db = MagicMock()
+        mock_source = MagicMock()
+        mock_source.name = "Test ADP Source"
+        mock_source.listing_url = "https://workforcenow.adp.com/mascsr/default/mdf/recruitment/recruitment.html?cid=12345"
+
+        with patch("scraper.runner._run_adp_scraper") as mock_adp, \
+             patch("scraper.runner.check_robots_blocked") as mock_robots:
+
+            mock_adp.return_value = MagicMock()
+
+            from scraper.runner import run_scraper
+            run_scraper(mock_db, mock_source)
+
+            mock_adp.assert_called_once()
+            mock_robots.assert_not_called()
+
+    def test_generic_scraper_does_check_robots(self):
+        """Non-API sources should still go through robots.txt check."""
+        from unittest.mock import MagicMock, patch
+
+        mock_db = MagicMock()
+        mock_source = MagicMock()
+        mock_source.name = "Test Generic Source"
+        mock_source.listing_url = "https://example.com/careers"
+        mock_source.scraper_class = "GenericScraper"
+
+        with patch("scraper.runner._run_ultipro_scraper") as mock_ultipro, \
+             patch("scraper.runner._run_adp_scraper") as mock_adp, \
+             patch("scraper.runner.check_robots_blocked") as mock_robots, \
+             patch("scraper.runner.get_scraper_class") as mock_get_class:
+
+            # Simulate robots check passing
+            mock_robots.return_value = (False, None, None, None)
+            mock_get_class.return_value = MagicMock()
+
+            from scraper.runner import run_scraper
+            # This will try to instantiate the scraper, which may fail
+            # but we're just testing that robots check is called
+            try:
+                run_scraper(mock_db, mock_source)
+            except Exception:
+                pass  # We expect it may fail after robots check
+
+            # Verify API scrapers were NOT called
+            mock_ultipro.assert_not_called()
+            mock_adp.assert_not_called()
+            # Verify robots.txt check WAS called
+            mock_robots.assert_called_once()
