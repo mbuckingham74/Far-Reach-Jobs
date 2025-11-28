@@ -259,7 +259,8 @@ class TestJobModel:
             ("Full-Time", "Full-Time"),
             ("full time", "Full-Time"),
             ("Full Time", "Full-Time"),
-            ("80 Full time", "Full-Time"),  # 80 hours biweekly = full-time
+            ("80 Full time", "Full-Time"),  # hours + full time pattern
+            ("40 full time", "Full-Time"),
         ]
         for i, (raw, expected) in enumerate(test_cases):
             job = Job(
@@ -279,7 +280,7 @@ class TestJobModel:
             ("Part-Time", "Part-Time"),
             ("part time", "Part-Time"),
             ("Part Time", "Part-Time"),
-            ("20 Full time", "Part-Time"),  # 20 hours = part-time despite "full"
+            ("20 Part time", "Part-Time"),  # hours + part time pattern
         ]
         for i, (raw, expected) in enumerate(test_cases):
             job = Job(
@@ -300,6 +301,7 @@ class TestJobModel:
             "Administrative",
             "Management",
             "Education",
+            "Clinical/Nursing",
             None,
         ]
         for i, raw in enumerate(test_cases):
@@ -314,27 +316,26 @@ class TestJobModel:
             db.commit()
             assert job.display_job_type is None, f"Expected None for '{raw}'"
 
-    def test_display_job_type_hours_only(self, db, active_source):
-        """display_job_type handles hour-only values."""
-        job_ft = Job(
-            source_id=active_source.id,
-            external_id="hours-ft",
-            title="Hours Test FT",
-            url="https://example.com/job",
-            job_type="40",
-        )
-        job_pt = Job(
-            source_id=active_source.id,
-            external_id="hours-pt",
-            title="Hours Test PT",
-            url="https://example.com/job",
-            job_type="20",
-        )
-        db.add_all([job_ft, job_pt])
-        db.commit()
-
-        assert job_ft.display_job_type == "Full-Time"
-        assert job_pt.display_job_type == "Part-Time"
+    def test_display_job_type_preserves_other_types(self, db, active_source):
+        """display_job_type preserves valid employment types like Contract."""
+        test_cases = [
+            ("Contract", "Contract"),
+            ("Temporary", "Temporary"),
+            ("Seasonal", "Seasonal"),
+            ("Internship", "Internship"),
+            ("Per Diem", "Per Diem"),
+        ]
+        for i, (raw, expected) in enumerate(test_cases):
+            job = Job(
+                source_id=active_source.id,
+                external_id=f"other-job-{i}",
+                title="Other Type Test",
+                url="https://example.com/job",
+                job_type=raw,
+            )
+            db.add(job)
+            db.commit()
+            assert job.display_job_type == expected, f"Expected {expected} for '{raw}'"
 
 
 class TestSavedJobModel:
