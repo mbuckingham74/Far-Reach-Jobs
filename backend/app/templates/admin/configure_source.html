@@ -331,6 +331,13 @@
         }
     });
 
+    // Hide loading spinner when scrape completes (HTMX swap into modal result)
+    document.body.addEventListener('htmx:afterSwap', function(event) {
+        if (event.detail.target.id === 'scrape-modal-result') {
+            onScrapeComplete();
+        }
+    });
+
     // Show loading state when analysis starts
     document.body.addEventListener('htmx:beforeRequest', function(event) {
         if (event.detail.elt.id === 'analyze-btn') {
