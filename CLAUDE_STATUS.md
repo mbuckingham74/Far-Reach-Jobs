@@ -578,6 +578,22 @@ Generated code must contain:
 **Key Files:**
 - `docker-compose.yml` - `dns` configuration for web service
 
+### Phase 1T: About Us Page ✅
+- [x] About page at `/about` with project story and mission
+- [x] Sections: Origin Story, Mission, Ethical Principles, Target Audience, Community Project
+- [x] Ethical principles: robots.txt compliance, direct employer links, no data collection, no ads
+- [x] "Coming Soon" roadmap section with planned features
+- [x] Header navigation link (after dark mode toggle)
+- [x] Footer navigation link
+- [x] Dark mode support
+
+**Key Files:**
+- `backend/app/templates/about.html` - About page template
+- `backend/app/main.py` - `/about` route
+
+**Roadmap Items:**
+- For Employers page - direct job submission form and careers page link submission
+
 ## CSS Selector Troubleshooting
 
 Common issues when configuring GenericScraper:
