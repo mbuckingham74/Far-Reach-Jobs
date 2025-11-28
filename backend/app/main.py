@@ -137,6 +137,14 @@ def contact_page(request: Request):
     return templates.TemplateResponse("contact.html", {"request": request, "user": user})
 
 
+@app.get("/about")
+def about_page(request: Request):
+    """About Us page."""
+    from app.dependencies import get_optional_current_user
+    user = get_optional_current_user(request)
+    return templates.TemplateResponse("about.html", {"request": request, "user": user})
+
+
 # Error handlers
 def _wants_json(request: Request) -> bool:
     """Check if request expects JSON response (API routes or Accept header)."""
