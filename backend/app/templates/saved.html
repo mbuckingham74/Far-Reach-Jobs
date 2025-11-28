@@ -9,7 +9,7 @@
 </div>
 
 <!-- Saved Job Listings -->
-<div id="saved-job-list" hx-get="/api/saved-jobs" hx-trigger="load">
+<div id="saved-job-list" hx-get="/api/saved-jobs" hx-trigger="load" hx-swap="innerHTML show:none">
     <!-- Loading state -->
     <div class="text-center py-12">
         <div class="inline-block w-8 h-8 border-4 border-gray-200 dark:border-gray-700 border-t-primary-600 rounded-full animate-spin"></div>

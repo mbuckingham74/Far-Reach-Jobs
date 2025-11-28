@@ -12,7 +12,7 @@
 <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6 sm:mb-8"
      hx-get="/api/jobs/stats"
      hx-trigger="load"
-     hx-swap="innerHTML">
+     hx-swap="innerHTML show:none">
     <!-- Placeholder while loading -->
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 text-center">
         <div class="text-2xl sm:text-3xl font-bold text-blue-600 dark:text-blue-400">-</div>
@@ -151,7 +151,7 @@
     </div>
 
     <!-- Job Listings -->
-    <div id="job-list" hx-get="/api/jobs" hx-trigger="load" hx-indicator="closest #job-list-container">
+    <div id="job-list" hx-get="/api/jobs" hx-trigger="load" hx-swap="innerHTML show:none" hx-indicator="closest #job-list-container">
         <!-- Jobs will be loaded here via HTMX -->
     </div>
 </div>
