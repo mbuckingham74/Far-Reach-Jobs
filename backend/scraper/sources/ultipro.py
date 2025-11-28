@@ -39,21 +39,32 @@ class UltiProScraper(BaseScraper):
         super().__init__(use_playwright=use_playwright)
         self._source_name = source_name
         self._base_url = base_url
-        self._listing_url = listing_url.rstrip("/")
 
-        # Extract tenant and board ID from the listing URL
-        # Pattern: https://recruiting2.ultipro.com/{tenant}/JobBoard/{board-id}/
+        # Extract tenant, board ID, and host from the listing URL
+        # Pattern: https://recruiting2.ultipro.com/{tenant}/JobBoard/{board-id}/...
+        # User might paste a job detail URL or the board URL - we need to normalize
         parsed = urlparse(listing_url)
         path_parts = [p for p in parsed.path.split("/") if p]
 
+        self._host = parsed.netloc
+        self._scheme = parsed.scheme or "https"
         self._tenant = None
         self._board_id = None
 
-        if len(path_parts) >= 3 and path_parts[1].lower() == "jobboard":
-            self._tenant = path_parts[0]
-            self._board_id = path_parts[2]
+        # Find JobBoard in the path and extract tenant (before) and board-id (after)
+        for i, part in enumerate(path_parts):
+            if part.lower() == "jobboard" and i > 0 and i + 1 < len(path_parts):
+                self._tenant = path_parts[i - 1]
+                self._board_id = path_parts[i + 1]
+                break
 
-        if not self._tenant or not self._board_id:
+        # Build normalized board URL from extracted parts
+        if self._tenant and self._board_id:
+            self._board_url = (
+                f"{self._scheme}://{self._host}/{self._tenant}/JobBoard/{self._board_id}"
+            )
+        else:
+            self._board_url = None
             logger.warning(
                 f"Could not extract tenant/board-id from UltiPro URL: {listing_url}"
             )
@@ -68,11 +79,11 @@ class UltiProScraper(BaseScraper):
 
     def _get_api_url(self) -> str:
         """Build the API URL for fetching job listings."""
-        return f"{self._listing_url}/JobBoardView/LoadSearchResults"
+        return f"{self._board_url}/JobBoardView/LoadSearchResults"
 
     def _get_job_detail_url(self, job_id: str) -> str:
         """Build the URL for viewing a specific job posting."""
-        return f"{self._listing_url}/OpportunityDetail?opportunityId={job_id}"
+        return f"{self._board_url}/OpportunityDetail?opportunityId={job_id}"
 
     def get_job_listing_urls(self) -> list[str]:
         """Not used for API-based scraping - return empty list."""
@@ -87,9 +98,10 @@ class UltiProScraper(BaseScraper):
         jobs: list[ScrapedJob] = []
         errors: list[str] = []
 
-        if not self._tenant or not self._board_id:
+        if not self._board_url:
             errors.append(
-                f"Invalid UltiPro URL - missing tenant or board-id: {self._listing_url}"
+                f"Invalid UltiPro URL - could not extract tenant/board-id. "
+                f"Expected pattern: https://recruiting2.ultipro.com/{{tenant}}/JobBoard/{{board-id}}/"
             )
             return jobs, errors
 

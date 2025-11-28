@@ -273,7 +273,7 @@ class TestUltiProScraper:
 
         assert len(jobs) == 0
         assert len(errors) == 1
-        assert "missing tenant" in errors[0].lower()
+        assert "could not extract" in errors[0].lower()
 
     def test_handles_api_error(self):
         """Should handle API errors gracefully."""
@@ -349,3 +349,52 @@ class TestUltiProScraper:
         assert job is not None
         assert job.location == "Anchorage"
         assert job.state == ""
+
+    def test_normalizes_job_detail_url_to_board_url(self):
+        """Should extract board URL even when given a job detail URL."""
+        # User might copy/paste a job detail URL instead of the board URL
+        scraper = UltiProScraper(
+            source_name="Test Org",
+            base_url="https://example.org",
+            listing_url=(
+                "https://recruiting2.ultipro.com/SOU1048SOFO/JobBoard/"
+                "c9cedf85-000e-4f7b-b325-fdda3f04c5be/OpportunityDetail?"
+                "opportunityId=786ef21d-1db8-4676-ae0e-8b95c1e0fecb"
+            ),
+        )
+
+        assert scraper._tenant == "SOU1048SOFO"
+        assert scraper._board_id == "c9cedf85-000e-4f7b-b325-fdda3f04c5be"
+        # API URL should be normalized (no OpportunityDetail in path)
+        api_url = scraper._get_api_url()
+        assert "OpportunityDetail" not in api_url
+        assert "JobBoardView/LoadSearchResults" in api_url
+
+    def test_preserves_host_from_input_url(self):
+        """Should use the host from the input URL, not hardcoded."""
+        scraper = UltiProScraper(
+            source_name="Test Org",
+            base_url="https://example.org",
+            listing_url=(
+                "https://recruiting.ultipro.com/ALT123/JobBoard/board-xyz/"
+            ),
+        )
+
+        assert scraper._host == "recruiting.ultipro.com"
+        api_url = scraper._get_api_url()
+        assert "recruiting.ultipro.com" in api_url
+        assert "recruiting2" not in api_url
+
+    def test_builds_normalized_board_url(self):
+        """Should build a clean normalized board URL from parts."""
+        scraper = UltiProScraper(
+            source_name="Test Org",
+            base_url="https://example.org",
+            listing_url=(
+                "https://recruiting2.ultipro.com/TEST123/JobBoard/board-456/"
+                "OpportunityDetail?opportunityId=some-job-id"
+            ),
+        )
+
+        expected_board_url = "https://recruiting2.ultipro.com/TEST123/JobBoard/board-456"
+        assert scraper._board_url == expected_board_url
