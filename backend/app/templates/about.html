@@ -4,29 +4,48 @@
 
 {% block content %}
 <div class="max-w-3xl mx-auto">
-    <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-6">About Far Reach Jobs</h2>
+    <!-- Hero -->
+    <div class="text-center mb-8">
+        <h2 class="text-3xl font-bold text-gray-900 dark:text-white mb-2">About Far Reach Jobs</h2>
+        <p class="text-xl text-primary-600 dark:text-primary-400 font-medium">Work where the map gets quiet.</p>
+    </div>
 
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 transition-colors space-y-8">
 
-        <!-- Origin Story -->
+        <!-- The Problem -->
         <section>
-            <div class="flex items-start gap-4">
-                <div class="flex-shrink-0 w-10 h-10 bg-primary-100 dark:bg-primary-900 rounded-full flex items-center justify-center">
-                    <svg class="w-5 h-5 text-primary-600 dark:text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                    </svg>
-                </div>
-                <div>
-                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">How We Started</h3>
-                    <p class="text-gray-700 dark:text-gray-300">
-                        Far Reach Jobs began with a simple frustration: searching for jobs in Alaska's remote communities meant visiting dozens of separate websites for individual cities, tribal organizations, boroughs, and small municipalities. There was no central place to see what opportunities existed in bush Alaska and other extremely rural areas. We built this tool to solve that problem.
-                    </p>
-                </div>
-            </div>
+            <p class="text-lg text-gray-700 dark:text-gray-300 leading-relaxed">
+                Far Reach Jobs exists for one simple reason: <strong class="text-gray-900 dark:text-white">rural and bush communities need talent, and the jobs are scattered everywhere.</strong>
+            </p>
+            <p class="text-gray-700 dark:text-gray-300 mt-4">
+                If you've ever tried to look for work in Bethel, Kotzebue, Mountain Village, Nome, Dillingham, Fort Yukon &mdash; or any of the dozens of small tribal communities across Alaska &mdash; you already know the struggle.
+            </p>
+            <ul class="mt-4 space-y-2 text-gray-700 dark:text-gray-300">
+                <li class="flex items-start gap-2">
+                    <span class="text-gray-400">&bull;</span>
+                    <span>Every organization posts jobs on a different website.</span>
+                </li>
+                <li class="flex items-start gap-2">
+                    <span class="text-gray-400">&bull;</span>
+                    <span>Every listing uses a different format.</span>
+                </li>
+                <li class="flex items-start gap-2">
+                    <span class="text-gray-400">&bull;</span>
+                    <span>And nothing shows up on mainstream job boards.</span>
+                </li>
+            </ul>
+            <p class="text-lg text-gray-900 dark:text-white font-medium mt-4">
+                So I built this.
+            </p>
+            <p class="text-gray-700 dark:text-gray-300 mt-4">
+                Far Reach Jobs automatically gathers postings from tribal councils, health consortia, school districts, regional corporations, and rural municipalities. No ads. No tracking. No middlemen. Just the jobs, in one place.
+            </p>
         </section>
 
-        <!-- Mission -->
+        <!-- Divider -->
+        <hr class="border-gray-200 dark:border-gray-700">
+
+        <!-- Why This Exists -->
         <section>
             <div class="flex items-start gap-4">
                 <div class="flex-shrink-0 w-10 h-10 bg-primary-100 dark:bg-primary-900 rounded-full flex items-center justify-center">
@@ -35,15 +54,24 @@
                     </svg>
                 </div>
                 <div>
-                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">Our Mission</h3>
+                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">Why This Exists</h3>
                     <p class="text-gray-700 dark:text-gray-300">
-                        Our goal is straightforward: help job seekers like us find opportunities in remote communities, and help employers in those areas reach more candidates. Rural organizations often struggle to attract talent simply because people don't know the jobs exist. We're working to bridge that gap.
+                        This didn't come from a company, a committee, or a grant. It came from burnout, frustration, and a stubborn need to make something actually useful.
+                    </p>
+                    <p class="text-gray-700 dark:text-gray-300 mt-3">
+                        Last time I looked for rural work, I had 30 tabs open. One was a PDF. Several were borderline broken websites. Most were completely isolated from search engines.
+                    </p>
+                    <p class="text-gray-700 dark:text-gray-300 mt-3">
+                        If the big platforms won't index rural communities properly, then someone has to. So I started scraping. And people actually began using it.
                     </p>
                 </div>
             </div>
         </section>
 
-        <!-- Ethical Approach -->
+        <!-- Divider -->
+        <hr class="border-gray-200 dark:border-gray-700">
+
+        <!-- What This Site Does -->
         <section>
             <div class="flex items-start gap-4">
                 <div class="flex-shrink-0 w-10 h-10 bg-primary-100 dark:bg-primary-900 rounded-full flex items-center justify-center">
@@ -52,39 +80,54 @@
                     </svg>
                 </div>
                 <div>
-                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">Built Ethically</h3>
-                    <p class="text-gray-700 dark:text-gray-300 mb-3">
-                        We believe job search tools should serve job seekers, not exploit them. Far Reach Jobs is built on these principles:
-                    </p>
+                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">What This Site Does</h3>
                     <ul class="space-y-2 text-gray-700 dark:text-gray-300">
                         <li class="flex items-start gap-2">
                             <svg class="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
                             </svg>
-                            <span><strong>Respects robots.txt</strong> &mdash; We honor website crawling guidelines and scrape responsibly</span>
+                            <span>Finds jobs in <strong>remote and hard-to-staff communities</strong></span>
                         </li>
                         <li class="flex items-start gap-2">
                             <svg class="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
                             </svg>
-                            <span><strong>Links directly to employers</strong> &mdash; Every job links back to the original posting agency, not through us</span>
+                            <span>Pulls postings directly from their official sites</span>
                         </li>
                         <li class="flex items-start gap-2">
                             <svg class="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
                             </svg>
-                            <span><strong>No data collection</strong> &mdash; We don't harvest your personal information or track your job searches</span>
+                            <span>Refreshes automatically</span>
                         </li>
                         <li class="flex items-start gap-2">
                             <svg class="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
                             </svg>
-                            <span><strong>No ads</strong> &mdash; We don't sell advertising or sponsored job placements</span>
+                            <span>Links you straight to the original employer</span>
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <svg class="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                            </svg>
+                            <span>Doesn't store, sell, or track anything about you</span>
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <svg class="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                            </svg>
+                            <span>Stays small, clean, and fast</span>
                         </li>
                     </ul>
+                    <p class="text-gray-700 dark:text-gray-300 mt-4">
+                        This project will never become an ad farm or a data-harvesting trap. Rural towns and tribal regions deserve better than that.
+                    </p>
                 </div>
             </div>
         </section>
+
+        <!-- Divider -->
+        <hr class="border-gray-200 dark:border-gray-700">
 
         <!-- Who This Is For -->
         <section>
@@ -95,33 +138,42 @@
                     </svg>
                 </div>
                 <div>
-                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">Who This Is For</h3>
-                    <p class="text-gray-700 dark:text-gray-300">
-                        Whether you're looking to relocate to Alaska's bush communities, already live in a remote area and seeking local work, or an employer wanting to expand your candidate reach, Far Reach Jobs is here to help. We focus on opportunities that other job boards often miss &mdash; positions with tribal councils, rural school districts, remote health clinics, village corporations, and small-town governments.
-                    </p>
+                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">Who This Site Is For</h3>
+                    <ul class="space-y-2 text-gray-700 dark:text-gray-300">
+                        <li class="flex items-start gap-2">
+                            <span class="text-primary-500">&bull;</span>
+                            <span>People who want to live in small towns, villages, and remote communities</span>
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <span class="text-primary-500">&bull;</span>
+                            <span>Folks who want quiet, solitude, or a different pace of life</span>
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <span class="text-primary-500">&bull;</span>
+                            <span>Skilled workers who want to serve communities that genuinely need them</span>
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <span class="text-primary-500">&bull;</span>
+                            <span>Alaska bush job-seekers</span>
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <span class="text-primary-500">&bull;</span>
+                            <span>Tribal organizations, school districts, and rural employers who want more eyes on their postings</span>
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <span class="text-primary-500">&bull;</span>
+                            <span>Anyone exhausted with mainstream job boards missing everything that isn't a city</span>
+                        </li>
+                    </ul>
                 </div>
             </div>
         </section>
 
-        <!-- Open Source -->
+        <!-- Divider -->
+        <hr class="border-gray-200 dark:border-gray-700">
+
+        <!-- For Employers -->
         <section>
-            <div class="flex items-start gap-4">
-                <div class="flex-shrink-0 w-10 h-10 bg-primary-100 dark:bg-primary-900 rounded-full flex items-center justify-center">
-                    <svg class="w-5 h-5 text-primary-600 dark:text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path>
-                    </svg>
-                </div>
-                <div>
-                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">Community Project</h3>
-                    <p class="text-gray-700 dark:text-gray-300">
-                        Far Reach Jobs is a community-focused project. If you're an employer in a remote area and want your jobs included, <a href="/contact" class="text-primary-600 dark:text-primary-400 hover:underline">reach out to us</a> &mdash; there's no cost to get listed. We're always looking to expand our coverage to help connect more rural communities with potential employees.
-                    </p>
-                </div>
-            </div>
-        </section>
-
-        <!-- For Employers CTA -->
-        <section class="pt-6 border-t border-gray-200 dark:border-gray-700">
             <div class="flex items-start gap-4">
                 <div class="flex-shrink-0 w-10 h-10 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center">
                     <svg class="w-5 h-5 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -129,16 +181,104 @@
                     </svg>
                 </div>
                 <div>
-                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">For Employers</h3>
-                    <p class="text-gray-700 dark:text-gray-300 mb-3">
-                        Are you an employer in a remote community? Get your jobs in front of candidates who want to work in rural areas &mdash; completely free.
+                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">If You're an Employer</h3>
+                    <p class="text-gray-700 dark:text-gray-300">
+                        If you run HR or recruiting for a rural or tribal organization and want your job board pulled in, just send a link. I'll add it. No fees. No hoops. The point of this project is to help communities fill roles that matter.
                     </p>
-                    <a href="/employers" class="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-md transition-colors">
+                    <a href="/employers" class="inline-flex items-center gap-2 mt-4 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-md transition-colors">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
                         </svg>
                         Submit Your Jobs
                     </a>
+                </div>
+            </div>
+        </section>
+
+        <!-- Divider -->
+        <hr class="border-gray-200 dark:border-gray-700">
+
+        <!-- For Job Seekers -->
+        <section>
+            <div class="flex items-start gap-4">
+                <div class="flex-shrink-0 w-10 h-10 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center">
+                    <svg class="w-5 h-5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                    </svg>
+                </div>
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">If You're a Job Seeker</h3>
+                    <p class="text-gray-700 dark:text-gray-300">
+                        Use the site freely. Bookmark the jobs. Go straight to the employer. No logins. No nonsense. This is the rare corner of the internet that's actually simple on purpose.
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Divider -->
+        <hr class="border-gray-200 dark:border-gray-700">
+
+        <!-- Where It's Going -->
+        <section>
+            <div class="flex items-start gap-4">
+                <div class="flex-shrink-0 w-10 h-10 bg-primary-100 dark:bg-primary-900 rounded-full flex items-center justify-center">
+                    <svg class="w-5 h-5 text-primary-600 dark:text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
+                    </svg>
+                </div>
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">Where It's Going</h3>
+                    <p class="text-gray-700 dark:text-gray-300">
+                        Far Reach Jobs started as a side project. But the demand is real, and the need is huge.
+                    </p>
+                    <p class="text-gray-700 dark:text-gray-300 mt-3 font-medium">Next steps include:</p>
+                    <ul class="mt-2 space-y-2 text-gray-700 dark:text-gray-300">
+                        <li class="flex items-start gap-2">
+                            <span class="text-primary-500">&bull;</span>
+                            <span>Adding more tribal job boards</span>
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <span class="text-primary-500">&bull;</span>
+                            <span>Expanding coverage into the Lower 48's rural and frontier regions</span>
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <span class="text-primary-500">&bull;</span>
+                            <span>Improving filters for housing, relocation, and village classification</span>
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <span class="text-primary-500">&bull;</span>
+                            <span>Keeping everything lean, fast, and human-friendly</span>
+                        </li>
+                    </ul>
+                    <p class="text-gray-700 dark:text-gray-300 mt-4">
+                        This will grow at the pace real communities grow &mdash; carefully and with respect.
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Divider -->
+        <hr class="border-gray-200 dark:border-gray-700">
+
+        <!-- Reach Out -->
+        <section>
+            <div class="flex items-start gap-4">
+                <div class="flex-shrink-0 w-10 h-10 bg-primary-100 dark:bg-primary-900 rounded-full flex items-center justify-center">
+                    <svg class="w-5 h-5 text-primary-600 dark:text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                    </svg>
+                </div>
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">Reach Out</h3>
+                    <p class="text-gray-700 dark:text-gray-300">
+                        Have a job board you want included? Find something broken? Want to help improve rural job access?
+                    </p>
+                    <p class="text-gray-700 dark:text-gray-300 mt-3">
+                        <a href="/contact" class="text-primary-600 dark:text-primary-400 hover:underline font-medium">Send a note.</a> Seriously &mdash; hearing from the people who use this is the best part of the whole thing.
+                    </p>
+                    <p class="text-lg text-gray-900 dark:text-white font-medium mt-4">
+                        Far Reach Jobs was built for you. And for the places everyone else forgets.
+                    </p>
                 </div>
             </div>
         </section>
