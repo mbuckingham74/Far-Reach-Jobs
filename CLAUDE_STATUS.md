@@ -325,11 +325,11 @@ cd backend && pytest tests/ -v
 
 **Note:** Tests currently use SQLite for speed. See `ROADMAP.md` for planned MySQL test migration.
 
-### Phase 1P: Playwright Browser Mode ✅
+### Phase 1P: Playwright Browser Rendering ✅
 - [x] Separate `playwright-service` Docker container (Node.js + Playwright)
-- [x] `use_playwright` toggle per source in admin configuration
-- [x] GenericScraper uses Playwright when enabled for bot-protected sites
-- [x] Automatic fallback to httpx if Playwright fails
+- [x] **Playwright is now always used** for all scraping operations
+- [x] GenericScraper, DynamicScraper, AI analysis all use Playwright by default
+- [x] Automatic fallback to httpx if Playwright service is unavailable
 - [x] robots.txt compliance checked before any fetch (Playwright or httpx)
 - [x] Test suite for fallback behavior (`test_playwright_fallback.py`)
 
@@ -337,9 +337,8 @@ cd backend && pytest tests/ -v
 - `playwright-service/` - Node.js service with Express API
 - `backend/scraper/playwright_fetcher.py` - Python client for Playwright service
 - `backend/scraper/sources/generic.py` - `_fetch_page()` with Playwright/httpx logic
-- `backend/app/models/scrape_source.py` - `use_playwright` field
-- `backend/app/templates/admin/configure_source.html` - Browser Mode toggle
-- `backend/alembic/versions/006_add_use_playwright.py` - Migration
+- `backend/scraper/runner.py` - Always enables Playwright for all scrapers
+- `backend/alembic/versions/006_add_use_playwright.py` - Migration (legacy)
 
 **Architecture:**
 ```
@@ -349,10 +348,10 @@ cd backend && pytest tests/ -v
 └─────────────────┘                  └─────────────────────┘
 ```
 
-**When to Enable Browser Mode:**
-- Site returns HTTP 403 Forbidden
-- Jobs load via JavaScript (SPA)
-- Site has bot protection (Cloudflare, etc.)
+**Why Playwright is Always Used:**
+- A few seconds overhead is negligible compared to failing on JS-heavy sites
+- No need to manually toggle "Browser Mode" - it just works
+- Handles bot protection (Cloudflare), SPAs, and dynamic content automatically
 
 **Configuration:**
 ```env
@@ -503,7 +502,6 @@ This section documents CSS selectors that have been tested and work for specific
 
 ### City of Kotzebue
 - **URL:** `http://www.cityofkotzebue.com/jobs`
-- **Browser Mode:** Enabled (Cloudflare protection)
 - **Container:** `tbody tr`
 - **Title:** `td.views-field-title .tablesaw-cell-content a`
 - **URL:** `td.views-field-title .tablesaw-cell-content a`
@@ -511,14 +509,12 @@ This section documents CSS selectors that have been tested and work for specific
 
 ### City of Dillingham
 - **URL:** `https://www.dillinghamak.us/jobs`
-- **Browser Mode:** Disabled
 - **Container:** `tr.odd, tr.even`
 - **Title:** `.views-field-title a`
 - **URL:** `.views-field-title a`
 
 ### Foraker Group
 - **URL:** `https://www.forakergroup.org/site/index.cfm/cboard`
-- **Browser Mode:** Disabled
 - **Container:** `.row.cboardrow`
 - **Title:** `h4`
 - **URL:** `.row.cboardrow`
@@ -531,7 +527,7 @@ This section documents CSS selectors that have been tested and work for specific
 - [x] "Apply All Suggestions" button for one-click configuration
 - [x] Compatibility indicator (Generic Scraper Compatible / May Need Custom Scraper)
 - [x] Sample job preview showing extracted data
-- [x] Browser Mode toggle respected during analysis
+- [x] Always uses Playwright for reliable JS rendering
 
 **Key Files:**
 - `backend/app/services/ai_analyzer.py` - Claude API integration, HTML analysis
@@ -603,7 +599,7 @@ Common issues when configuring GenericScraper:
    - Check `url_attribute` is set correctly (usually "href")
 
 5. **Cloudflare/bot protection blocking**
-   - Enable Browser Mode (use_playwright) for the source
+   - Playwright handles this automatically (always enabled)
    - Check Playwright service logs: `docker compose logs playwright`
 
 ## Notes

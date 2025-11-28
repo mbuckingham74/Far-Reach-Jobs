@@ -8,7 +8,7 @@
 
 ## Completed
 
-- [x] **Playwright fallback for JavaScript-heavy sites** (Phase 1P) - Implemented as a separate Docker container (`playwright-service`) running Node.js + Playwright. GenericScraper now has a `use_playwright` toggle per source. Includes automatic httpx fallback if Playwright fails, robots.txt compliance, and test coverage.
+- [x] **Playwright for all scraping** (Phase 1P) - Implemented as a separate Docker container (`playwright-service`) running Node.js + Playwright. **Playwright is now always used** for all scrapers (GenericScraper, DynamicScraper, AI analysis) - no manual toggle needed. Includes automatic httpx fallback if Playwright service is unavailable, robots.txt compliance, and test coverage.
 
 ## Future Enhancements
 

@@ -688,10 +688,6 @@ async def analyze_source_page(source_id: int, request: Request, db: Session = De
             status_code=400
         )
 
-    # Read Browser Mode toggle from form (not database) so it works without saving first
-    form = await request.form()
-    use_playwright = form.get("use_playwright") == "1"
-
     # Use first non-empty listing_url if set (supports multiple URLs separated by newlines),
     # otherwise fall back to base_url
     listing_url = source.listing_url or ""
@@ -699,8 +695,8 @@ async def analyze_source_page(source_id: int, request: Request, db: Session = De
     url_to_analyze = listing_urls[0] if listing_urls else source.base_url
 
     try:
-        # Use Playwright if Browser Mode toggle is checked
-        suggestions = await analyze_job_page(url_to_analyze, use_playwright=use_playwright)
+        # Always use Playwright - a few extra seconds is worth avoiding JS-rendering issues
+        suggestions = await analyze_job_page(url_to_analyze, use_playwright=True)
 
         return templates.TemplateResponse(
             "admin/partials/ai_suggestions.html",
@@ -737,25 +733,23 @@ async def generate_custom_scraper_code(source_id: int, request: Request, db: Ses
             status_code=400
         )
 
-    # Read Browser Mode toggle from form
-    form = await request.form()
-    use_playwright = form.get("use_playwright") == "1"
-
     # Get the listing URL
     listing_url = source.listing_url or ""
     listing_urls = [url.strip() for url in listing_url.split('\n') if url.strip()]
     url_to_analyze = listing_urls[0] if listing_urls else source.base_url
 
     try:
+        # Always use Playwright for scraper generation
         result = await generate_scraper_for_url(
             source_name=source.name,
             base_url=source.base_url,
             listing_url=url_to_analyze,
-            use_playwright=use_playwright
+            use_playwright=True
         )
 
         if result.success:
             # Save the generated code and set scraper_class to DynamicScraper
+            # Note: DynamicScraper always uses Playwright (set in runner.py)
             source.custom_scraper_code = result.code
             source.scraper_class = "DynamicScraper"
             db.commit()
