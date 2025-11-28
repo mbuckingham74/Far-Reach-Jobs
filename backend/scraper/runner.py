@@ -441,7 +441,25 @@ def run_scraper(db: Session, source: ScrapeSource, trigger_type: str = "manual")
     start_time = time.time()
     started_at = datetime.now(timezone.utc)
 
+    # Check for specialized API scrapers FIRST - these use public APIs and
+    # should bypass robots.txt checks (which are for HTML crawlers, not APIs)
+    listing_url = source.listing_url or ""
+    listing_urls = [url.strip() for url in listing_url.split('\n') if url.strip()]
+
+    # Check for ADP WorkforceNow URLs
+    adp_urls = [url for url in listing_urls if is_adp_workforce_url(url)]
+    if adp_urls:
+        logger.info(f"Detected {len(adp_urls)} ADP WorkforceNow URL(s) for {source.name}, using ADPWorkforceScraper")
+        return _run_adp_scraper(db, source, adp_urls, trigger_type, started_at)
+
+    # Check for UltiPro URLs
+    ultipro_urls = [url for url in listing_urls if is_ultipro_url(url)]
+    if ultipro_urls:
+        logger.info(f"Detected {len(ultipro_urls)} UltiPro URL(s) for {source.name}, using UltiProScraper")
+        return _run_ultipro_scraper(db, source, ultipro_urls, trigger_type, started_at)
+
     # Pre-flight check: Is this source blocked by robots.txt?
+    # Only applies to HTML scrapers (GenericScraper, DynamicScraper)
     is_blocked, blocked_url, block_reason, robots_content = check_robots_blocked(source)
     if is_blocked:
         # Mark source as robots-blocked
@@ -466,22 +484,6 @@ def run_scraper(db: Session, source: ScrapeSource, trigger_type: str = "manual")
         )
         log_scrape_result(db, source, result, trigger_type, started_at)
         return result
-
-    # Check for specialized API scrapers based on listing URL
-    listing_url = source.listing_url or ""
-    listing_urls = [url.strip() for url in listing_url.split('\n') if url.strip()]
-
-    # Check for ADP WorkforceNow URLs
-    adp_urls = [url for url in listing_urls if is_adp_workforce_url(url)]
-    if adp_urls:
-        logger.info(f"Detected {len(adp_urls)} ADP WorkforceNow URL(s) for {source.name}, using ADPWorkforceScraper")
-        return _run_adp_scraper(db, source, adp_urls, trigger_type, started_at)
-
-    # Check for UltiPro URLs
-    ultipro_urls = [url for url in listing_urls if is_ultipro_url(url)]
-    if ultipro_urls:
-        logger.info(f"Detected {len(ultipro_urls)} UltiPro URL(s) for {source.name}, using UltiProScraper")
-        return _run_ultipro_scraper(db, source, ultipro_urls, trigger_type, started_at)
 
     # Handle DynamicScraper - compile from custom_scraper_code
     if source.scraper_class == "DynamicScraper":
