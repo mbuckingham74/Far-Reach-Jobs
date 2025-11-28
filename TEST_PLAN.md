@@ -18,9 +18,9 @@ docker compose -f docker-compose.test.yml run --rm test
 | 3 | Saved Jobs | 18 | ✅ Complete | [#54](https://github.com/mbuckingham74/Far-Reach-Jobs/pull/54) |
 | 4 | Scraper Utilities | 43 | ✅ Complete | [#55](https://github.com/mbuckingham74/Far-Reach-Jobs/pull/55) |
 | 5 | Admin Panel | 62 | ✅ Complete | [#56](https://github.com/mbuckingham74/Far-Reach-Jobs/pull/56) |
-| 6 | Models | - | ⏳ Pending | - |
+| 6 | Models | 39 | ✅ Complete | [#57](https://github.com/mbuckingham74/Far-Reach-Jobs/pull/57) |
 
-**Total Tests:** 196 (181 new + 15 existing)
+**Total Tests:** 235 (220 new + 15 existing)
 
 ---
 
@@ -194,18 +194,66 @@ docker compose -f docker-compose.test.yml run --rm test
 
 ---
 
-## 6. Model Tests ⏳
+## 6. Model Tests ✅
 
-**File:** `backend/tests/test_models.py` (to create)
+**File:** `backend/tests/test_models.py`
 **Models:** User, Job, SavedJob, ScrapeSource, ScrapeLog
 
-### Planned Coverage
-- [ ] User email uniqueness constraint
-- [ ] Job external_id + source_id uniqueness
-- [ ] SavedJob user_id + job_id uniqueness
-- [ ] Cascade delete behaviors
-- [ ] Relationship loading (user.saved_jobs, job.source, etc.)
-- [ ] Default values (created_at, is_stale, etc.)
+### Coverage
+
+#### User Model (7 tests)
+- [x] Create user with all fields
+- [x] Email uniqueness constraint
+- [x] Required fields (email, hashed_password)
+- [x] Default values (is_verified=False, is_admin=False)
+- [x] Optional fields (verification_token, token_expires_at)
+- [x] Relationship to saved_jobs
+- [x] Cascade delete of saved_jobs
+
+#### Job Model (9 tests)
+- [x] Create job with all fields
+- [x] External ID + source_id uniqueness constraint
+- [x] Same external_id different sources allowed
+- [x] Required fields (source_id, external_id, title, url)
+- [x] Default values (is_stale=False)
+- [x] Optional fields (organization, location, etc.)
+- [x] Relationship to source
+- [x] Relationship to saved_by
+- [x] Cascade delete when source deleted
+
+#### SavedJob Model (6 tests)
+- [x] Create saved job
+- [x] User + job uniqueness constraint
+- [x] Relationships (user, job)
+- [x] Cascade delete when user deleted
+- [x] Cascade delete when job deleted
+- [x] Default saved_at timestamp
+
+#### ScrapeSource Model (7 tests)
+- [x] Create source with all fields
+- [x] Required fields (name, base_url)
+- [x] Default values (is_active=True, scraper_class="GenericScraper")
+- [x] Optional selector fields
+- [x] Relationship to jobs
+- [x] Cascade delete of jobs when source deleted
+- [x] GenericScraper configuration fields
+
+#### ScrapeLog Model (6 tests)
+- [x] Create log with all fields
+- [x] Required fields (source_name, trigger_type, started_at)
+- [x] Default values (success=True, jobs_found=0, etc.)
+- [x] Relationship to source
+- [x] Source name preserved when source deleted (SET NULL)
+- [x] Optional duration and errors fields
+
+#### Database Indexes (4 tests)
+- [x] Job table indexes (source_id, is_stale, first_seen_at, state)
+- [x] User email index
+- [x] SavedJob composite index
+- [x] ScrapeLog source_id index
+
+### Key Notes
+- SQLite requires `PRAGMA foreign_keys=ON` for ON DELETE CASCADE/SET NULL (added to conftest.py)
 
 ---
 
