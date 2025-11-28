@@ -253,3 +253,50 @@ class IncompleteScraper(BaseScraper):
 
         assert result.success is False
         assert "missing required" in result.error.lower()
+
+    @pytest.mark.asyncio
+    async def test_extracts_code_from_unterminated_code_block(
+        self, mock_anthropic, mock_settings
+    ):
+        """Test fallback extraction when closing ``` is missing.
+
+        When the regex can't find a complete ```...``` block, the fallback
+        line-by-line parser should still extract code after an opening fence.
+        """
+        ai_response = '''Here's your scraper:
+
+```python
+class UnterminatedScraper(BaseScraper):
+    @property
+    def source_name(self):
+        return "Unterminated"
+
+    @property
+    def base_url(self):
+        return "https://example.com"
+
+    def get_job_listing_urls(self):
+        return []
+
+    def parse_job_listing_page(self, soup, url):
+        return []'''  # Note: no closing ```
+
+        mock_message = MagicMock()
+        mock_message.content = [MagicMock(text=ai_response)]
+        mock_client = AsyncMock()
+        mock_client.messages.create = AsyncMock(return_value=mock_message)
+        mock_anthropic.return_value = mock_client
+
+        result = await generate_custom_scraper(
+            source_name="Test",
+            base_url="https://example.com",
+            listing_url="https://example.com/jobs",
+            html="<html></html>",
+        )
+
+        assert result.success is True
+        assert result.class_name == "UnterminatedScraper"
+        assert "class UnterminatedScraper(BaseScraper)" in result.code
+        # Should NOT contain the preamble text
+        assert "Here's your scraper" not in result.code
+        assert "```" not in result.code
