@@ -133,3 +133,37 @@ class RobotsChecker:
         if self.crawl_delay is not None:
             return self.crawl_delay
         return 1.0  # Default 1 second between requests
+
+    def get_robots_txt_content(self, url: str | None = None) -> str | None:
+        """Fetch and return the raw robots.txt content for display.
+
+        Args:
+            url: URL to get robots.txt for. If None, uses base_url.
+
+        Returns:
+            Raw robots.txt content or None if not available.
+        """
+        if url:
+            parsed = urlparse(url)
+            domain = parsed.netloc
+            scheme = parsed.scheme or "https"
+        else:
+            domain = self._base_domain
+            scheme = urlparse(self.base_url).scheme or "https"
+
+        robots_url = f"{scheme}://{domain}/robots.txt"
+        try:
+            response = httpx.get(
+                robots_url,
+                headers={"User-Agent": USER_AGENT},
+                timeout=10.0,
+                follow_redirects=True,
+            )
+            if response.status_code == 200:
+                return response.text
+            elif response.status_code == 404:
+                return "(No robots.txt found - 404)"
+            else:
+                return f"(HTTP {response.status_code})"
+        except Exception as e:
+            return f"(Failed to fetch: {e})"

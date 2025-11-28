@@ -231,7 +231,7 @@ def is_ultipro_url(url: str | None) -> bool:
     return "ultipro.com" in url.lower()
 
 
-def check_robots_blocked(source: ScrapeSource) -> tuple[bool, str | None, str | None]:
+def check_robots_blocked(source: ScrapeSource) -> tuple[bool, str | None, str | None, str | None]:
     """Check if a source's listing URLs are blocked by robots.txt.
 
     Fails closed: if we can't fetch/parse robots.txt, we treat it as blocked
@@ -241,15 +241,16 @@ def check_robots_blocked(source: ScrapeSource) -> tuple[bool, str | None, str | 
         source: ScrapeSource to check
 
     Returns:
-        (is_blocked, blocked_url, reason) tuple.
+        (is_blocked, blocked_url, reason, robots_content) tuple.
         - blocked_url is the first URL that was blocked
         - reason is a human-readable explanation (e.g., "disallowed by robots.txt" or "failed to fetch robots.txt")
+        - robots_content is the raw robots.txt content for display (when blocked)
     """
     listing_url = source.listing_url or source.base_url or ""
     listing_urls = [url.strip() for url in listing_url.split('\n') if url.strip()]
 
     if not listing_urls:
-        return False, None, None
+        return False, None, None, None
 
     # Check robots.txt for each URL
     for url in listing_urls:
@@ -257,13 +258,15 @@ def check_robots_blocked(source: ScrapeSource) -> tuple[bool, str | None, str | 
         if not checker.load():
             # Fail closed: can't fetch robots.txt = treat as blocked
             logger.warning(f"Failed to fetch robots.txt for {url}, treating as blocked for source {source.name}")
-            return True, url, "failed to fetch robots.txt"
+            robots_content = checker.get_robots_txt_content(url)
+            return True, url, "failed to fetch robots.txt", robots_content
 
         if not checker.can_fetch(url):
             logger.info(f"robots.txt blocks {url} for source {source.name}")
-            return True, url, "disallowed by robots.txt"
+            robots_content = checker.get_robots_txt_content(url)
+            return True, url, "disallowed by robots.txt", robots_content
 
-    return False, None, None
+    return False, None, None, None
 
 
 def get_source_config(source: ScrapeSource) -> dict:
@@ -453,7 +456,7 @@ def run_scraper(db: Session, source: ScrapeSource, trigger_type: str = "manual")
     started_at = datetime.now(timezone.utc)
 
     # Pre-flight check: Is this source blocked by robots.txt?
-    is_blocked, blocked_url, block_reason = check_robots_blocked(source)
+    is_blocked, blocked_url, block_reason, robots_content = check_robots_blocked(source)
     if is_blocked:
         # Mark source as robots-blocked
         source.robots_blocked = True
@@ -461,13 +464,18 @@ def run_scraper(db: Session, source: ScrapeSource, trigger_type: str = "manual")
         source.last_scraped_at = datetime.now(timezone.utc)
         source.last_scrape_success = False
 
+        # Build error message with robots.txt content for visibility
         error_msg = f"Blocked ({block_reason}): {blocked_url}"
+        errors = [error_msg]
+        if robots_content:
+            errors.append(f"robots.txt content:\n{robots_content}")
+
         result = ScrapeResult(
             source_name=source.name,
             jobs_found=0,
             jobs_new=0,
             jobs_updated=0,
-            errors=[error_msg],
+            errors=errors,
             duration_seconds=0,
         )
         log_scrape_result(db, source, result, trigger_type, started_at)
