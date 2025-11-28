@@ -15,6 +15,7 @@ from app.models.scrape_source import ScrapeSource
 from app.models.scrape_log import ScrapeLog
 from app.models.job import Job
 from app.services.ai_analyzer import analyze_job_page, is_ai_analysis_available, generate_scraper_for_url
+from scraper.url_utils import is_ultipro_url, is_adp_workforce_url
 
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
@@ -730,6 +731,30 @@ async def save_source_edit(source_id: int, request: Request, db: Session = Depen
         )
 
 
+def detect_api_scraper_type(source: ScrapeSource) -> dict | None:
+    """Detect if a source uses an API-based scraper (UltiPro, ADP).
+
+    Returns a dict with scraper info if detected, None otherwise.
+    """
+    listing_url = source.listing_url or ""
+    urls = [u.strip() for u in listing_url.split('\n') if u.strip()]
+
+    for url in urls:
+        if is_ultipro_url(url):
+            return {
+                "type": "UltiPro",
+                "name": "UltiPro/UKG Pro Recruiting",
+                "description": "This source uses the UltiPro/UKG JSON API to fetch jobs automatically. No CSS selectors needed.",
+            }
+        if is_adp_workforce_url(url):
+            return {
+                "type": "ADP",
+                "name": "ADP WorkforceNow",
+                "description": "This source uses the ADP WorkforceNow API to fetch jobs automatically. No CSS selectors needed.",
+            }
+    return None
+
+
 @router.get("/sources/{source_id}/configure")
 def configure_source_page(source_id: int, request: Request, db: Session = Depends(get_db)):
     """Source configuration page for CSS selectors."""
@@ -740,9 +765,12 @@ def configure_source_page(source_id: int, request: Request, db: Session = Depend
     if not source:
         return RedirectResponse(url="/admin", status_code=302)
 
+    # Detect if this source uses an API scraper
+    api_scraper = detect_api_scraper_type(source)
+
     return templates.TemplateResponse(
         "admin/configure_source.html",
-        {"request": request, "source": source},
+        {"request": request, "source": source, "api_scraper": api_scraper},
     )
 
 
