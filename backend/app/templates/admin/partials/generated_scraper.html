@@ -78,6 +78,14 @@
     </div>
 
     <script>
+        // Sync the scraper type dropdown to Dynamic since we just generated custom code
+        (function() {
+            const scraperSelect = document.getElementById('scraper_class');
+            if (scraperSelect) {
+                scraperSelect.value = 'DynamicScraper';
+            }
+        })();
+
         function copyScraperCode(btn) {
             const code = document.getElementById('scraper-code').textContent;
             const originalHTML = btn.innerHTML;
