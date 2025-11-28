@@ -17,13 +17,18 @@ logger = logging.getLogger(__name__)
 
 
 class UltiProScraper(BaseScraper):
-    """Scraper for UltiPro career portals.
+    """Scraper for UltiPro/UKG Pro Recruiting career portals.
 
     UltiPro uses a JSON API to load job listings. The API endpoint is:
     POST /JobBoardView/LoadSearchResults
 
-    URL pattern: https://recruiting2.ultipro.com/{tenant}/JobBoard/{board-id}/
-    Example: https://recruiting2.ultipro.com/SOU1048SOFO/JobBoard/c9cedf85-000e-4f7b-b325-fdda3f04c5be/
+    URL patterns:
+    - Legacy: https://recruiting2.ultipro.com/{tenant}/JobBoard/{board-id}/
+    - UKG Pro: https://{tenant}.rec.pro.ukg.net/{tenant}/JobBoard/{board-id}/
+
+    Examples:
+    - https://recruiting2.ultipro.com/SOU1048SOFO/JobBoard/c9cedf85-000e-4f7b-b325-fdda3f04c5be/
+    - https://aht1971.rec.pro.ukg.net/AHT1000AHT/JobBoard/b5e902eb-8919-4dab-bfa8-23d54b8ec174/
     """
 
     # Number of jobs to fetch per request
@@ -100,8 +105,9 @@ class UltiProScraper(BaseScraper):
 
         if not self._board_url:
             errors.append(
-                f"Invalid UltiPro URL - could not extract tenant/board-id. "
-                f"Expected pattern: https://recruiting2.ultipro.com/{{tenant}}/JobBoard/{{board-id}}/"
+                f"Invalid UltiPro/UKG URL - could not extract tenant/board-id. "
+                f"Expected pattern: https://recruiting2.ultipro.com/{{tenant}}/JobBoard/{{board-id}}/ "
+                f"or https://{{tenant}}.rec.pro.ukg.net/{{tenant}}/JobBoard/{{board-id}}/"
             )
             return jobs, errors
 
