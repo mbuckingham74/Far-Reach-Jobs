@@ -15,7 +15,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from contextlib import asynccontextmanager
 
 from app.config import get_settings
-from app.routers import health, auth, jobs, saved_jobs, admin
+from app.routers import health, auth, jobs, saved_jobs, admin, employers
 
 
 settings = get_settings()
@@ -58,6 +58,7 @@ app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
 app.include_router(jobs.router, prefix="/api/jobs", tags=["jobs"])
 app.include_router(saved_jobs.router, prefix="/api/saved-jobs", tags=["saved-jobs"])
 app.include_router(admin.router, prefix="/admin", tags=["admin"])
+app.include_router(employers.router, prefix="/api/employers", tags=["employers"])
 
 
 # Page routes
@@ -143,6 +144,14 @@ def about_page(request: Request):
     from app.dependencies import get_optional_current_user
     user = get_optional_current_user(request)
     return templates.TemplateResponse("about.html", {"request": request, "user": user})
+
+
+@app.get("/employers")
+def employers_page(request: Request):
+    """For Employers page - job submission forms."""
+    from app.dependencies import get_optional_current_user
+    user = get_optional_current_user(request)
+    return templates.TemplateResponse("employers.html", {"request": request, "user": user})
 
 
 # Error handlers

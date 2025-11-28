@@ -1,0 +1,449 @@
+{% extends "base.html" %}
+
+{% block title %}For Employers - Far Reach Jobs{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto">
+    <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">For Employers</h2>
+    <p class="text-gray-600 dark:text-gray-400 mb-6">
+        Get your job postings in front of candidates seeking opportunities in remote Alaska and rural communities &mdash; completely free.
+    </p>
+
+    <!-- Success/Error Messages -->
+    <div id="form-messages"></div>
+
+    <!-- Tab Navigation -->
+    <div class="flex border-b border-gray-200 dark:border-gray-700 mb-6">
+        <button
+            onclick="showTab('job')"
+            id="tab-job"
+            class="tab-button px-4 py-2 text-sm font-medium border-b-2 border-primary-500 text-primary-600 dark:text-primary-400"
+        >
+            Submit a Job
+        </button>
+        <button
+            onclick="showTab('careers')"
+            id="tab-careers"
+            class="tab-button px-4 py-2 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
+        >
+            Add Your Careers Page
+        </button>
+    </div>
+
+    <!-- Job Submission Form -->
+    <div id="form-job" class="tab-content">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 transition-colors">
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Submit a Job Posting</h3>
+            <p class="text-gray-600 dark:text-gray-400 text-sm mb-6">
+                Fill out the form below to submit a single job posting. We'll review it and add it to our listings.
+            </p>
+
+            <form id="job-form" class="space-y-4">
+                <!-- Job Title -->
+                <div>
+                    <label for="title" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Job Title <span class="text-red-500">*</span>
+                    </label>
+                    <input
+                        type="text"
+                        id="title"
+                        name="title"
+                        required
+                        maxlength="500"
+                        class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-white"
+                        placeholder="e.g., Village Public Safety Officer"
+                    >
+                </div>
+
+                <!-- Organization -->
+                <div>
+                    <label for="organization" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Organization <span class="text-red-500">*</span>
+                    </label>
+                    <input
+                        type="text"
+                        id="organization"
+                        name="organization"
+                        required
+                        maxlength="255"
+                        class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-white"
+                        placeholder="e.g., City of Bethel"
+                    >
+                </div>
+
+                <!-- Location & State Row -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label for="location" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Location <span class="text-red-500">*</span>
+                        </label>
+                        <input
+                            type="text"
+                            id="location"
+                            name="location"
+                            required
+                            maxlength="255"
+                            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-white"
+                            placeholder="e.g., Bethel, AK"
+                        >
+                    </div>
+                    <div>
+                        <label for="state" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            State
+                        </label>
+                        <select
+                            id="state"
+                            name="state"
+                            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-white"
+                        >
+                            <option value="">Select state...</option>
+                            <option value="AK">Alaska</option>
+                            <option value="AZ">Arizona</option>
+                            <option value="CO">Colorado</option>
+                            <option value="ID">Idaho</option>
+                            <option value="MT">Montana</option>
+                            <option value="NM">New Mexico</option>
+                            <option value="NV">Nevada</option>
+                            <option value="OR">Oregon</option>
+                            <option value="UT">Utah</option>
+                            <option value="WA">Washington</option>
+                            <option value="WY">Wyoming</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Job Type & Salary Row -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label for="job_type" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Job Type
+                        </label>
+                        <select
+                            id="job_type"
+                            name="job_type"
+                            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-white"
+                        >
+                            <option value="">Select type...</option>
+                            <option value="Full-time">Full-time</option>
+                            <option value="Part-time">Part-time</option>
+                            <option value="Contract">Contract</option>
+                            <option value="Temporary">Temporary</option>
+                            <option value="Seasonal">Seasonal</option>
+                            <option value="Internship">Internship</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="salary_info" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Salary/Pay
+                        </label>
+                        <input
+                            type="text"
+                            id="salary_info"
+                            name="salary_info"
+                            maxlength="255"
+                            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-white"
+                            placeholder="e.g., $55,000 - $75,000/year"
+                        >
+                    </div>
+                </div>
+
+                <!-- Job URL -->
+                <div>
+                    <label for="url" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Job Posting URL <span class="text-red-500">*</span>
+                    </label>
+                    <input
+                        type="url"
+                        id="url"
+                        name="url"
+                        required
+                        maxlength="1000"
+                        class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-white"
+                        placeholder="https://your-website.com/jobs/position-name"
+                    >
+                    <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Link to the full job posting on your website</p>
+                </div>
+
+                <!-- Description -->
+                <div>
+                    <label for="description" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Job Description
+                    </label>
+                    <textarea
+                        id="description"
+                        name="description"
+                        rows="4"
+                        maxlength="5000"
+                        class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-white"
+                        placeholder="Brief description of the position, requirements, and benefits..."
+                    ></textarea>
+                </div>
+
+                <!-- Contact Email -->
+                <div>
+                    <label for="contact_email" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Your Contact Email <span class="text-red-500">*</span>
+                    </label>
+                    <input
+                        type="email"
+                        id="contact_email"
+                        name="contact_email"
+                        required
+                        maxlength="255"
+                        class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-white"
+                        placeholder="your.email@organization.com"
+                    >
+                    <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">We'll only use this if we need to contact you about the posting</p>
+                </div>
+
+                <!-- Submit Button -->
+                <div class="pt-4">
+                    <button
+                        type="submit"
+                        class="w-full sm:w-auto px-6 py-2 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-md shadow-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        Submit Job
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Careers Page Form -->
+    <div id="form-careers" class="tab-content hidden">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 transition-colors">
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Add Your Careers Page</h3>
+            <p class="text-gray-600 dark:text-gray-400 text-sm mb-6">
+                Have a careers page with multiple job listings? Submit the URL and we'll set up automatic scraping to keep your jobs up to date.
+            </p>
+
+            <form id="careers-form" class="space-y-4">
+                <!-- Organization -->
+                <div>
+                    <label for="careers_organization" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Organization Name <span class="text-red-500">*</span>
+                    </label>
+                    <input
+                        type="text"
+                        id="careers_organization"
+                        name="organization"
+                        required
+                        maxlength="255"
+                        class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-white"
+                        placeholder="e.g., Bristol Bay Native Corporation"
+                    >
+                </div>
+
+                <!-- Careers Page URL -->
+                <div>
+                    <label for="careers_url" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Careers Page URL <span class="text-red-500">*</span>
+                    </label>
+                    <input
+                        type="url"
+                        id="careers_url"
+                        name="careers_url"
+                        required
+                        maxlength="1000"
+                        class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-white"
+                        placeholder="https://your-website.com/careers"
+                    >
+                    <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">The page where your job listings appear</p>
+                </div>
+
+                <!-- Contact Email -->
+                <div>
+                    <label for="careers_contact_email" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Your Contact Email <span class="text-red-500">*</span>
+                    </label>
+                    <input
+                        type="email"
+                        id="careers_contact_email"
+                        name="contact_email"
+                        required
+                        maxlength="255"
+                        class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-white"
+                        placeholder="your.email@organization.com"
+                    >
+                    <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">We may contact you if we have questions about your page</p>
+                </div>
+
+                <!-- Notes -->
+                <div>
+                    <label for="notes" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Additional Notes
+                    </label>
+                    <textarea
+                        id="notes"
+                        name="notes"
+                        rows="3"
+                        maxlength="2000"
+                        class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-white"
+                        placeholder="Any special instructions or information about your careers page..."
+                    ></textarea>
+                </div>
+
+                <!-- Submit Button -->
+                <div class="pt-4">
+                    <button
+                        type="submit"
+                        class="w-full sm:w-auto px-6 py-2 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-md shadow-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        Submit Careers Page
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Info Box -->
+    <div class="mt-6 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+        <div class="flex">
+            <div class="flex-shrink-0">
+                <svg class="h-5 w-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+            </div>
+            <div class="ml-3">
+                <h3 class="text-sm font-medium text-blue-800 dark:text-blue-200">Free for all rural employers</h3>
+                <p class="mt-1 text-sm text-blue-700 dark:text-blue-300">
+                    Far Reach Jobs is a community project. There's no cost to list your jobs. We focus on connecting employers in remote areas with candidates who want to work there.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div class="mt-6 text-center">
+        <a href="/" class="text-primary-600 dark:text-primary-400 hover:underline">
+            &larr; Back to job listings
+        </a>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function showTab(tabName) {
+    // Hide all content
+    document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+    // Reset all tabs
+    document.querySelectorAll('.tab-button').forEach(el => {
+        el.classList.remove('border-primary-500', 'text-primary-600', 'dark:text-primary-400');
+        el.classList.add('border-transparent', 'text-gray-500', 'dark:text-gray-400');
+    });
+
+    // Show selected content
+    document.getElementById('form-' + tabName).classList.remove('hidden');
+    // Highlight selected tab
+    const activeTab = document.getElementById('tab-' + tabName);
+    activeTab.classList.remove('border-transparent', 'text-gray-500', 'dark:text-gray-400');
+    activeTab.classList.add('border-primary-500', 'text-primary-600', 'dark:text-primary-400');
+}
+
+function showMessage(type, message) {
+    const container = document.getElementById('form-messages');
+    const bgColor = type === 'success' ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800' : 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800';
+    const textColor = type === 'success' ? 'text-green-800 dark:text-green-200' : 'text-red-800 dark:text-red-200';
+    const iconColor = type === 'success' ? 'text-green-400' : 'text-red-400';
+    const icon = type === 'success'
+        ? '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>'
+        : '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>';
+
+    container.innerHTML = `
+        <div class="mb-6 ${bgColor} border rounded-lg p-4">
+            <div class="flex">
+                <div class="flex-shrink-0">
+                    <svg class="h-5 w-5 ${iconColor}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        ${icon}
+                    </svg>
+                </div>
+                <div class="ml-3">
+                    <p class="text-sm font-medium ${textColor}">${message}</p>
+                </div>
+            </div>
+        </div>
+    `;
+
+    // Scroll to top of form
+    container.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// Job submission form
+document.getElementById('job-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+
+    const form = e.target;
+    const submitBtn = form.querySelector('button[type="submit"]');
+    const originalText = submitBtn.textContent;
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Submitting...';
+
+    const formData = new FormData(form);
+    const data = Object.fromEntries(formData.entries());
+
+    try {
+        const response = await fetch('/api/employers/submit-job', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data),
+        });
+
+        const result = await response.json();
+
+        if (response.ok) {
+            showMessage('success', result.message || 'Thank you! Your job has been submitted for review.');
+            form.reset();
+        } else {
+            showMessage('error', result.detail || 'An error occurred. Please try again.');
+        }
+    } catch (error) {
+        showMessage('error', 'An error occurred. Please try again.');
+    } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = originalText;
+    }
+});
+
+// Careers page submission form
+document.getElementById('careers-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+
+    const form = e.target;
+    const submitBtn = form.querySelector('button[type="submit"]');
+    const originalText = submitBtn.textContent;
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Submitting...';
+
+    const formData = new FormData(form);
+    const data = Object.fromEntries(formData.entries());
+
+    try {
+        const response = await fetch('/api/employers/submit-careers-page', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data),
+        });
+
+        const result = await response.json();
+
+        if (response.ok) {
+            showMessage('success', result.message || 'Thank you! Your careers page has been submitted for review.');
+            form.reset();
+        } else {
+            showMessage('error', result.detail || 'An error occurred. Please try again.');
+        }
+    } catch (error) {
+        showMessage('error', 'An error occurred. Please try again.');
+    } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = originalText;
+    }
+});
+</script>
+{% endblock %}

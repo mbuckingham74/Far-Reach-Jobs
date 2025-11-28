@@ -251,3 +251,244 @@ View full scrape history: {settings.app_url}/admin/history
 """
 
     return _send_email(settings.admin_email, subject, html_body, text_body)
+
+
+def send_job_submission_notification(
+    title: str,
+    organization: str,
+    location: str,
+    url: str,
+    contact_email: str,
+    state: str | None = None,
+    description: str | None = None,
+    job_type: str | None = None,
+    salary_info: str | None = None,
+) -> bool:
+    """Send notification to admin about a new job submission from an employer.
+
+    Returns True if email was sent successfully, False otherwise.
+    """
+    if not settings.admin_email:
+        logger.debug("No admin_email configured, skipping job submission notification")
+        return False
+
+    # Escape all user input for HTML
+    safe_title = html.escape(title)
+    safe_org = html.escape(organization)
+    safe_location = html.escape(location)
+    safe_url = html.escape(url)
+    safe_email = html.escape(contact_email)
+    safe_state = html.escape(state) if state else "Not specified"
+    safe_description = html.escape(description) if description else "Not provided"
+    safe_job_type = html.escape(job_type) if job_type else "Not specified"
+    safe_salary = html.escape(salary_info) if salary_info else "Not specified"
+
+    subject = f"New Job Submission: {safe_title} at {safe_org}"
+
+    html_body = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <style>
+            body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f7fafc; margin: 0; padding: 20px; }}
+            .container {{ max-width: 600px; margin: 0 auto; background: white; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); padding: 30px; }}
+            h1 {{ color: #2d3748; margin-top: 0; font-size: 24px; }}
+            .badge {{ display: inline-block; padding: 6px 12px; border-radius: 4px; font-weight: 600; margin-bottom: 20px; background: #bee3f8; color: #2b6cb0; }}
+            table {{ width: 100%; border-collapse: collapse; margin-top: 10px; }}
+            .info-table td {{ padding: 10px 12px; border-bottom: 1px solid #e2e8f0; vertical-align: top; }}
+            .info-table td:first-child {{ font-weight: 600; color: #4a5568; width: 30%; }}
+            .info-table td:last-child {{ color: #2d3748; }}
+            .description {{ background: #f7fafc; padding: 15px; border-radius: 6px; margin-top: 20px; }}
+            .description h3 {{ margin-top: 0; color: #4a5568; font-size: 14px; }}
+            .description p {{ margin-bottom: 0; color: #2d3748; white-space: pre-wrap; }}
+            .footer {{ margin-top: 30px; padding-top: 20px; border-top: 1px solid #e2e8f0; color: #718096; font-size: 12px; }}
+            .button {{ display: inline-block; padding: 10px 20px; background: #2b6cb0; color: white; text-decoration: none; border-radius: 4px; margin-top: 15px; }}
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h1>New Job Submission</h1>
+            <div class="badge">Requires Review</div>
+
+            <table class="info-table" style="background: #f7fafc; border-radius: 8px; overflow: hidden;">
+                <tr>
+                    <td>Job Title</td>
+                    <td><strong>{safe_title}</strong></td>
+                </tr>
+                <tr>
+                    <td>Organization</td>
+                    <td>{safe_org}</td>
+                </tr>
+                <tr>
+                    <td>Location</td>
+                    <td>{safe_location}</td>
+                </tr>
+                <tr>
+                    <td>State</td>
+                    <td>{safe_state}</td>
+                </tr>
+                <tr>
+                    <td>Job Type</td>
+                    <td>{safe_job_type}</td>
+                </tr>
+                <tr>
+                    <td>Salary</td>
+                    <td>{safe_salary}</td>
+                </tr>
+                <tr>
+                    <td>Job URL</td>
+                    <td><a href="{safe_url}" style="color: #2b6cb0;">{safe_url}</a></td>
+                </tr>
+                <tr>
+                    <td>Contact Email</td>
+                    <td><a href="mailto:{safe_email}" style="color: #2b6cb0;">{safe_email}</a></td>
+                </tr>
+            </table>
+
+            <div class="description">
+                <h3>Description</h3>
+                <p>{safe_description}</p>
+            </div>
+
+            <a href="{settings.app_url}/admin" class="button">Go to Admin Panel</a>
+
+            <div class="footer">
+                <p>This job was submitted through the For Employers form on Far Reach Jobs.</p>
+                <p>To add this job, create a new scrape source or manually add it to the database.</p>
+            </div>
+        </div>
+    </body>
+    </html>
+    """
+
+    text_body = f"""
+New Job Submission - Far Reach Jobs
+===================================
+
+Job Title: {title}
+Organization: {organization}
+Location: {location}
+State: {state or 'Not specified'}
+Job Type: {job_type or 'Not specified'}
+Salary: {salary_info or 'Not specified'}
+Job URL: {url}
+Contact Email: {contact_email}
+
+Description:
+{description or 'Not provided'}
+
+---
+This job was submitted through the For Employers form.
+Admin Panel: {settings.app_url}/admin
+"""
+
+    return _send_email(settings.admin_email, subject, html_body, text_body)
+
+
+def send_careers_page_submission_notification(
+    organization: str,
+    careers_url: str,
+    contact_email: str,
+    notes: str | None = None,
+) -> bool:
+    """Send notification to admin about a careers page URL submission.
+
+    Returns True if email was sent successfully, False otherwise.
+    """
+    if not settings.admin_email:
+        logger.debug("No admin_email configured, skipping careers page notification")
+        return False
+
+    # Escape all user input for HTML
+    safe_org = html.escape(organization)
+    safe_url = html.escape(careers_url)
+    safe_email = html.escape(contact_email)
+    safe_notes = html.escape(notes) if notes else "None provided"
+
+    subject = f"New Careers Page Submission: {safe_org}"
+
+    html_body = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <style>
+            body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f7fafc; margin: 0; padding: 20px; }}
+            .container {{ max-width: 600px; margin: 0 auto; background: white; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); padding: 30px; }}
+            h1 {{ color: #2d3748; margin-top: 0; font-size: 24px; }}
+            .badge {{ display: inline-block; padding: 6px 12px; border-radius: 4px; font-weight: 600; margin-bottom: 20px; background: #c6f6d5; color: #276749; }}
+            table {{ width: 100%; border-collapse: collapse; margin-top: 10px; }}
+            .info-table td {{ padding: 10px 12px; border-bottom: 1px solid #e2e8f0; vertical-align: top; }}
+            .info-table td:first-child {{ font-weight: 600; color: #4a5568; width: 30%; }}
+            .info-table td:last-child {{ color: #2d3748; }}
+            .notes {{ background: #f7fafc; padding: 15px; border-radius: 6px; margin-top: 20px; }}
+            .notes h3 {{ margin-top: 0; color: #4a5568; font-size: 14px; }}
+            .notes p {{ margin-bottom: 0; color: #2d3748; white-space: pre-wrap; }}
+            .footer {{ margin-top: 30px; padding-top: 20px; border-top: 1px solid #e2e8f0; color: #718096; font-size: 12px; }}
+            .button {{ display: inline-block; padding: 10px 20px; background: #2b6cb0; color: white; text-decoration: none; border-radius: 4px; margin-top: 15px; margin-right: 10px; }}
+            .button.secondary {{ background: #718096; }}
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h1>New Careers Page Submission</h1>
+            <div class="badge">New Source Request</div>
+
+            <p style="color: #4a5568; margin-bottom: 20px;">
+                An employer has submitted their careers page URL to be added as a scrape source.
+            </p>
+
+            <table class="info-table" style="background: #f7fafc; border-radius: 8px; overflow: hidden;">
+                <tr>
+                    <td>Organization</td>
+                    <td><strong>{safe_org}</strong></td>
+                </tr>
+                <tr>
+                    <td>Careers Page URL</td>
+                    <td><a href="{safe_url}" style="color: #2b6cb0;">{safe_url}</a></td>
+                </tr>
+                <tr>
+                    <td>Contact Email</td>
+                    <td><a href="mailto:{safe_email}" style="color: #2b6cb0;">{safe_email}</a></td>
+                </tr>
+            </table>
+
+            <div class="notes">
+                <h3>Additional Notes</h3>
+                <p>{safe_notes}</p>
+            </div>
+
+            <a href="{safe_url}" class="button">Visit Careers Page</a>
+            <a href="{settings.app_url}/admin" class="button secondary">Go to Admin Panel</a>
+
+            <div class="footer">
+                <p>This careers page was submitted through the For Employers form on Far Reach Jobs.</p>
+                <p>Next steps: Visit the careers page, add it as a scrape source, and configure the selectors.</p>
+            </div>
+        </div>
+    </body>
+    </html>
+    """
+
+    text_body = f"""
+New Careers Page Submission - Far Reach Jobs
+=============================================
+
+Organization: {organization}
+Careers Page URL: {careers_url}
+Contact Email: {contact_email}
+
+Additional Notes:
+{notes or 'None provided'}
+
+---
+This careers page was submitted through the For Employers form.
+
+Next steps:
+1. Visit the careers page
+2. Add it as a scrape source in the admin panel
+3. Configure the CSS selectors
+
+Admin Panel: {settings.app_url}/admin
+"""
+
+    return _send_email(settings.admin_email, subject, html_body, text_body)

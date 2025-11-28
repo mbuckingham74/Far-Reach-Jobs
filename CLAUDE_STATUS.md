@@ -582,7 +582,6 @@ Generated code must contain:
 - [x] About page at `/about` with project story and mission
 - [x] Sections: Origin Story, Mission, Ethical Principles, Target Audience, Community Project
 - [x] Ethical principles: robots.txt compliance, direct employer links, no data collection, no ads
-- [x] "Coming Soon" roadmap section with planned features
 - [x] Header navigation link (after dark mode toggle)
 - [x] Footer navigation link
 - [x] Dark mode support
@@ -591,8 +590,40 @@ Generated code must contain:
 - `backend/app/templates/about.html` - About page template
 - `backend/app/main.py` - `/about` route
 
-**Roadmap Items:**
-- For Employers page - direct job submission form and careers page link submission
+### Phase 1U: For Employers Page ✅
+- [x] Employer portal at `/employers` with two submission options
+- [x] Job submission form with full validation (title, org, location, URL, etc.)
+- [x] Careers page URL submission for automatic scraping setup
+- [x] Input validation with SQL injection and XSS protection
+- [x] Email notifications to admin for both submission types
+- [x] Header and footer navigation links
+- [x] Tabbed interface for switching between submission types
+- [x] Success/error messaging with form reset on success
+- [x] Updated About page with "For Employers" CTA section
+
+**Key Files:**
+- `backend/app/templates/employers.html` - For Employers page template
+- `backend/app/routers/employers.py` - API endpoints for submissions
+- `backend/app/schemas/employer.py` - Pydantic validation schemas
+- `backend/app/services/email.py` - Notification email functions
+- `backend/app/main.py` - `/employers` route
+
+**API Endpoints:**
+- POST `/api/employers/submit-job` - Submit a single job posting
+- POST `/api/employers/submit-careers-page` - Submit careers page URL for scraping
+
+**Security:**
+- URL validation blocks SQL injection chars (`'`, `"`, `;`)
+- URL validation blocks XSS (`<script`, `javascript:`, `data:`)
+- Email validation with regex pattern matching
+- All user input HTML-escaped in notification emails
+- Max length limits on all fields (state: 50, description: 5000, job_type: 100, salary: 255)
+
+**Reliability:**
+- Pre-flight check for ADMIN_EMAIL and SMTP credentials before accepting submissions
+- Returns 503 if email config missing or SMTP send fails (no false success messages)
+- SMTP calls run in ThreadPoolExecutor to avoid blocking event loop
+- Submissions only succeed if email actually sends
 
 ## CSS Selector Troubleshooting
 
