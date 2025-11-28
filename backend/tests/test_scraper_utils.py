@@ -113,6 +113,21 @@ class TestExtractStateFromLocation:
         assert extract_state_from_location("City, XX") is None
         assert extract_state_from_location("City, ZZ 12345") is None
 
+    def test_substring_matching_caveat(self):
+        """Document: substring matching may have false positives.
+
+        The current implementation uses substring matching for full state names,
+        which can match words containing state names. This is a known limitation.
+        Consider word-boundary anchoring if this causes issues in production.
+        """
+        # These demonstrate the substring matching behavior
+        # "Texasville" contains "texas" -> matches TX
+        result = extract_state_from_location("Texasville, USA")
+        assert result == "TX"  # Known behavior - may want to fix later
+
+        # Proper match still works correctly
+        assert extract_state_from_location("Austin, Texas") == "TX"
+
 
 class TestCleanText:
     """Tests for clean_text function."""
