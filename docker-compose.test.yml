@@ -11,6 +11,6 @@ services:
       - JWT_EXPIRE_HOURS=24
     volumes:
       - ./backend:/app
-    command: sh -c "pip install pytest && python -m pytest tests/ -v"
+    command: sh -c "pip install --user pytest && python -m pytest tests/ -v"
     profiles:
       - test
