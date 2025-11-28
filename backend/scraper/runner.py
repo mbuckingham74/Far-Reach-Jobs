@@ -222,6 +222,14 @@ def is_adp_workforce_url(url: str | None) -> bool:
     return "workforcenow.adp.com" in url.lower()
 
 
+def is_ultipro_url(url: str | None) -> bool:
+    """Check if a URL is an UltiPro career portal."""
+    if not url:
+        return False
+    # UltiPro URLs are typically recruiting2.ultipro.com or recruiting.ultipro.com
+    return "ultipro.com" in url.lower()
+
+
 def get_source_config(source: ScrapeSource) -> dict:
     """Extract configuration dictionary from a ScrapeSource model."""
     return {
@@ -324,19 +332,104 @@ def _run_adp_scraper(
     return result
 
 
+def _run_ultipro_scraper(
+    db: Session,
+    source: ScrapeSource,
+    listing_urls: list[str],
+    trigger_type: str,
+    started_at: datetime,
+) -> ScrapeResult:
+    """Run the UltiPro API scraper for a source.
+
+    Args:
+        listing_urls: List of UltiPro listing URLs to scrape
+    """
+    # Lazy import to avoid circular dependency
+    from scraper.sources.ultipro import UltiProScraper
+
+    start_time = time.time()
+
+    jobs_new = 0
+    jobs_updated = 0
+    jobs_unchanged = 0
+    all_errors: list[str] = []
+    seen_ids: set[str] = set()
+
+    for listing_url in listing_urls:
+        try:
+            with UltiProScraper(
+                source_name=source.name,
+                base_url=source.base_url,
+                listing_url=listing_url,
+            ) as scraper:
+                scraped_jobs, errors = scraper.run()
+                all_errors.extend(errors)
+
+                for scraped_job in scraped_jobs:
+                    if scraped_job.external_id in seen_ids:
+                        continue
+                    seen_ids.add(scraped_job.external_id)
+
+                    try:
+                        with db.begin_nested():
+                            is_new, is_updated = upsert_job(db, source.id, scraped_job)
+                        if is_new:
+                            jobs_new += 1
+                        elif is_updated:
+                            jobs_updated += 1
+                        else:
+                            jobs_unchanged += 1
+                    except Exception as e:
+                        seen_ids.discard(scraped_job.external_id)
+                        logger.error(f"Failed to upsert job {scraped_job.external_id}: {e}")
+                        all_errors.append(f"Failed to upsert job {scraped_job.external_id}")
+
+        except Exception as e:
+            all_errors.append(f"UltiPro scraper execution failed for {listing_url}: {e}")
+            logger.exception(f"UltiPro scraper failed for {source.name} URL: {listing_url}")
+
+    source.last_scraped_at = datetime.now(timezone.utc)
+    source.last_scrape_success = len(all_errors) == 0
+    duration = time.time() - start_time
+
+    logger.info(
+        f"[{source.name}] UltiPro scrape complete: {jobs_new} new, {jobs_updated} updated, "
+        f"{jobs_unchanged} unchanged, {len(all_errors)} errors in {duration:.1f}s"
+    )
+
+    result = ScrapeResult(
+        source_name=source.name,
+        jobs_found=jobs_new + jobs_updated + jobs_unchanged,
+        jobs_new=jobs_new,
+        jobs_updated=jobs_updated,
+        errors=all_errors,
+        duration_seconds=duration,
+    )
+
+    log_scrape_result(db, source, result, trigger_type, started_at)
+    return result
+
+
 def run_scraper(db: Session, source: ScrapeSource, trigger_type: str = "manual") -> ScrapeResult:
     """Run a single scraper and upsert jobs to database."""
     start_time = time.time()
     started_at = datetime.now(timezone.utc)
 
-    # Check if listing URL is ADP WorkforceNow - use specialized API scraper
+    # Check for specialized API scrapers based on listing URL
     listing_url = source.listing_url or ""
     listing_urls = [url.strip() for url in listing_url.split('\n') if url.strip()]
-    adp_urls = [url for url in listing_urls if is_adp_workforce_url(url)]
 
+    # Check for ADP WorkforceNow URLs
+    adp_urls = [url for url in listing_urls if is_adp_workforce_url(url)]
     if adp_urls:
         logger.info(f"Detected {len(adp_urls)} ADP WorkforceNow URL(s) for {source.name}, using ADPWorkforceScraper")
         return _run_adp_scraper(db, source, adp_urls, trigger_type, started_at)
+
+    # Check for UltiPro URLs
+    ultipro_urls = [url for url in listing_urls if is_ultipro_url(url)]
+    if ultipro_urls:
+        logger.info(f"Detected {len(ultipro_urls)} UltiPro URL(s) for {source.name}, using UltiProScraper")
+        return _run_ultipro_scraper(db, source, ultipro_urls, trigger_type, started_at)
 
     # Handle DynamicScraper - compile from custom_scraper_code
     if source.scraper_class == "DynamicScraper":
