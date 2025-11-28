@@ -1,5 +1,5 @@
 import re
-from pydantic import BaseModel, field_validator, HttpUrl
+from pydantic import BaseModel, field_validator
 from typing import Optional
 
 
@@ -79,13 +79,53 @@ class JobSubmission(BaseModel):
             raise ValueError("Email must be less than 255 characters")
         return v
 
-    @field_validator("description", "job_type", "salary_info", "state", mode="before")
+    @field_validator("state", mode="before")
     @classmethod
-    def strip_optional_strings(cls, v: Optional[str]) -> Optional[str]:
+    def validate_state(cls, v: Optional[str]) -> Optional[str]:
         if v is None:
             return None
         v = v.strip()
-        return v if v else None
+        if not v:
+            return None
+        if len(v) > 50:
+            raise ValueError("State must be less than 50 characters")
+        return v
+
+    @field_validator("description", mode="before")
+    @classmethod
+    def validate_description(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return None
+        v = v.strip()
+        if not v:
+            return None
+        if len(v) > 5000:
+            raise ValueError("Description must be less than 5000 characters")
+        return v
+
+    @field_validator("job_type", mode="before")
+    @classmethod
+    def validate_job_type(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return None
+        v = v.strip()
+        if not v:
+            return None
+        if len(v) > 100:
+            raise ValueError("Job type must be less than 100 characters")
+        return v
+
+    @field_validator("salary_info", mode="before")
+    @classmethod
+    def validate_salary_info(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return None
+        v = v.strip()
+        if not v:
+            return None
+        if len(v) > 255:
+            raise ValueError("Salary info must be less than 255 characters")
+        return v
 
 
 class CareersPageSubmission(BaseModel):
@@ -141,10 +181,12 @@ class CareersPageSubmission(BaseModel):
 
     @field_validator("notes", mode="before")
     @classmethod
-    def strip_notes(cls, v: Optional[str]) -> Optional[str]:
+    def validate_notes(cls, v: Optional[str]) -> Optional[str]:
         if v is None:
             return None
         v = v.strip()
+        if not v:
+            return None
         if len(v) > 2000:
             raise ValueError("Notes must be less than 2000 characters")
-        return v if v else None
+        return v
