@@ -16,11 +16,11 @@ docker compose -f docker-compose.test.yml run --rm test
 | 1 | Authentication | 24 | ✅ Complete | [#52](https://github.com/mbuckingham74/Far-Reach-Jobs/pull/52) |
 | 2 | Jobs API | 34 | ✅ Complete | [#53](https://github.com/mbuckingham74/Far-Reach-Jobs/pull/53) |
 | 3 | Saved Jobs | 18 | ✅ Complete | [#54](https://github.com/mbuckingham74/Far-Reach-Jobs/pull/54) |
-| 4 | Admin Panel | - | ⏳ Pending | - |
-| 5 | Scraper Utilities | - | ⏳ Pending | - |
+| 4 | Scraper Utilities | 43 | ✅ Complete | [#55](https://github.com/mbuckingham74/Far-Reach-Jobs/pull/55) |
+| 5 | Admin Panel | - | ⏳ Pending | - |
 | 6 | Models | - | ⏳ Pending | - |
 
-**Total Tests:** 91 (76 new + 15 existing)
+**Total Tests:** 134 (119 new + 15 existing)
 
 ---
 
@@ -122,36 +122,25 @@ docker compose -f docker-compose.test.yml run --rm test
 
 ---
 
-## 5. Scraper Utility Tests ⏳
+## 5. Scraper Utility Tests ✅
 
-**File:** `backend/tests/test_scraper_utils.py` (to create)
+**File:** `backend/tests/test_scraper_utils.py`
 **Module:** `backend/scraper/utils.py`
 
-### Planned Coverage
-- [ ] `normalize_state()` - full names, abbreviations, edge cases
-- [ ] `extract_state_from_location()` - various location formats
-- [ ] `clean_text()` - whitespace normalization
-- [ ] `extract_salary()` - various salary formats
-- [ ] `normalize_job_type()` - standardization
+### Coverage
+- [x] `normalize_state()` (9 tests)
+  - Full names, lowercase, mixed case, abbreviations, whitespace, empty, invalid
+- [x] `extract_state_from_location()` (10 tests)
+  - City/ST, City/ST ZIP, full names, case-insensitive, empty, invalid, substring caveat
+- [x] `clean_text()` (7 tests)
+  - Multiple spaces, newlines/tabs, leading/trailing, mixed, already clean, empty
+- [x] `extract_salary()` (8 tests)
+  - Dollar amounts, ranges, hourly, annual, in descriptions, no match, empty
+- [x] `normalize_job_type()` (9 tests)
+  - Full-time, part-time, seasonal, contract, temporary, internship, unknown, empty
 
-### Test Data Examples
-```python
-# State normalization
-"Alaska" -> "AK"
-"alaska" -> "AK"
-"AK" -> "AK"
-"ak" -> "AK"
-
-# Location parsing
-"Anchorage, AK" -> "AK"
-"Fairbanks, Alaska" -> "AK"
-"Remote - Alaska" -> "AK"
-
-# Salary extraction
-"$50,000 - $70,000/year" -> "$50,000 - $70,000/year"
-"$25/hour" -> "$25/hour"
-"DOE" -> "DOE"
-```
+### Known Limitations
+- Substring matching for state names may cause false positives (e.g., "Texasville" → TX)
 
 ---
 
