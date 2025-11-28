@@ -1,3 +1,5 @@
+import re
+
 from sqlalchemy import Column, Integer, String, Text, Boolean, DateTime, ForeignKey, Index
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
@@ -27,6 +29,60 @@ class Job(Base):
 
     source = relationship("ScrapeSource", back_populates="jobs")
     saved_by = relationship("SavedJob", back_populates="job", cascade="all, delete-orphan")
+
+    @property
+    def display_job_type(self) -> str | None:
+        """Return cleaned job type for display.
+
+        Handles specific patterns like "80 Full time" -> "Full-Time".
+        Returns the original value for other job types (Contract, etc).
+        Returns None for category-style values that aren't employment types.
+        """
+        if not self.job_type:
+            return None
+
+        job_type_lower = self.job_type.lower().strip()
+
+        # Pattern: "80 Full time" or "40 Part time" - hours followed by full/part
+        hours_type_match = re.match(r"^(\d+)\s+(full|part)\s*[-\s]?time\s*$", job_type_lower, re.IGNORECASE)
+        if hours_type_match:
+            employment_type = hours_type_match.group(2).lower()
+            if employment_type == "full":
+                return "Full-Time"
+            else:
+                return "Part-Time"
+
+        # Normalize common full-time/part-time variations
+        if re.match(r"^full\s*[-\s]?time$", job_type_lower):
+            return "Full-Time"
+        if re.match(r"^part\s*[-\s]?time$", job_type_lower):
+            return "Part-Time"
+
+        # Keep other valid employment types as-is (using word boundaries)
+        valid_types = [
+            "contract", "temporary", "seasonal", "internship",
+            "volunteer", "per diem", "prn", "on-call", "casual",
+            "regular", "permanent", "freelance", "consulting"
+        ]
+        for valid in valid_types:
+            # Use word boundary to avoid matching "internal" for "intern", etc.
+            if re.search(rf"\b{re.escape(valid)}\b", job_type_lower):
+                return self.job_type.strip()
+
+        # Filter out category-style values that aren't employment types
+        # These are job categories, not employment types
+        category_keywords = [
+            "healthcare", "administrative", "management", "education",
+            "clinical", "nursing", "finance", "marketing", "executive",
+            "facilities", "maintenance", "support", "program", "open",
+            "various", "multiple"
+        ]
+        for keyword in category_keywords:
+            if keyword in job_type_lower:
+                return None
+
+        # For anything else, return the original value
+        return self.job_type.strip()
 
     __table_args__ = (
         Index("ix_jobs_stale_last_seen", "is_stale", "last_seen_at"),
