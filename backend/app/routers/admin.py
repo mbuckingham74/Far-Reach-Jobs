@@ -233,35 +233,72 @@ def robots_blocked_count_link(request: Request, db: Session = Depends(get_db)):
     )
 
 
-@router.post("/sources/{source_id}/unblock-robots")
-def unblock_robots_source(source_id: int, request: Request, db: Session = Depends(get_db)):
-    """Clear robots_blocked status and move source back to active list.
+@router.post("/sources/{source_id}/recheck-robots")
+def recheck_robots_source(source_id: int, request: Request, db: Session = Depends(get_db)):
+    """Recheck robots.txt and unblock source if now allowed.
 
-    Use this when the site owner has updated their robots.txt to allow scraping,
-    or if you've verified they want their jobs listed.
+    Actually fetches robots.txt again to verify the site now allows scraping.
+    Only unblocks if robots.txt check passes.
     """
     if not get_admin_user(request):
         raise HTTPException(status_code=401)
 
+    from scraper.runner import check_robots_blocked
+
     source = db.query(ScrapeSource).filter(ScrapeSource.id == source_id).first()
-    if source:
-        source.robots_blocked = False
-        source.robots_blocked_at = None
+    if not source:
+        sources = (
+            db.query(ScrapeSource)
+            .filter(ScrapeSource.robots_blocked == True)
+            .order_by(ScrapeSource.robots_blocked_at.desc())
+            .all()
+        )
+        return templates.TemplateResponse(
+            "admin/partials/source_list.html",
+            {"request": request, "sources": sources, "show_robots_blocked": True, "error": "Source not found."},
+        )
+
+    # Actually check robots.txt again
+    is_blocked, blocked_url, block_reason = check_robots_blocked(source)
+
+    if is_blocked:
+        # Still blocked - update the timestamp and show error
+        from datetime import datetime, timezone
+        source.robots_blocked_at = datetime.now(timezone.utc)
         try:
             db.commit()
-        except Exception as e:
-            logger.error(f"Failed to unblock source {source_id}: {e}")
+        except Exception:
             db.rollback()
-            sources = (
-                db.query(ScrapeSource)
-                .filter(ScrapeSource.robots_blocked == True)
-                .order_by(ScrapeSource.robots_blocked_at.desc())
-                .all()
-            )
-            return templates.TemplateResponse(
-                "admin/partials/source_list.html",
-                {"request": request, "sources": sources, "show_robots_blocked": True, "error": "Failed to unblock source. Please try again."},
-            )
+
+        sources = (
+            db.query(ScrapeSource)
+            .filter(ScrapeSource.robots_blocked == True)
+            .order_by(ScrapeSource.robots_blocked_at.desc())
+            .all()
+        )
+        return templates.TemplateResponse(
+            "admin/partials/source_list.html",
+            {"request": request, "sources": sources, "show_robots_blocked": True, "error": f"Still blocked: {block_reason} ({blocked_url})"},
+        )
+
+    # Now allowed - unblock the source
+    source.robots_blocked = False
+    source.robots_blocked_at = None
+    try:
+        db.commit()
+    except Exception as e:
+        logger.error(f"Failed to unblock source {source_id}: {e}")
+        db.rollback()
+        sources = (
+            db.query(ScrapeSource)
+            .filter(ScrapeSource.robots_blocked == True)
+            .order_by(ScrapeSource.robots_blocked_at.desc())
+            .all()
+        )
+        return templates.TemplateResponse(
+            "admin/partials/source_list.html",
+            {"request": request, "sources": sources, "show_robots_blocked": True, "error": "Failed to unblock source. Please try again."},
+        )
 
     sources = (
         db.query(ScrapeSource)
@@ -271,7 +308,7 @@ def unblock_robots_source(source_id: int, request: Request, db: Session = Depend
     )
     return templates.TemplateResponse(
         "admin/partials/source_list.html",
-        {"request": request, "sources": sources, "show_robots_blocked": True},
+        {"request": request, "sources": sources, "show_robots_blocked": True, "success": f"'{source.name}' is now allowed and moved to active sources."},
     )
 
 
@@ -470,8 +507,13 @@ async def trigger_scrape(request: Request, db: Session = Depends(get_db)):
     from app.services.email import send_scrape_notification, ScrapeNotificationData
 
     try:
-        # Get active sources
-        sources = db.query(ScrapeSource).filter(ScrapeSource.is_active == True).all()
+        # Get active sources (excluding robots-blocked)
+        sources = (
+            db.query(ScrapeSource)
+            .filter(ScrapeSource.is_active == True)
+            .filter((ScrapeSource.robots_blocked == False) | (ScrapeSource.robots_blocked == None))
+            .all()
+        )
         if not sources:
             response = templates.TemplateResponse(
                 "admin/partials/scrape_modal_result.html",

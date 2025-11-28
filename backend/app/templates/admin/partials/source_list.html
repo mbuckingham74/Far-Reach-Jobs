@@ -89,10 +89,10 @@
                         <!-- Robots-blocked sources: Recheck and Delete only -->
                         <button
                             class="px-3 py-1 text-sm bg-green-500 hover:bg-green-600 text-white rounded transition-colors"
-                            hx-post="/admin/sources/{{ source.id }}/unblock-robots"
+                            hx-post="/admin/sources/{{ source.id }}/recheck-robots"
                             hx-target="#robots-blocked-source-list"
                             hx-swap="innerHTML show:none"
-                            title="Clear robots_blocked flag and move back to active sources">
+                            title="Re-fetch robots.txt and unblock if now allowed">
                             Recheck
                         </button>
                         <button

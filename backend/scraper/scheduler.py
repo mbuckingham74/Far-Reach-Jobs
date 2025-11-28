@@ -28,8 +28,13 @@ def run_scrapers():
 
     db = SessionLocal()
     try:
-        # Get all active sources
-        sources = db.query(ScrapeSource).filter(ScrapeSource.is_active == True).all()
+        # Get all active sources (excluding robots-blocked)
+        sources = (
+            db.query(ScrapeSource)
+            .filter(ScrapeSource.is_active == True)
+            .filter((ScrapeSource.robots_blocked == False) | (ScrapeSource.robots_blocked == None))
+            .all()
+        )
         if not sources:
             logger.warning("No active scrape sources configured")
             return

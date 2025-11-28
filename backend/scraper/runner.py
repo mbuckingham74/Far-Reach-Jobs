@@ -231,30 +231,39 @@ def is_ultipro_url(url: str | None) -> bool:
     return "ultipro.com" in url.lower()
 
 
-def check_robots_blocked(source: ScrapeSource) -> tuple[bool, str | None]:
+def check_robots_blocked(source: ScrapeSource) -> tuple[bool, str | None, str | None]:
     """Check if a source's listing URLs are blocked by robots.txt.
+
+    Fails closed: if we can't fetch/parse robots.txt, we treat it as blocked
+    to avoid accidentally crawling sites whose policy we couldn't read.
 
     Args:
         source: ScrapeSource to check
 
     Returns:
-        (is_blocked, blocked_url) tuple. blocked_url is the first URL that was blocked.
+        (is_blocked, blocked_url, reason) tuple.
+        - blocked_url is the first URL that was blocked
+        - reason is a human-readable explanation (e.g., "disallowed by robots.txt" or "failed to fetch robots.txt")
     """
     listing_url = source.listing_url or source.base_url or ""
     listing_urls = [url.strip() for url in listing_url.split('\n') if url.strip()]
 
     if not listing_urls:
-        return False, None
+        return False, None, None
 
     # Check robots.txt for each URL
     for url in listing_urls:
         checker = RobotsChecker(url)
-        if checker.load():
-            if not checker.can_fetch(url):
-                logger.info(f"robots.txt blocks {url} for source {source.name}")
-                return True, url
+        if not checker.load():
+            # Fail closed: can't fetch robots.txt = treat as blocked
+            logger.warning(f"Failed to fetch robots.txt for {url}, treating as blocked for source {source.name}")
+            return True, url, "failed to fetch robots.txt"
 
-    return False, None
+        if not checker.can_fetch(url):
+            logger.info(f"robots.txt blocks {url} for source {source.name}")
+            return True, url, "disallowed by robots.txt"
+
+    return False, None, None
 
 
 def get_source_config(source: ScrapeSource) -> dict:
@@ -444,7 +453,7 @@ def run_scraper(db: Session, source: ScrapeSource, trigger_type: str = "manual")
     started_at = datetime.now(timezone.utc)
 
     # Pre-flight check: Is this source blocked by robots.txt?
-    is_blocked, blocked_url = check_robots_blocked(source)
+    is_blocked, blocked_url, block_reason = check_robots_blocked(source)
     if is_blocked:
         # Mark source as robots-blocked
         source.robots_blocked = True
@@ -452,12 +461,13 @@ def run_scraper(db: Session, source: ScrapeSource, trigger_type: str = "manual")
         source.last_scraped_at = datetime.now(timezone.utc)
         source.last_scrape_success = False
 
+        error_msg = f"Blocked ({block_reason}): {blocked_url}"
         result = ScrapeResult(
             source_name=source.name,
             jobs_found=0,
             jobs_new=0,
             jobs_updated=0,
-            errors=[f"Blocked by robots.txt: {blocked_url}"],
+            errors=[error_msg],
             duration_seconds=0,
         )
         log_scrape_result(db, source, result, trigger_type, started_at)
