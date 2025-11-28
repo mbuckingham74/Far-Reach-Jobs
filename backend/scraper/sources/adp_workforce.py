@@ -176,8 +176,8 @@ class ADPWorkforceScraper(BaseScraper):
 
         # Extract external job ID from custom fields if available
         external_id = item_id
-        custom_fields = req.get("customFieldGroup", {})
-        string_fields = custom_fields.get("stringFields", [])
+        custom_fields = req.get("customFieldGroup") or {}
+        string_fields = custom_fields.get("stringFields") or []
         for field in string_fields:
             if field.get("nameCode", {}).get("codeValue") == "ExternalJobID":
                 ext_id = field.get("stringValue")

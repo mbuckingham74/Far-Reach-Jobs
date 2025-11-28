@@ -167,3 +167,39 @@ class TestADPWorkforceScraper:
 
             assert len(jobs) == 0
             assert len(errors) == 1
+
+    def test_handles_null_custom_field_group(self):
+        """Should handle requisitions with null customFieldGroup."""
+        scraper = ADPWorkforceScraper(
+            source_name="Test Org",
+            base_url="https://example.org",
+            listing_url=(
+                "https://workforcenow.adp.com/mascsr/default/mdf/recruitment/"
+                "recruitment.html?cid=test-cid&ccId=test-ccid"
+            ),
+        )
+
+        # Requisition with null customFieldGroup (common when no custom fields configured)
+        requisition = {
+            "itemID": "789",
+            "requisitionTitle": "Job With Null Custom Fields",
+            "workLevelCode": {"shortName": "Full-Time"},
+            "requisitionLocations": [
+                {
+                    "nameCode": {"shortName": "Fairbanks, AK"},
+                    "address": {
+                        "cityName": "Fairbanks",
+                        "countrySubdivisionLevel1": {"codeValue": "AK"},
+                    },
+                }
+            ],
+            "customFieldGroup": None,  # null in JSON
+        }
+
+        job = scraper._parse_requisition(requisition)
+
+        assert job is not None
+        assert job.title == "Job With Null Custom Fields"
+        assert job.state == "AK"
+        # Should use itemID as external_id since customFieldGroup is null
+        assert "789" in job.external_id
