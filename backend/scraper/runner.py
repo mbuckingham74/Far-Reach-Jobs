@@ -224,11 +224,14 @@ def is_adp_workforce_url(url: str | None) -> bool:
 
 
 def is_ultipro_url(url: str | None) -> bool:
-    """Check if a URL is an UltiPro career portal."""
+    """Check if a URL is an UltiPro/UKG career portal."""
     if not url:
         return False
-    # UltiPro URLs are typically recruiting2.ultipro.com or recruiting.ultipro.com
-    return "ultipro.com" in url.lower()
+    url_lower = url.lower()
+    # UltiPro/UKG URLs can be:
+    # - recruiting2.ultipro.com or recruiting.ultipro.com (legacy)
+    # - rec.pro.ukg.net (newer UKG Pro Recruiting)
+    return "ultipro.com" in url_lower or "rec.pro.ukg.net" in url_lower
 
 
 def check_robots_blocked(source: ScrapeSource) -> tuple[bool, str | None, str | None, str | None]:
