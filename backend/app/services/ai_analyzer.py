@@ -399,19 +399,29 @@ async def generate_custom_scraper(
         # Log the first part of the response for debugging
         logger.info(f"AI scraper generation response (first 500 chars): {response_text[:500]}")
 
-        # Remove markdown code blocks if present
-        if response_text.startswith("```"):
+        # Extract code from markdown code blocks anywhere in the response
+        # This handles cases where the AI returns explanation text before/after the code
+        code_block_match = re.search(r'```(?:python)?\s*\n(.*?)```', response_text, re.DOTALL)
+        if code_block_match:
+            response_text = code_block_match.group(1).strip()
+            logger.info(f"Extracted code block from markdown (length: {len(response_text)})")
+        elif "```" in response_text:
+            # Fallback: try to find any code block even if malformed
             lines = response_text.split("\n")
-            # Find the first and last ``` lines
-            start_idx = 0
-            end_idx = len(lines)
-            for i, line in enumerate(lines):
-                if line.startswith("```") and i == 0:
-                    start_idx = 1
-                elif line.startswith("```"):
-                    end_idx = i
-                    break
-            response_text = "\n".join(lines[start_idx:end_idx])
+            in_code_block = False
+            code_lines = []
+            for line in lines:
+                if line.strip().startswith("```"):
+                    if in_code_block:
+                        break  # End of code block
+                    else:
+                        in_code_block = True
+                        continue
+                if in_code_block:
+                    code_lines.append(line)
+            if code_lines:
+                response_text = "\n".join(code_lines)
+                logger.info(f"Extracted code via fallback method (length: {len(response_text)})")
 
         # Strip out any import statements and class redefinitions that the AI shouldn't have included
         # These are already provided in the exec namespace
