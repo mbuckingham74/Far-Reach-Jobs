@@ -58,15 +58,15 @@ class Job(Base):
         if re.match(r"^part\s*[-\s]?time$", job_type_lower):
             return "Part-Time"
 
-        # Keep other valid employment types as-is
+        # Keep other valid employment types as-is (using word boundaries)
         valid_types = [
-            "contract", "temporary", "temp", "seasonal", "internship",
-            "intern", "volunteer", "per diem", "prn", "on-call", "casual",
+            "contract", "temporary", "seasonal", "internship",
+            "volunteer", "per diem", "prn", "on-call", "casual",
             "regular", "permanent", "freelance", "consulting"
         ]
         for valid in valid_types:
-            if valid in job_type_lower:
-                # Return the original with proper casing if it's primarily this type
+            # Use word boundary to avoid matching "internal" for "intern", etc.
+            if re.search(rf"\b{re.escape(valid)}\b", job_type_lower):
                 return self.job_type.strip()
 
         # Filter out category-style values that aren't employment types
