@@ -9,6 +9,7 @@ import httpx
 from bs4 import BeautifulSoup
 
 from scraper.robots import RobotsChecker, USER_AGENT
+from scraper.playwright_fetcher import get_playwright_fetcher
 
 logger = logging.getLogger(__name__)
 
@@ -48,8 +49,10 @@ class BaseScraper(ABC):
     - parse_job_listing_page(soup, url): parse a listing page and yield ScrapedJob objects
     """
 
-    def __init__(self):
+    def __init__(self, use_playwright: bool = False):
         self.robots_checker: RobotsChecker | None = None
+        self._use_playwright = use_playwright
+        self._playwright_fetcher = get_playwright_fetcher() if use_playwright else None
         # Use browser-like headers to avoid WAF blocks
         headers = {
             "User-Agent": USER_AGENT,
@@ -108,11 +111,25 @@ class BaseScraper(ABC):
             return 1.0
         return self.robots_checker.get_crawl_delay()
 
-    def fetch_page(self, url: str) -> BeautifulSoup | None:
-        """Fetch a page and return parsed BeautifulSoup, or None on error."""
+    def fetch_page(self, url: str, wait_for: str | None = None) -> BeautifulSoup | None:
+        """Fetch a page and return parsed BeautifulSoup, or None on error.
+
+        Args:
+            url: URL to fetch
+            wait_for: CSS selector to wait for before extracting HTML (Playwright only)
+        """
         if not self.can_fetch(url):
             logger.warning(f"robots.txt disallows fetching: {url}")
             return None
+
+        # Use Playwright if configured
+        if self._use_playwright and self._playwright_fetcher:
+            if self._playwright_fetcher.is_available:
+                logger.info(f"Using Playwright to fetch: {url}")
+                result = self._playwright_fetcher.fetch(url, wait_for=wait_for)
+                if result is not None:
+                    return result
+                logger.warning(f"Playwright fetch failed for {url}, falling back to httpx")
 
         try:
             response = self.client.get(url)
