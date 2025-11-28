@@ -4,7 +4,7 @@ import pytest
 from unittest.mock import patch, MagicMock
 
 from scraper.sources.ultipro import UltiProScraper
-from scraper.runner import is_ultipro_url
+from scraper.url_utils import is_ultipro_url, is_adp_workforce_url
 
 
 class TestUltiProScraper:
@@ -592,3 +592,29 @@ class TestIsUltiproUrl:
         """Should match URLs case-insensitively."""
         assert is_ultipro_url("https://RECRUITING2.ULTIPRO.COM/TEST/JobBoard/123/") is True
         assert is_ultipro_url("https://AHT1971.REC.PRO.UKG.NET/AHT/JobBoard/123/") is True
+
+
+class TestIsAdpWorkforceUrl:
+    """Tests for the is_adp_workforce_url detection function."""
+
+    def test_detects_adp_workforce_url(self):
+        """Should detect workforcenow.adp.com URLs."""
+        url = "https://workforcenow.adp.com/mascsr/default/mdf/recruitment/recruitment.html?cid=12345"
+        assert is_adp_workforce_url(url) is True
+
+    def test_returns_false_for_non_adp_url(self):
+        """Should return False for non-ADP URLs."""
+        assert is_adp_workforce_url("https://example.com/careers") is False
+        assert is_adp_workforce_url("https://recruiting2.ultipro.com/TEST/JobBoard/123/") is False
+
+    def test_returns_false_for_none(self):
+        """Should return False for None input."""
+        assert is_adp_workforce_url(None) is False
+
+    def test_returns_false_for_empty_string(self):
+        """Should return False for empty string."""
+        assert is_adp_workforce_url("") is False
+
+    def test_case_insensitive(self):
+        """Should match URLs case-insensitively."""
+        assert is_adp_workforce_url("https://WORKFORCENOW.ADP.COM/jobs") is True

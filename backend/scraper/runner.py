@@ -12,6 +12,7 @@ from app.models import Job, ScrapeSource, ScrapeLog
 from scraper.base import BaseScraper, ScrapedJob, ScrapeResult
 from scraper.playwright_fetcher import get_playwright_fetcher
 from scraper.robots import RobotsChecker
+from scraper.url_utils import is_adp_workforce_url, is_ultipro_url
 
 logger = logging.getLogger(__name__)
 
@@ -214,24 +215,6 @@ def log_scrape_result(
     )
     db.add(log)
     return log
-
-
-def is_adp_workforce_url(url: str | None) -> bool:
-    """Check if a URL is an ADP WorkforceNow career portal."""
-    if not url:
-        return False
-    return "workforcenow.adp.com" in url.lower()
-
-
-def is_ultipro_url(url: str | None) -> bool:
-    """Check if a URL is an UltiPro/UKG career portal."""
-    if not url:
-        return False
-    url_lower = url.lower()
-    # UltiPro/UKG URLs can be:
-    # - recruiting2.ultipro.com or recruiting.ultipro.com (legacy)
-    # - rec.pro.ukg.net (newer UKG Pro Recruiting)
-    return "ultipro.com" in url_lower or "rec.pro.ukg.net" in url_lower
 
 
 def check_robots_blocked(source: ScrapeSource) -> tuple[bool, str | None, str | None, str | None]:
