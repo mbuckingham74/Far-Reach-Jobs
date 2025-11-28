@@ -259,7 +259,7 @@ def recheck_robots_source(source_id: int, request: Request, db: Session = Depend
         )
 
     # Actually check robots.txt again
-    is_blocked, blocked_url, block_reason = check_robots_blocked(source)
+    is_blocked, blocked_url, block_reason, _robots_content = check_robots_blocked(source)
 
     if is_blocked:
         # Still blocked - update the timestamp and show error

@@ -1,6 +1,6 @@
 # Far Reach Jobs - Implementation Status
 
-**Last Updated:** 2025-11-27
+**Last Updated:** 2025-11-28
 **Repository:** https://github.com/mbuckingham74/Far-Reach-Jobs
 **Domain:** far-reach-jobs.tachyonfuture.com
 
@@ -387,6 +387,7 @@ PLAYWRIGHT_SERVICE_URL=http://playwright:3000
 ### scrape_sources
 - id, name, base_url, scraper_class
 - is_active, last_scraped_at, last_scrape_success, created_at
+- robots_blocked, robots_blocked_at (tracks robots.txt blocking status)
 - listing_url (GenericScraper: page containing job listings)
 - selector_job_container, selector_title, selector_url (required for GenericScraper)
 - selector_organization, selector_location, selector_job_type
@@ -460,8 +461,10 @@ ANTHROPIC_API_KEY=<api-key>  # Required for AI selector analysis and custom scra
 - HTTP User-Agent: `Mozilla/5.0 (compatible; FarReachJobs/1.0; +https://far-reach-jobs.tachyonfuture.com)`
 - robots.txt compliance checks both `FarReachJobs` and `Mozilla` UAs, honoring the most restrictive
 - Uses maximum crawl delay from either UA-specific rule
-- "Warn but allow" if robots.txt fetch fails
+- **Fail-closed security:** If robots.txt fetch fails, source is marked as blocked (not allowed)
 - Sites without robots.txt (404) allow all paths
+- Blocked sources moved to separate admin page, excluded from scheduled/bulk scrapes
+- Raw robots.txt content cached during load for error reporting (2KB limit)
 
 ## Server Info
 
@@ -492,7 +495,7 @@ ANTHROPIC_API_KEY=<api-key>  # Required for AI selector analysis and custom scra
 3. ✅ MySQL container auto-creates database and user
 4. ✅ docker-compose.yml joins NPM network
 5. ✅ `docker compose up -d --build`
-6. ✅ Alembic migrations applied (001, 002, 003, 004, 005, 006, 007, 008)
+6. ✅ Alembic migrations applied (001-011)
 7. ✅ NPM proxy host configured with SSL
 8. ✅ Health endpoint verified: https://far-reach-jobs.tachyonfuture.com/api/health
 
@@ -624,6 +627,42 @@ Generated code must contain:
 - Returns 503 if email config missing or SMTP send fails (no false success messages)
 - SMTP calls run in ThreadPoolExecutor to avoid blocking event loop
 - Submissions only succeed if email actually sends
+
+### Phase 1V: Robots.txt Blocked Sources Management ✅
+- [x] Automatic detection of robots.txt blocking during scrape attempts
+- [x] Separate admin page for robots-blocked sources at `/admin/sources/robots-blocked`
+- [x] "Recheck" button that re-fetches robots.txt before unblocking
+- [x] Robots-blocked sources excluded from scheduled and bulk scrapes
+- [x] Fail-closed security: sources blocked if robots.txt fetch fails
+- [x] Robots.txt content displayed in scrape error reports
+- [x] Content caching to avoid duplicate network requests
+- [x] 2KB truncation limit to prevent log bloat
+
+**Key Files:**
+- `backend/app/models/scrape_source.py` - `robots_blocked`, `robots_blocked_at` fields
+- `backend/scraper/runner.py` - `check_robots_blocked()` pre-flight check
+- `backend/scraper/robots.py` - `get_robots_txt_content()` with caching
+- `backend/app/routers/admin.py` - Robots-blocked page, recheck endpoint
+- `backend/app/templates/admin/robots_blocked_sources.html` - Blocked sources page
+- `backend/alembic/versions/011_add_robots_blocked.py` - Migration
+
+**Database Fields:**
+- `robots_blocked` (Boolean) - True if site's robots.txt disallows crawling
+- `robots_blocked_at` (DateTime) - Timestamp when blocking was detected
+
+**API Endpoints:**
+- GET `/admin/sources/robots-blocked` - Page listing robots-blocked sources
+- GET `/admin/sources/robots-blocked/list` - HTMX partial for blocked source list
+- GET `/admin/sources/robots-blocked/count` - HTMX partial for count badge
+- POST `/admin/sources/{id}/recheck-robots` - Re-fetch robots.txt and unblock if allowed
+
+**Behavior:**
+1. Before scraping, `check_robots_blocked()` verifies robots.txt allows access
+2. If blocked or fetch fails (fail-closed), source is marked `robots_blocked=True`
+3. Robots-blocked sources appear on separate admin page, not in main source list
+4. Admin can click "Recheck" to re-verify robots.txt (e.g., after site whitelist)
+5. If recheck passes, source is moved back to active sources
+6. Error reports include cached robots.txt content for debugging
 
 ## CSS Selector Troubleshooting
 
