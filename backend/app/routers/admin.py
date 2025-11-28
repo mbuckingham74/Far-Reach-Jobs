@@ -806,6 +806,19 @@ async def save_source_configuration(source_id: int, request: Request, db: Sessio
     # Checkbox: present in form data only when checked
     source.use_playwright = form.get("use_playwright") == "1"
 
+    # Scraper type - validate and handle transitions
+    scraper_class = form.get("scraper_class", "GenericScraper").strip()
+    dynamic_fallback_warning = None
+    if scraper_class in ("GenericScraper", "DynamicScraper"):
+        if scraper_class == "GenericScraper" and source.scraper_class == "DynamicScraper":
+            # Switching from Dynamic to Generic - clear custom code
+            source.custom_scraper_code = None
+        elif scraper_class == "DynamicScraper" and not source.custom_scraper_code:
+            # Can't use Dynamic without custom code - fall back to Generic
+            scraper_class = "GenericScraper"
+            dynamic_fallback_warning = "Cannot use Dynamic scraper without custom code. Use 'Analyze Page with AI' to generate code first, or use Generic with CSS selectors."
+        source.scraper_class = scraper_class
+
     try:
         db.commit()
         # Check if selectors are missing and add warning
@@ -818,12 +831,17 @@ async def save_source_configuration(source_id: int, request: Request, db: Sessio
             if not selector_url:
                 missing_selectors.append("URL")
 
+        # Build warning message from various conditions
+        warnings = []
+        if dynamic_fallback_warning:
+            warnings.append(dynamic_fallback_warning)
         if missing_selectors:
-            # Only show warning, no success banner - scraping won't work without selectors
-            warning = f"Configuration saved, but scraping won't work until these selectors are set: {', '.join(missing_selectors)}"
+            warnings.append(f"Scraping won't work until these selectors are set: {', '.join(missing_selectors)}")
+
+        if warnings:
             return templates.TemplateResponse(
                 "admin/configure_source.html",
-                {"request": request, "source": source, "warning": warning},
+                {"request": request, "source": source, "warning": " ".join(warnings)},
             )
 
         return templates.TemplateResponse(

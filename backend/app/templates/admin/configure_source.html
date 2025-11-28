@@ -137,6 +137,26 @@
         </div>
     </div>
 
+    <!-- Scraper Type -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 transition-colors">
+        <h3 class="text-lg font-semibold dark:text-white mb-2">Scraper Type</h3>
+        <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
+            Choose how this source should be scraped.
+        </p>
+        <div>
+            <label for="scraper_class" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Scraper Type</label>
+            <select id="scraper_class" name="scraper_class"
+                    class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white dark:bg-gray-700 dark:text-white">
+                <option value="GenericScraper" {% if source.scraper_class == 'GenericScraper' %}selected{% endif %}>Generic (CSS Selectors)</option>
+                <option value="DynamicScraper" {% if source.scraper_class == 'DynamicScraper' %}selected{% endif %}>Dynamic (AI-Generated Custom Code)</option>
+            </select>
+            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                <strong>Generic:</strong> Uses CSS selectors below to extract jobs. Best for most sites.<br>
+                <strong>Dynamic:</strong> Uses AI-generated custom scraper code. Only use if Generic doesn't work.
+            </p>
+        </div>
+    </div>
+
     <!-- Required Selectors -->
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 transition-colors">
         <h3 class="text-lg font-semibold dark:text-white mb-2">Required CSS Selectors</h3>
