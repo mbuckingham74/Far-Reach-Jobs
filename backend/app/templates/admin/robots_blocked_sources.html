@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+
+{% block title %}Robots.txt Blocked Sources - Admin - Far Reach Jobs{% endblock %}
+
+{% block content %}
+<div class="mb-6 flex justify-between items-center">
+    <div>
+        <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Robots.txt Blocked Sources</h2>
+        <p class="text-gray-600 dark:text-gray-300">Sources that explicitly disallow crawling via robots.txt</p>
+    </div>
+    <div class="flex gap-2">
+        <a href="/admin" class="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white font-medium rounded-md transition-colors">
+            Back to Dashboard
+        </a>
+    </div>
+</div>
+
+<!-- Info Box -->
+<div class="mb-6 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
+    <div class="flex items-start gap-3">
+        <svg class="w-5 h-5 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        </svg>
+        <div class="text-sm text-amber-800 dark:text-amber-200">
+            <p class="font-medium mb-1">Why are these sources blocked?</p>
+            <p>These organizations have a <code class="bg-amber-100 dark:bg-amber-800 px-1 rounded">robots.txt</code> file that disallows web crawlers. We honor this directive as part of our ethical scraping principles.</p>
+            <p class="mt-2"><strong>Options:</strong></p>
+            <ul class="list-disc ml-5 mt-1 space-y-1">
+                <li>Contact the organization and ask them to whitelist <code class="bg-amber-100 dark:bg-amber-800 px-1 rounded">FarReachJobs</code> in their robots.txt</li>
+                <li>Ask them to submit jobs through our <a href="/employers" class="text-amber-700 dark:text-amber-300 underline">For Employers</a> portal</li>
+                <li>If they've updated their robots.txt, use "Recheck" to move them back to active sources</li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<!-- Blocked Source List -->
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 transition-colors">
+    <div id="robots-blocked-source-list" hx-get="/admin/sources/robots-blocked/list" hx-trigger="load, refreshSourceList from:body">
+        <div class="text-center py-8 text-gray-500 dark:text-gray-400">Loading blocked sources...</div>
+    </div>
+</div>
+{% endblock %}

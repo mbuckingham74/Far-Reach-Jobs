@@ -18,10 +18,14 @@
                 <th class="px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-300">Name</th>
                 <th class="px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-300 text-center">URL</th>
                 <th class="px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-300 text-center">Type</th>
-                {% if not show_disabled %}
+                {% if not show_disabled and not show_robots_blocked %}
                 <th class="px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-300 text-center">Status</th>
                 {% endif %}
+                {% if show_robots_blocked %}
+                <th class="px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-300 text-center">Blocked At</th>
+                {% else %}
                 <th class="px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-300 text-center">Last Scraped</th>
+                {% endif %}
                 <th class="px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-300 text-center">Actions</th>
             </tr>
         </thead>
@@ -36,7 +40,7 @@
                     </a>
                 </td>
                 <td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">{{ source.scraper_class }}</td>
-                {% if not show_disabled %}
+                {% if not show_disabled and not show_robots_blocked %}
                 <td class="px-4 py-3">
                     {% if source.is_active %}
                     <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-200">
@@ -50,7 +54,15 @@
                 </td>
                 {% endif %}
                 <td class="px-4 py-3 text-sm">
-                    {% if source.last_scraped_at %}
+                    {% if show_robots_blocked %}
+                    <div class="text-gray-600 dark:text-gray-400">
+                        {% if source.robots_blocked_at %}
+                        {{ source.robots_blocked_at.strftime('%Y-%m-%d %H:%M') }}
+                        {% else %}
+                        Unknown
+                        {% endif %}
+                    </div>
+                    {% elif source.last_scraped_at %}
                     <div class="text-gray-600 dark:text-gray-400">
                         {{ source.last_scraped_at.strftime('%Y-%m-%d %H:%M') }}
                     </div>
@@ -73,6 +85,26 @@
                 </td>
                 <td class="px-4 py-3">
                     <div class="flex gap-2 justify-center flex-wrap">
+                        {% if show_robots_blocked %}
+                        <!-- Robots-blocked sources: Recheck and Delete only -->
+                        <button
+                            class="px-3 py-1 text-sm bg-green-500 hover:bg-green-600 text-white rounded transition-colors"
+                            hx-post="/admin/sources/{{ source.id }}/recheck-robots"
+                            hx-target="#robots-blocked-source-list"
+                            hx-swap="innerHTML show:none"
+                            title="Re-fetch robots.txt and unblock if now allowed">
+                            Recheck
+                        </button>
+                        <button
+                            class="px-3 py-1 text-sm bg-red-500 hover:bg-red-600 text-white rounded transition-colors"
+                            hx-delete="/admin/sources/{{ source.id }}"
+                            hx-target="#robots-blocked-source-list"
+                            hx-swap="innerHTML show:none"
+                            hx-confirm="Delete source '{{ source.name }}'? This will also delete all jobs from this source.">
+                            Delete
+                        </button>
+                        {% else %}
+                        <!-- Normal and disabled sources -->
                         <a href="/admin/sources/{{ source.id }}/edit"
                            class="px-3 py-1 text-sm bg-purple-500 hover:bg-purple-600 text-white rounded transition-colors inline-block">
                             Edit
@@ -106,6 +138,7 @@
                             Scrape
                         </button>
                         {% endif %}
+                        {% endif %}
                     </div>
                 </td>
             </tr>
@@ -115,7 +148,10 @@
 </div>
 {% else %}
 <div class="text-center py-8 text-gray-500 dark:text-gray-400">
-    {% if show_disabled %}
+    {% if show_robots_blocked %}
+    <p>No sources blocked by robots.txt.</p>
+    <p class="text-sm mt-1"><a href="/admin" class="text-primary-600 dark:text-primary-400 hover:underline">Back to dashboard</a></p>
+    {% elif show_disabled %}
     <p>No disabled sources.</p>
     <p class="text-sm mt-1"><a href="/admin" class="text-primary-600 dark:text-primary-400 hover:underline">Back to dashboard</a></p>
     {% else %}

@@ -52,4 +52,9 @@ class ScrapeSource(Base):
     # e.g., "AK" for Alaska-only job boards like YKHC
     default_state = Column(String(50), nullable=True)
 
+    # Blocked by robots.txt - site explicitly disallows crawling
+    # These are kept separate from is_active=False (manually disabled)
+    robots_blocked = Column(Boolean, default=False)
+    robots_blocked_at = Column(DateTime, nullable=True)  # When we detected the block
+
     jobs = relationship("Job", back_populates="source", cascade="all, delete-orphan")

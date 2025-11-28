@@ -92,8 +92,16 @@ def admin_dashboard(request: Request, db: Session = Depends(get_db)):
     if not get_admin_user(request):
         return RedirectResponse(url="/admin/login", status_code=302)
 
-    active_sources = db.query(ScrapeSource).filter(ScrapeSource.is_active == True).order_by(ScrapeSource.created_at.desc()).all()
+    # Active sources excludes both disabled (is_active=False) and robots-blocked sources
+    active_sources = (
+        db.query(ScrapeSource)
+        .filter(ScrapeSource.is_active == True)
+        .filter((ScrapeSource.robots_blocked == False) | (ScrapeSource.robots_blocked == None))
+        .order_by(ScrapeSource.created_at.desc())
+        .all()
+    )
     disabled_count = db.query(ScrapeSource).filter(ScrapeSource.is_active == False).count()
+    robots_blocked_count = db.query(ScrapeSource).filter(ScrapeSource.robots_blocked == True).count()
     job_count = db.query(Job).filter(Job.is_stale == False).count()
     stale_count = db.query(Job).filter(Job.is_stale == True).count()
 
@@ -103,6 +111,7 @@ def admin_dashboard(request: Request, db: Session = Depends(get_db)):
             "request": request,
             "sources": active_sources,
             "disabled_count": disabled_count,
+            "robots_blocked_count": robots_blocked_count,
             "job_count": job_count,
             "stale_count": stale_count,
         },
@@ -115,7 +124,13 @@ def list_sources(request: Request, db: Session = Depends(get_db)):
     if not get_admin_user(request):
         raise HTTPException(status_code=401)
 
-    sources = db.query(ScrapeSource).filter(ScrapeSource.is_active == True).order_by(ScrapeSource.created_at.desc()).all()
+    sources = (
+        db.query(ScrapeSource)
+        .filter(ScrapeSource.is_active == True)
+        .filter((ScrapeSource.robots_blocked == False) | (ScrapeSource.robots_blocked == None))
+        .order_by(ScrapeSource.created_at.desc())
+        .all()
+    )
     return templates.TemplateResponse(
         "admin/partials/source_list.html",
         {"request": request, "sources": sources},
@@ -162,6 +177,138 @@ def disabled_count_link(request: Request, db: Session = Depends(get_db)):
     return templates.TemplateResponse(
         "admin/partials/disabled_count_link.html",
         {"request": request, "disabled_count": disabled_count},
+    )
+
+
+@router.get("/sources/robots-blocked")
+def robots_blocked_sources_page(request: Request, db: Session = Depends(get_db)):
+    """Sources blocked by robots.txt page."""
+    if not get_admin_user(request):
+        return RedirectResponse(url="/admin/login", status_code=302)
+
+    robots_blocked_sources = (
+        db.query(ScrapeSource)
+        .filter(ScrapeSource.robots_blocked == True)
+        .order_by(ScrapeSource.robots_blocked_at.desc())
+        .all()
+    )
+
+    return templates.TemplateResponse(
+        "admin/robots_blocked_sources.html",
+        {
+            "request": request,
+            "sources": robots_blocked_sources,
+        },
+    )
+
+
+@router.get("/sources/robots-blocked/list")
+def list_robots_blocked_sources(request: Request, db: Session = Depends(get_db)):
+    """List robots-blocked scrape sources (HTMX partial)."""
+    if not get_admin_user(request):
+        raise HTTPException(status_code=401)
+
+    sources = (
+        db.query(ScrapeSource)
+        .filter(ScrapeSource.robots_blocked == True)
+        .order_by(ScrapeSource.robots_blocked_at.desc())
+        .all()
+    )
+    return templates.TemplateResponse(
+        "admin/partials/source_list.html",
+        {"request": request, "sources": sources, "show_robots_blocked": True},
+    )
+
+
+@router.get("/sources/robots-blocked-count")
+def robots_blocked_count_link(request: Request, db: Session = Depends(get_db)):
+    """Return the robots-blocked sources count link (HTMX partial)."""
+    if not get_admin_user(request):
+        raise HTTPException(status_code=401)
+
+    robots_blocked_count = db.query(ScrapeSource).filter(ScrapeSource.robots_blocked == True).count()
+    return templates.TemplateResponse(
+        "admin/partials/robots_blocked_count_link.html",
+        {"request": request, "robots_blocked_count": robots_blocked_count},
+    )
+
+
+@router.post("/sources/{source_id}/recheck-robots")
+def recheck_robots_source(source_id: int, request: Request, db: Session = Depends(get_db)):
+    """Recheck robots.txt and unblock source if now allowed.
+
+    Actually fetches robots.txt again to verify the site now allows scraping.
+    Only unblocks if robots.txt check passes.
+    """
+    if not get_admin_user(request):
+        raise HTTPException(status_code=401)
+
+    from scraper.runner import check_robots_blocked
+
+    source = db.query(ScrapeSource).filter(ScrapeSource.id == source_id).first()
+    if not source:
+        sources = (
+            db.query(ScrapeSource)
+            .filter(ScrapeSource.robots_blocked == True)
+            .order_by(ScrapeSource.robots_blocked_at.desc())
+            .all()
+        )
+        return templates.TemplateResponse(
+            "admin/partials/source_list.html",
+            {"request": request, "sources": sources, "show_robots_blocked": True, "error": "Source not found."},
+        )
+
+    # Actually check robots.txt again
+    is_blocked, blocked_url, block_reason = check_robots_blocked(source)
+
+    if is_blocked:
+        # Still blocked - update the timestamp and show error
+        from datetime import datetime, timezone
+        source.robots_blocked_at = datetime.now(timezone.utc)
+        try:
+            db.commit()
+        except Exception:
+            db.rollback()
+
+        sources = (
+            db.query(ScrapeSource)
+            .filter(ScrapeSource.robots_blocked == True)
+            .order_by(ScrapeSource.robots_blocked_at.desc())
+            .all()
+        )
+        return templates.TemplateResponse(
+            "admin/partials/source_list.html",
+            {"request": request, "sources": sources, "show_robots_blocked": True, "error": f"Still blocked: {block_reason} ({blocked_url})"},
+        )
+
+    # Now allowed - unblock the source
+    source.robots_blocked = False
+    source.robots_blocked_at = None
+    try:
+        db.commit()
+    except Exception as e:
+        logger.error(f"Failed to unblock source {source_id}: {e}")
+        db.rollback()
+        sources = (
+            db.query(ScrapeSource)
+            .filter(ScrapeSource.robots_blocked == True)
+            .order_by(ScrapeSource.robots_blocked_at.desc())
+            .all()
+        )
+        return templates.TemplateResponse(
+            "admin/partials/source_list.html",
+            {"request": request, "sources": sources, "show_robots_blocked": True, "error": "Failed to unblock source. Please try again."},
+        )
+
+    sources = (
+        db.query(ScrapeSource)
+        .filter(ScrapeSource.robots_blocked == True)
+        .order_by(ScrapeSource.robots_blocked_at.desc())
+        .all()
+    )
+    return templates.TemplateResponse(
+        "admin/partials/source_list.html",
+        {"request": request, "sources": sources, "show_robots_blocked": True, "success": f"'{source.name}' is now allowed and moved to active sources."},
     )
 
 
@@ -217,9 +364,10 @@ def delete_source(source_id: int, request: Request, db: Session = Depends(get_db
     if not get_admin_user(request):
         raise HTTPException(status_code=401)
 
-    # Check if request came from disabled sources page
+    # Check which page the request came from
     hx_target = request.headers.get("HX-Target", "")
     show_disabled = hx_target == "disabled-source-list"
+    show_robots_blocked = hx_target == "robots-blocked-source-list"
 
     source = db.query(ScrapeSource).filter(ScrapeSource.id == source_id).first()
     if source:
@@ -229,22 +377,38 @@ def delete_source(source_id: int, request: Request, db: Session = Depends(get_db
         except Exception as e:
             logger.error(f"Failed to delete source {source_id}: {e}")
             db.rollback()
-            if show_disabled:
+            if show_robots_blocked:
+                sources = db.query(ScrapeSource).filter(ScrapeSource.robots_blocked == True).order_by(ScrapeSource.robots_blocked_at.desc()).all()
+            elif show_disabled:
                 sources = db.query(ScrapeSource).filter(ScrapeSource.is_active == False).order_by(ScrapeSource.created_at.desc()).all()
             else:
-                sources = db.query(ScrapeSource).filter(ScrapeSource.is_active == True).order_by(ScrapeSource.created_at.desc()).all()
+                sources = (
+                    db.query(ScrapeSource)
+                    .filter(ScrapeSource.is_active == True)
+                    .filter((ScrapeSource.robots_blocked == False) | (ScrapeSource.robots_blocked == None))
+                    .order_by(ScrapeSource.created_at.desc())
+                    .all()
+                )
             return templates.TemplateResponse(
                 "admin/partials/source_list.html",
-                {"request": request, "sources": sources, "show_disabled": show_disabled, "error": "Failed to delete source. Please try again."},
+                {"request": request, "sources": sources, "show_disabled": show_disabled, "show_robots_blocked": show_robots_blocked, "error": "Failed to delete source. Please try again."},
             )
 
-    if show_disabled:
+    if show_robots_blocked:
+        sources = db.query(ScrapeSource).filter(ScrapeSource.robots_blocked == True).order_by(ScrapeSource.robots_blocked_at.desc()).all()
+    elif show_disabled:
         sources = db.query(ScrapeSource).filter(ScrapeSource.is_active == False).order_by(ScrapeSource.created_at.desc()).all()
     else:
-        sources = db.query(ScrapeSource).filter(ScrapeSource.is_active == True).order_by(ScrapeSource.created_at.desc()).all()
+        sources = (
+            db.query(ScrapeSource)
+            .filter(ScrapeSource.is_active == True)
+            .filter((ScrapeSource.robots_blocked == False) | (ScrapeSource.robots_blocked == None))
+            .order_by(ScrapeSource.created_at.desc())
+            .all()
+        )
     return templates.TemplateResponse(
         "admin/partials/source_list.html",
-        {"request": request, "sources": sources, "show_disabled": show_disabled},
+        {"request": request, "sources": sources, "show_disabled": show_disabled, "show_robots_blocked": show_robots_blocked},
     )
 
 
@@ -343,8 +507,13 @@ async def trigger_scrape(request: Request, db: Session = Depends(get_db)):
     from app.services.email import send_scrape_notification, ScrapeNotificationData
 
     try:
-        # Get active sources
-        sources = db.query(ScrapeSource).filter(ScrapeSource.is_active == True).all()
+        # Get active sources (excluding robots-blocked)
+        sources = (
+            db.query(ScrapeSource)
+            .filter(ScrapeSource.is_active == True)
+            .filter((ScrapeSource.robots_blocked == False) | (ScrapeSource.robots_blocked == None))
+            .all()
+        )
         if not sources:
             response = templates.TemplateResponse(
                 "admin/partials/scrape_modal_result.html",
