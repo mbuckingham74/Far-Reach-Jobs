@@ -617,7 +617,13 @@ Generated code must contain:
 - URL validation blocks XSS (`<script`, `javascript:`, `data:`)
 - Email validation with regex pattern matching
 - All user input HTML-escaped in notification emails
-- Max length limits on all fields
+- Max length limits on all fields (state: 50, description: 5000, job_type: 100, salary: 255)
+
+**Reliability:**
+- Pre-flight check for ADMIN_EMAIL and SMTP credentials before accepting submissions
+- Returns 503 if email config missing or SMTP send fails (no false success messages)
+- SMTP calls run in ThreadPoolExecutor to avoid blocking event loop
+- Submissions only succeed if email actually sends
 
 ## CSS Selector Troubleshooting
 
