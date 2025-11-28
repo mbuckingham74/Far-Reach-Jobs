@@ -14,13 +14,13 @@ docker compose -f docker-compose.test.yml run --rm test
 | # | Area | Tests | Status | PR |
 |---|------|-------|--------|-----|
 | 1 | Authentication | 24 | ✅ Complete | [#52](https://github.com/mbuckingham74/Far-Reach-Jobs/pull/52) |
-| 2 | Jobs API | - | ⏳ Pending | - |
-| 3 | Saved Jobs | - | ⏳ Pending | - |
+| 2 | Jobs API | 34 | ✅ Complete | [#53](https://github.com/mbuckingham74/Far-Reach-Jobs/pull/53) |
+| 3 | Saved Jobs | 18 | ✅ Complete | [#54](https://github.com/mbuckingham74/Far-Reach-Jobs/pull/54) |
 | 4 | Admin Panel | - | ⏳ Pending | - |
 | 5 | Scraper Utilities | - | ⏳ Pending | - |
 | 6 | Models | - | ⏳ Pending | - |
 
-**Total Tests:** 39 (24 new + 15 existing)
+**Total Tests:** 91 (76 new + 15 existing)
 
 ---
 
@@ -48,54 +48,39 @@ docker compose -f docker-compose.test.yml run --rm test
 
 ---
 
-## 2. Jobs API Tests ⏳
+## 2. Jobs API Tests ✅
 
-**File:** `backend/tests/test_jobs.py` (to create)
+**File:** `backend/tests/test_jobs.py`
 **Endpoints:** `/api/jobs/*`
 
-### Planned Coverage
-- [ ] List jobs with pagination
-- [ ] Search by keyword (title, org, description, location)
-- [ ] Filter by state
-- [ ] Filter by location
-- [ ] Filter by job type
-- [ ] Filter by date posted (1/7/30 days)
-- [ ] Filter by organization
-- [ ] Filter by source
-- [ ] Get single job by ID
-- [ ] 404 for stale job
-- [ ] Get states list
-- [ ] Get locations list
-- [ ] Get job types list
-- [ ] HTMX partial responses
-
-### Key Test Fixtures Needed
-- Multiple jobs with various attributes
-- Jobs from different sources
-- Jobs in different states/locations
-- Jobs with different ages (for date filtering)
+### Coverage
+- [x] List jobs (5 tests)
+  - Empty database, excludes stale, pagination, limits, ordering
+- [x] Search (6 tests)
+  - By title, organization, description, location, case-insensitive, no results
+- [x] Filters (12 tests)
+  - State, location, job type, organization, source_id, date posted (1/7/30 days), combined, invalid params
+- [x] Get single job (3 tests)
+  - Success, not found, stale returns 404
+- [x] Reference endpoints (8 tests)
+  - States list, locations list, job types list, HTMX HTML responses
 
 ---
 
-## 3. Saved Jobs Tests ⏳
+## 3. Saved Jobs Tests ✅
 
-**File:** `backend/tests/test_saved_jobs.py` (to create)
+**File:** `backend/tests/test_saved_jobs.py`
 **Endpoints:** `/api/saved-jobs/*`
 
-### Planned Coverage
-- [ ] List saved jobs (authenticated)
-- [ ] List saved jobs (unauthenticated - 401)
-- [ ] Save a job
-- [ ] Save already-saved job (idempotent)
-- [ ] Unsave a job
-- [ ] Unsave from saved page vs listing (context-aware response)
-- [ ] Save non-existent job
-- [ ] HTMX responses
-
-### Key Test Fixtures Needed
-- Authenticated user fixture
-- User with saved jobs
-- Multiple users (isolation testing)
+### Coverage
+- [x] List saved jobs (5 tests)
+  - Unauthenticated 401, empty list, with jobs, user isolation, ordering
+- [x] Save job (5 tests)
+  - Unauthenticated 401, success, idempotent, nonexistent 404, stale 404
+- [x] Unsave job (4 tests)
+  - Unauthenticated 401, success, not saved, other user's job
+- [x] HTMX responses (4 tests)
+  - List, save, unsave from listing, unsave from saved page
 
 ---
 
