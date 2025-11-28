@@ -11,6 +11,7 @@ from bs4 import BeautifulSoup
 from app.models import Job, ScrapeSource, ScrapeLog
 from scraper.base import BaseScraper, ScrapedJob, ScrapeResult
 from scraper.playwright_fetcher import get_playwright_fetcher
+from scraper.robots import RobotsChecker
 
 logger = logging.getLogger(__name__)
 
@@ -230,6 +231,32 @@ def is_ultipro_url(url: str | None) -> bool:
     return "ultipro.com" in url.lower()
 
 
+def check_robots_blocked(source: ScrapeSource) -> tuple[bool, str | None]:
+    """Check if a source's listing URLs are blocked by robots.txt.
+
+    Args:
+        source: ScrapeSource to check
+
+    Returns:
+        (is_blocked, blocked_url) tuple. blocked_url is the first URL that was blocked.
+    """
+    listing_url = source.listing_url or source.base_url or ""
+    listing_urls = [url.strip() for url in listing_url.split('\n') if url.strip()]
+
+    if not listing_urls:
+        return False, None
+
+    # Check robots.txt for each URL
+    for url in listing_urls:
+        checker = RobotsChecker(url)
+        if checker.load():
+            if not checker.can_fetch(url):
+                logger.info(f"robots.txt blocks {url} for source {source.name}")
+                return True, url
+
+    return False, None
+
+
 def get_source_config(source: ScrapeSource) -> dict:
     """Extract configuration dictionary from a ScrapeSource model."""
     return {
@@ -415,6 +442,26 @@ def run_scraper(db: Session, source: ScrapeSource, trigger_type: str = "manual")
     """Run a single scraper and upsert jobs to database."""
     start_time = time.time()
     started_at = datetime.now(timezone.utc)
+
+    # Pre-flight check: Is this source blocked by robots.txt?
+    is_blocked, blocked_url = check_robots_blocked(source)
+    if is_blocked:
+        # Mark source as robots-blocked
+        source.robots_blocked = True
+        source.robots_blocked_at = datetime.now(timezone.utc)
+        source.last_scraped_at = datetime.now(timezone.utc)
+        source.last_scrape_success = False
+
+        result = ScrapeResult(
+            source_name=source.name,
+            jobs_found=0,
+            jobs_new=0,
+            jobs_updated=0,
+            errors=[f"Blocked by robots.txt: {blocked_url}"],
+            duration_seconds=0,
+        )
+        log_scrape_result(db, source, result, trigger_type, started_at)
+        return result
 
     # Check for specialized API scrapers based on listing URL
     listing_url = source.listing_url or ""
