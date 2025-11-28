@@ -10,6 +10,7 @@ from bs4 import BeautifulSoup
 
 from app.models import Job, ScrapeSource, ScrapeLog
 from scraper.base import BaseScraper, ScrapedJob, ScrapeResult
+from scraper.playwright_fetcher import get_playwright_fetcher
 
 logger = logging.getLogger(__name__)
 
@@ -57,18 +58,19 @@ def get_scraper_class(class_name: str) -> type[BaseScraper] | None:
     return None
 
 
-def create_dynamic_scraper(source: ScrapeSource) -> type[BaseScraper] | None:
+def create_dynamic_scraper(source: ScrapeSource) -> tuple[type[BaseScraper] | None, bool]:
     """Dynamically compile and return a scraper class from custom_scraper_code.
 
     Args:
         source: ScrapeSource with custom_scraper_code field populated
 
     Returns:
-        A scraper class ready to instantiate, or None if compilation fails
+        Tuple of (scraper class ready to instantiate, use_playwright flag),
+        or (None, False) if compilation fails
     """
     if not source.custom_scraper_code:
         logger.error(f"No custom_scraper_code for source {source.name}")
-        return None
+        return None, False
 
     # Create a namespace with all the imports the generated code might need
     namespace = {
@@ -96,17 +98,17 @@ def create_dynamic_scraper(source: ScrapeSource) -> type[BaseScraper] | None:
 
         if scraper_class is None:
             logger.error(f"No BaseScraper subclass found in custom code for {source.name}")
-            return None
+            return None, False
 
         logger.info(f"Successfully compiled dynamic scraper {scraper_class.__name__} for {source.name}")
-        return scraper_class
+        return scraper_class, source.use_playwright
 
     except SyntaxError as e:
         logger.error(f"Syntax error in custom scraper code for {source.name}: {e}")
-        return None
+        return None, False
     except Exception as e:
         logger.error(f"Failed to compile custom scraper for {source.name}: {e}")
-        return None
+        return None, False
 
 
 def upsert_job(db: Session, source_id: int, scraped_job: ScrapedJob) -> tuple[bool, bool]:
@@ -242,8 +244,9 @@ def run_scraper(db: Session, source: ScrapeSource, trigger_type: str = "manual")
     started_at = datetime.now(timezone.utc)
 
     # Handle DynamicScraper - compile from custom_scraper_code
+    use_playwright_for_dynamic = False
     if source.scraper_class == "DynamicScraper":
-        scraper_class = create_dynamic_scraper(source)
+        scraper_class, use_playwright_for_dynamic = create_dynamic_scraper(source)
         if scraper_class is None:
             source.last_scraped_at = datetime.now(timezone.utc)
             source.last_scrape_success = False
@@ -289,11 +292,17 @@ def run_scraper(db: Session, source: ScrapeSource, trigger_type: str = "manual")
     source_config = get_source_config(source)
 
     try:
-        # GenericScraper needs configuration, DynamicScraper and others don't
+        # GenericScraper needs configuration, others use default constructor
         if source.scraper_class == "GenericScraper":
             scraper_instance = scraper_class(source_config=source_config)
         else:
             scraper_instance = scraper_class()
+
+        # For DynamicScraper, set Playwright flag after instantiation
+        # This avoids breaking custom scrapers that define their own __init__
+        if source.scraper_class == "DynamicScraper" and use_playwright_for_dynamic:
+            scraper_instance._use_playwright = True
+            scraper_instance._playwright_fetcher = get_playwright_fetcher()
 
         with scraper_instance as scraper:
             scraped_jobs, errors = scraper.run()
