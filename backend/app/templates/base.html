@@ -29,6 +29,8 @@
     </script>
     <link rel="stylesheet" href="/static/css/styles.css">
     <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <!-- HTMX configuration: disable auto-scroll on content swap globally -->
+    <meta name="htmx-config" content='{"defaultSwapStyle":"innerHTML show:none"}'>
     <!-- Dark mode initialization (before page renders to prevent flash) -->
     <script>
         (function() {
