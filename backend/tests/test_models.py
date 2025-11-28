@@ -253,6 +253,89 @@ class TestJobModel:
         assert job.location is None
         assert job.state is None
 
+    def test_display_job_type_full_time(self, db, active_source):
+        """display_job_type returns Full-Time for full-time variants."""
+        test_cases = [
+            ("Full-Time", "Full-Time"),
+            ("full time", "Full-Time"),
+            ("Full Time", "Full-Time"),
+            ("80 Full time", "Full-Time"),  # 80 hours biweekly = full-time
+        ]
+        for i, (raw, expected) in enumerate(test_cases):
+            job = Job(
+                source_id=active_source.id,
+                external_id=f"ft-job-{i}",
+                title="Full Time Test",
+                url="https://example.com/job",
+                job_type=raw,
+            )
+            db.add(job)
+            db.commit()
+            assert job.display_job_type == expected, f"Expected {expected} for '{raw}'"
+
+    def test_display_job_type_part_time(self, db, active_source):
+        """display_job_type returns Part-Time for part-time variants."""
+        test_cases = [
+            ("Part-Time", "Part-Time"),
+            ("part time", "Part-Time"),
+            ("Part Time", "Part-Time"),
+            ("20 Full time", "Part-Time"),  # 20 hours = part-time despite "full"
+        ]
+        for i, (raw, expected) in enumerate(test_cases):
+            job = Job(
+                source_id=active_source.id,
+                external_id=f"pt-job-{i}",
+                title="Part Time Test",
+                url="https://example.com/job",
+                job_type=raw,
+            )
+            db.add(job)
+            db.commit()
+            assert job.display_job_type == expected, f"Expected {expected} for '{raw}'"
+
+    def test_display_job_type_none_for_categories(self, db, active_source):
+        """display_job_type returns None for category-style job types."""
+        test_cases = [
+            "Healthcare",
+            "Administrative",
+            "Management",
+            "Education",
+            None,
+        ]
+        for i, raw in enumerate(test_cases):
+            job = Job(
+                source_id=active_source.id,
+                external_id=f"cat-job-{i}",
+                title="Category Test",
+                url="https://example.com/job",
+                job_type=raw,
+            )
+            db.add(job)
+            db.commit()
+            assert job.display_job_type is None, f"Expected None for '{raw}'"
+
+    def test_display_job_type_hours_only(self, db, active_source):
+        """display_job_type handles hour-only values."""
+        job_ft = Job(
+            source_id=active_source.id,
+            external_id="hours-ft",
+            title="Hours Test FT",
+            url="https://example.com/job",
+            job_type="40",
+        )
+        job_pt = Job(
+            source_id=active_source.id,
+            external_id="hours-pt",
+            title="Hours Test PT",
+            url="https://example.com/job",
+            job_type="20",
+        )
+        db.add_all([job_ft, job_pt])
+        db.commit()
+
+        assert job_ft.display_job_type == "Full-Time"
+        assert job_pt.display_job_type == "Part-Time"
+
 
 class TestSavedJobModel:
     """Tests for the SavedJob model."""
