@@ -207,7 +207,15 @@ class UltiProScraper(BaseScraper):
             loc = locations[0]
             address = loc.get("Address") or {}
             city = address.get("City", "")
-            state = address.get("State", "")
+
+            # State can be a string or an object like {'Code': 'AK', 'Name': 'Alaska'}
+            state_value = address.get("State")
+            if isinstance(state_value, dict):
+                state = state_value.get("Code") or state_value.get("Name", "")
+            elif isinstance(state_value, str):
+                state = state_value
+            else:
+                state = ""
 
             if city and state:
                 location = f"{city}, {state}"

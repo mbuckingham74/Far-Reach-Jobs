@@ -350,6 +350,37 @@ class TestUltiProScraper:
         assert job.location == "Anchorage"
         assert job.state == ""
 
+    def test_handles_state_as_object(self):
+        """Should handle State field as object with Code/Name properties."""
+        scraper = UltiProScraper(
+            source_name="Test Org",
+            base_url="https://example.org",
+            listing_url=(
+                "https://recruiting2.ultipro.com/TEST123/JobBoard/board-456/"
+            ),
+        )
+
+        # Real UltiPro API returns State as an object, not a string
+        opportunity = {
+            "Id": "job-123",
+            "Title": "Test Job",
+            "FullTime": True,
+            "Locations": [
+                {
+                    "Address": {
+                        "City": "Anchorage",
+                        "State": {"Code": "AK", "Name": "Alaska"},
+                    }
+                }
+            ],
+        }
+
+        job = scraper._parse_opportunity(opportunity)
+
+        assert job is not None
+        assert job.location == "Anchorage, AK"
+        assert job.state == "AK"
+
     def test_normalizes_job_detail_url_to_board_url(self):
         """Should extract board URL even when given a job detail URL."""
         # User might copy/paste a job detail URL instead of the board URL
