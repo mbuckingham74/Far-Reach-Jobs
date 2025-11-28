@@ -311,8 +311,9 @@
     };
 
     window.closeScrapeModal = function() {
-        // Navigate back to admin page
-        window.location.href = '/admin';
+        const modal = document.getElementById('scrape-modal');
+        modal.classList.add('hidden');
+        document.body.style.overflow = '';
     };
 
     window.onScrapeComplete = function() {
