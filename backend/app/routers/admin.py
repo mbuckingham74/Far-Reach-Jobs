@@ -1280,10 +1280,16 @@ async def save_source_configuration(source_id: int, request: Request, db: Sessio
     # Checkbox: present in form data only when checked
     source.use_playwright = form.get("use_playwright") == "1"
 
+    # SitemapScraper configuration
+    source.sitemap_url = form.get("sitemap_url", "").strip() or None
+    source.sitemap_url_pattern = form.get("sitemap_url_pattern", "").strip() or None
+    source.organization = form.get("organization", "").strip() or None
+
     # Scraper type - validate and handle transitions
     scraper_class = form.get("scraper_class", "GenericScraper").strip()
     dynamic_fallback_warning = None
-    if scraper_class in ("GenericScraper", "DynamicScraper"):
+    sitemap_fallback_warning = None
+    if scraper_class in ("GenericScraper", "DynamicScraper", "SitemapScraper"):
         if scraper_class == "GenericScraper" and source.scraper_class == "DynamicScraper":
             # Switching from Dynamic to Generic - clear custom code
             source.custom_scraper_code = None
@@ -1291,6 +1297,10 @@ async def save_source_configuration(source_id: int, request: Request, db: Sessio
             # Can't use Dynamic without custom code - fall back to Generic
             scraper_class = "GenericScraper"
             dynamic_fallback_warning = "Cannot use Dynamic scraper without custom code. Use 'Analyze Page with AI' to generate code first, or use Generic with CSS selectors."
+        elif scraper_class == "SitemapScraper" and not source.sitemap_url:
+            # Can't use Sitemap without URL - fall back to Generic
+            scraper_class = "GenericScraper"
+            sitemap_fallback_warning = "Cannot use Sitemap scraper without a sitemap URL. Please provide a sitemap URL."
         source.scraper_class = scraper_class
 
     try:
@@ -1309,6 +1319,8 @@ async def save_source_configuration(source_id: int, request: Request, db: Sessio
         warnings = []
         if dynamic_fallback_warning:
             warnings.append(dynamic_fallback_warning)
+        if sitemap_fallback_warning:
+            warnings.append(sitemap_fallback_warning)
         if missing_selectors:
             warnings.append(f"Scraping won't work until these selectors are set: {', '.join(missing_selectors)}")
 

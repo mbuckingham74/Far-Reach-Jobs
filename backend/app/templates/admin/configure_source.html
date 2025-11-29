@@ -182,19 +182,69 @@
         <div>
             <label for="scraper_class" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Scraper Type</label>
             <select id="scraper_class" name="scraper_class"
+                    onchange="toggleScraperSections()"
                     class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white dark:bg-gray-700 dark:text-white">
                 <option value="GenericScraper" {% if source.scraper_class == 'GenericScraper' %}selected{% endif %}>Generic (CSS Selectors)</option>
+                <option value="SitemapScraper" {% if source.scraper_class == 'SitemapScraper' %}selected{% endif %}>Sitemap (XML URL Parsing)</option>
                 <option value="DynamicScraper" {% if source.scraper_class == 'DynamicScraper' %}selected{% endif %}>Dynamic (AI-Generated Custom Code)</option>
             </select>
             <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                <strong>Generic:</strong> Uses CSS selectors below to extract jobs. Best for most sites.<br>
-                <strong>Dynamic:</strong> Uses AI-generated custom scraper code. Only use if Generic doesn't work.
+                <strong>Generic:</strong> Uses CSS selectors to extract jobs from HTML pages.<br>
+                <strong>Sitemap:</strong> Extracts jobs from XML sitemaps. Best for JS-heavy sites with sitemaps.<br>
+                <strong>Dynamic:</strong> Uses AI-generated custom scraper code. Only use if others don't work.
             </p>
         </div>
     </div>
 
-    <!-- Required Selectors -->
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 transition-colors">
+    <!-- Sitemap Configuration (shown when SitemapScraper selected) -->
+    <div id="sitemap-config" class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 transition-colors {% if source.scraper_class != 'SitemapScraper' %}hidden{% endif %}">
+        <h3 class="text-lg font-semibold dark:text-white mb-2">Sitemap Configuration</h3>
+        <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
+            Configure how to extract jobs from the XML sitemap. Job details are parsed from URL structure.
+        </p>
+        <div class="space-y-4">
+            <div>
+                <label for="sitemap_url" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Sitemap URL <span class="text-red-500">*</span>
+                </label>
+                <input type="url" id="sitemap_url" name="sitemap_url" value="{{ source.sitemap_url or '' }}"
+                       placeholder="https://example.com/sitemaps/jobs.xml"
+                       class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white dark:bg-gray-700 dark:text-white dark:placeholder-gray-500 font-mono text-sm">
+                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">URL of the XML sitemap containing job URLs (check /sitemap.xml or /robots.txt for sitemap locations)</p>
+            </div>
+            <div>
+                <label for="sitemap_url_pattern" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    URL Filter Pattern
+                </label>
+                <input type="text" id="sitemap_url_pattern" name="sitemap_url_pattern" value="{{ source.sitemap_url_pattern or '' }}"
+                       placeholder="-ak/|-AK/"
+                       class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white dark:bg-gray-700 dark:text-white dark:placeholder-gray-500 font-mono text-sm">
+                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Regex pattern to filter URLs (e.g., "-ak/" for Alaska jobs only). Leave blank for all jobs.</p>
+            </div>
+            <div>
+                <label for="organization" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Organization Name
+                </label>
+                <input type="text" id="organization" name="organization" value="{{ source.organization or '' }}"
+                       placeholder="e.g., Alaska Airlines"
+                       class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white dark:bg-gray-700 dark:text-white dark:placeholder-gray-500">
+                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Organization name for all jobs. If blank, uses source name.</p>
+            </div>
+        </div>
+        <div class="mt-4 bg-blue-50 dark:bg-blue-900/30 rounded-lg border border-blue-200 dark:border-blue-800 p-4">
+            <h4 class="font-medium text-blue-800 dark:text-blue-200 mb-2">How Sitemap Scraper Works</h4>
+            <ul class="list-disc list-inside text-sm text-blue-700 dark:text-blue-300 space-y-1">
+                <li>Fetches XML sitemap and extracts all job URLs</li>
+                <li>Filters URLs by pattern (if configured)</li>
+                <li>Parses job title and location from URL structure</li>
+                <li>Example: <code class="bg-blue-100 dark:bg-blue-800 px-1 rounded text-xs">/kotzebue-ak/customer-service-agent/</code> → Title: "Customer Service Agent", Location: "Kotzebue, AK"</li>
+                <li>No JavaScript rendering needed - fast and reliable</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Required Selectors (hidden when SitemapScraper selected) -->
+    <div id="css-selectors-required" class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 transition-colors {% if source.scraper_class == 'SitemapScraper' %}hidden{% endif %}">
         <h3 class="text-lg font-semibold dark:text-white mb-2">Required CSS Selectors</h3>
         <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
             These selectors are required for the scraper to find jobs. Use browser DevTools to inspect the page structure.
@@ -239,8 +289,8 @@
         </div>
     </div>
 
-    <!-- Optional Selectors -->
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 transition-colors">
+    <!-- Optional Selectors (hidden when SitemapScraper selected) -->
+    <div id="css-selectors-optional" class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 transition-colors {% if source.scraper_class == 'SitemapScraper' %}hidden{% endif %}">
         <h3 class="text-lg font-semibold dark:text-white mb-2">Optional CSS Selectors</h3>
         <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
             These fields are optional but help provide more complete job information.
@@ -279,8 +329,8 @@
         </div>
     </div>
 
-    <!-- Pagination -->
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 transition-colors">
+    <!-- Pagination (hidden when SitemapScraper selected) -->
+    <div id="css-selectors-pagination" class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 transition-colors {% if source.scraper_class == 'SitemapScraper' %}hidden{% endif %}">
         <h3 class="text-lg font-semibold dark:text-white mb-2">Pagination (Optional)</h3>
         <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
             Configure these if jobs span multiple pages.
@@ -362,6 +412,27 @@
 
 {% block scripts %}
 <script>
+// Toggle scraper-specific configuration sections
+function toggleScraperSections() {
+    const scraperClass = document.getElementById('scraper_class').value;
+    const sitemapConfig = document.getElementById('sitemap-config');
+    const cssRequired = document.getElementById('css-selectors-required');
+    const cssOptional = document.getElementById('css-selectors-optional');
+    const cssPagination = document.getElementById('css-selectors-pagination');
+
+    if (scraperClass === 'SitemapScraper') {
+        sitemapConfig.classList.remove('hidden');
+        cssRequired.classList.add('hidden');
+        cssOptional.classList.add('hidden');
+        cssPagination.classList.add('hidden');
+    } else {
+        sitemapConfig.classList.add('hidden');
+        cssRequired.classList.remove('hidden');
+        cssOptional.classList.remove('hidden');
+        cssPagination.classList.remove('hidden');
+    }
+}
+
 (function() {
     const analyzeBtn = document.getElementById('analyze-btn');
     const analyzeSpinner = document.getElementById('analyze-spinner');
