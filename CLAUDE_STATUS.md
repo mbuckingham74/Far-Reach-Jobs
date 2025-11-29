@@ -845,7 +845,6 @@ Default State: AK
 - [x] Dashboard shows "Needs Configuration (N)" link when count > 0
 - [x] Auto-enable on successful scrape: when jobs_found > 0 and no errors
 - [x] "Source enabled!" message in scrape result modal after auto-enable
-- [x] Manual Enable button as fallback (for sources with 0 current jobs)
 - [x] Mark Disabled button moves source to Disabled page
 - [x] Export CSV of needs-configuration sources
 - [x] Consistent filtering across all source list endpoints
@@ -881,7 +880,6 @@ Default State: AK
 3. If scrape finds jobs (>0) with no errors → source auto-enabled
 4. Source moves to Active list, "Source enabled!" shown in modal
 5. If 0 jobs or errors → stays in Needs Configuration for further work
-6. Manual Enable button available for sources with correct config but 0 current openings
 
 **Workflow:**
 1. Bulk import CSV → sources go to "Needs Configuration" page
