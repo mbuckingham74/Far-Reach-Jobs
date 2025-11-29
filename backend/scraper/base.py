@@ -96,6 +96,35 @@ class BaseScraper(ABC):
         """Generate a unique external ID for a job based on its URL."""
         return hashlib.sha256(url.encode()).hexdigest()[:32]
 
+    @staticmethod
+    def clean_location(location: str | None) -> str | None:
+        """Clean location text by removing common extraneous suffixes.
+
+        Removes patterns like:
+        - "Fairbanks, AK, USVacancy Locations" -> "Fairbanks, AK"
+        - "City, ST, Vacancy Locations" -> "City, ST"
+        """
+        if not location:
+            return None
+
+        import re
+
+        # Remove common suffixes that shouldn't be in location
+        patterns_to_remove = [
+            r",?\s*USVacancy Locations\s*$",
+            r",?\s*Vacancy Locations\s*$",
+            r",?\s*US\s*$",  # Trailing "US" without state
+        ]
+
+        cleaned = location.strip()
+        for pattern in patterns_to_remove:
+            cleaned = re.sub(pattern, "", cleaned, flags=re.IGNORECASE).strip()
+
+        # Clean up any trailing comma/spaces left behind
+        cleaned = re.sub(r",\s*$", "", cleaned).strip()
+
+        return cleaned if cleaned else None
+
     def check_robots(self) -> bool:
         """Initialize and check robots.txt compliance."""
         self.robots_checker = RobotsChecker(self.base_url)
