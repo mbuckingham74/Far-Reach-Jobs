@@ -3,8 +3,10 @@ import csv
 import io
 import logging
 import re
+import time
+from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor
-from fastapi import APIRouter, HTTPException, UploadFile, File, Form
+from fastapi import APIRouter, HTTPException, UploadFile, File, Form, Request
 from pydantic import ValidationError
 
 from app.schemas.employer import JobSubmission, CareersPageSubmission, BulkSourceEntry
@@ -20,12 +22,57 @@ MAX_CSV_SIZE = 512 * 1024
 # Max rows per submission
 MAX_ROWS = 100
 
+# Rate limiting configuration
+RATE_LIMIT_WINDOW = 3600  # 1 hour window
+RATE_LIMIT_MAX_REQUESTS = 5  # Max submissions per IP per window
+
 router = APIRouter()
 logger = logging.getLogger(__name__)
 settings = get_settings()
 
 # Thread pool for blocking SMTP operations
 _email_executor = ThreadPoolExecutor(max_workers=2, thread_name_prefix="email_")
+
+# Simple in-memory rate limiter: {ip: [(timestamp, endpoint), ...]}
+_rate_limit_store: dict[str, list[tuple[float, str]]] = defaultdict(list)
+
+
+def _get_client_ip(request: Request) -> str:
+    """Extract client IP, considering proxy headers."""
+    # Check X-Forwarded-For first (for reverse proxy setups)
+    forwarded = request.headers.get("X-Forwarded-For")
+    if forwarded:
+        # Take the first IP (original client)
+        return forwarded.split(",")[0].strip()
+    # Fall back to direct client IP
+    return request.client.host if request.client else "unknown"
+
+
+def _check_rate_limit(request: Request, endpoint: str) -> None:
+    """Check if the client has exceeded the rate limit. Raises 429 if exceeded."""
+    client_ip = _get_client_ip(request)
+    current_time = time.time()
+    cutoff_time = current_time - RATE_LIMIT_WINDOW
+
+    # Clean old entries and count recent requests
+    recent_requests = [
+        (ts, ep) for ts, ep in _rate_limit_store[client_ip]
+        if ts > cutoff_time
+    ]
+    _rate_limit_store[client_ip] = recent_requests
+
+    # Count requests to employer submission endpoints
+    submission_count = len(recent_requests)
+
+    if submission_count >= RATE_LIMIT_MAX_REQUESTS:
+        logger.warning(f"Rate limit exceeded for IP {client_ip} on {endpoint}")
+        raise HTTPException(
+            status_code=429,
+            detail="Too many submissions. Please wait an hour before trying again.",
+        )
+
+    # Record this request
+    _rate_limit_store[client_ip].append((current_time, endpoint))
 
 
 def _check_email_configured() -> None:
@@ -43,13 +90,15 @@ def _check_email_configured() -> None:
 
 
 @router.post("/submit-job")
-async def submit_job(submission: JobSubmission):
+async def submit_job(request: Request, submission: JobSubmission):
     """
     Submit a job posting for review.
 
     This endpoint receives job submissions from employers and sends
     a notification email to the admin for review.
     """
+    # Check rate limit first
+    _check_rate_limit(request, "submit-job")
     # Check if email is fully configured before accepting the submission
     _check_email_configured()
 
@@ -99,13 +148,15 @@ async def submit_job(submission: JobSubmission):
 
 
 @router.post("/submit-careers-page")
-async def submit_careers_page(submission: CareersPageSubmission):
+async def submit_careers_page(request: Request, submission: CareersPageSubmission):
     """
     Submit a careers page URL for automatic scraping.
 
     This endpoint receives careers page submissions from employers and sends
     a notification email to the admin to set up scraping.
     """
+    # Check rate limit first
+    _check_rate_limit(request, "submit-careers-page")
     # Check if email is fully configured before accepting the submission
     _check_email_configured()
 
@@ -167,6 +218,7 @@ def _validate_email(email: str) -> str:
 
 @router.post("/submit-bulk-sources")
 async def submit_bulk_sources(
+    request: Request,
     file: UploadFile = File(...),
     contact_email: str = Form(...),
     notes: str = Form(None),
@@ -183,6 +235,8 @@ async def submit_bulk_sources(
     This does NOT directly add sources to the database - it only notifies
     the admin who will review and add them manually.
     """
+    # Check rate limit first (most important for bulk upload)
+    _check_rate_limit(request, "submit-bulk-sources")
     # Check if email is fully configured
     _check_email_configured()
 
@@ -237,7 +291,7 @@ async def submit_bulk_sources(
     normalized_fields = {_normalize_column_name(f): f for f in reader.fieldnames}
 
     # Required: Organization
-    for variant in ["organization", "organisationname", "orgname", "org", "name", "sourcename", "source"]:
+    for variant in ["organization", "organizationname", "organisationname", "orgname", "org", "name", "sourcename", "source"]:
         if variant in normalized_fields:
             column_map["organization"] = normalized_fields[variant]
             break
