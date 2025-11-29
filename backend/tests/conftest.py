@@ -145,3 +145,19 @@ def stale_job(db, active_source):
     db.commit()
     db.refresh(job)
     return job
+
+
+@pytest.fixture
+def robots_blocked_source(db):
+    """Create a source blocked by robots.txt."""
+    source = ScrapeSource(
+        name="Robots Blocked Source",
+        base_url="https://blocked.com",
+        is_active=True,
+        robots_blocked=True,
+        robots_blocked_at=datetime.utcnow(),
+    )
+    db.add(source)
+    db.commit()
+    db.refresh(source)
+    return source
