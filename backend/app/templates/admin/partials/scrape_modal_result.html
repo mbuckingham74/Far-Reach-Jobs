@@ -31,6 +31,15 @@
         </div>
     </div>
 
+    {% if auto_enabled %}
+    <div class="bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-lg p-3 mb-4 text-left">
+        <p class="font-medium text-green-700 dark:text-green-300 text-sm">Source enabled!</p>
+        <p class="text-xs text-green-600 dark:text-green-400">
+            This source has been moved to Active and will be included in scheduled scrapes.
+        </p>
+    </div>
+    {% endif %}
+
     {% if result.errors %}
     <div class="bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800 rounded-lg p-3 mb-4 text-left">
         <p class="font-medium text-amber-700 dark:text-amber-300 text-sm mb-1">{{ result.errors|length }} warning(s)</p>

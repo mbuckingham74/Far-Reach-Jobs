@@ -1044,6 +1044,15 @@ async def trigger_single_source_scrape(source_id: int, request: Request, db: Ses
 
         duration = time.time() - start_time
 
+        # Auto-enable source if it was in needs_configuration and scrape was successful
+        auto_enabled = False
+        if source.needs_configuration and result.jobs_found > 0 and not result.errors:
+            source.is_active = True
+            source.needs_configuration = False
+            auto_enabled = True
+            db.commit()
+            logger.info(f"Auto-enabled source '{source.name}' after successful configuration scrape")
+
         # Send notification email
         errors_with_source = [(source.name, e) for e in result.errors]
 
@@ -1075,6 +1084,7 @@ async def trigger_single_source_scrape(source_id: int, request: Request, db: Ses
                 "result": modal_result,
                 "source_name": source.name,
                 "success": True,
+                "auto_enabled": auto_enabled,
             },
         )
         response.headers["HX-Trigger"] = "refreshSourceList"
