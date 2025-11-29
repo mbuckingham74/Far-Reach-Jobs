@@ -1,0 +1,318 @@
+{% extends "base.html" %}
+
+{% block title %}Scraper Guide - Admin - Far Reach Jobs{% endblock %}
+
+{% block content %}
+<div class="mb-6 flex justify-between items-center">
+    <div>
+        <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Scraper Guide</h2>
+        <p class="text-gray-600 dark:text-gray-300">How to configure scrapers for different job board platforms</p>
+    </div>
+    <a href="/admin" class="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white font-medium rounded-md transition-colors">
+        Back to Dashboard
+    </a>
+</div>
+
+<!-- Quick Reference -->
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-8">
+    <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Quick Reference: Which Scraper to Use?</h3>
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+            <thead>
+                <tr class="border-b border-gray-200 dark:border-gray-700">
+                    <th class="text-left py-2 px-3 text-gray-700 dark:text-gray-300">URL Contains</th>
+                    <th class="text-left py-2 px-3 text-gray-700 dark:text-gray-300">Platform</th>
+                    <th class="text-left py-2 px-3 text-gray-700 dark:text-gray-300">Scraper</th>
+                    <th class="text-left py-2 px-3 text-gray-700 dark:text-gray-300">Detection</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
+                <tr>
+                    <td class="py-2 px-3 font-mono text-xs text-gray-600 dark:text-gray-400">workforcenow.adp.com</td>
+                    <td class="py-2 px-3 text-gray-900 dark:text-white">ADP WorkforceNow</td>
+                    <td class="py-2 px-3"><span class="px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded text-xs">Auto (API)</span></td>
+                    <td class="py-2 px-3 text-green-600 dark:text-green-400">Automatic</td>
+                </tr>
+                <tr>
+                    <td class="py-2 px-3 font-mono text-xs text-gray-600 dark:text-gray-400">myworkdayjobs.com</td>
+                    <td class="py-2 px-3 text-gray-900 dark:text-white">Workday</td>
+                    <td class="py-2 px-3"><span class="px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded text-xs">Auto (API)</span></td>
+                    <td class="py-2 px-3 text-green-600 dark:text-green-400">Automatic</td>
+                </tr>
+                <tr>
+                    <td class="py-2 px-3 font-mono text-xs text-gray-600 dark:text-gray-400">ultipro.com</td>
+                    <td class="py-2 px-3 text-gray-900 dark:text-white">UltiPro (Legacy)</td>
+                    <td class="py-2 px-3"><span class="px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded text-xs">Auto (API)</span></td>
+                    <td class="py-2 px-3 text-green-600 dark:text-green-400">Automatic</td>
+                </tr>
+                <tr>
+                    <td class="py-2 px-3 font-mono text-xs text-gray-600 dark:text-gray-400">rec.pro.ukg.net</td>
+                    <td class="py-2 px-3 text-gray-900 dark:text-white">UKG Pro Recruiting</td>
+                    <td class="py-2 px-3"><span class="px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded text-xs">Auto (API)</span></td>
+                    <td class="py-2 px-3 text-green-600 dark:text-green-400">Automatic</td>
+                </tr>
+                <tr>
+                    <td class="py-2 px-3 font-mono text-xs text-gray-600 dark:text-gray-400">Other HTML pages</td>
+                    <td class="py-2 px-3 text-gray-900 dark:text-white">Standard websites</td>
+                    <td class="py-2 px-3"><span class="px-2 py-1 bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200 rounded text-xs">GenericScraper</span></td>
+                    <td class="py-2 px-3 text-amber-600 dark:text-amber-400">Configure CSS</td>
+                </tr>
+                <tr>
+                    <td class="py-2 px-3 font-mono text-xs text-gray-600 dark:text-gray-400">Complex JS pages</td>
+                    <td class="py-2 px-3 text-gray-900 dark:text-white">Oracle EBS, custom portals</td>
+                    <td class="py-2 px-3"><span class="px-2 py-1 bg-orange-100 dark:bg-orange-900 text-orange-800 dark:text-orange-200 rounded text-xs">DynamicScraper</span></td>
+                    <td class="py-2 px-3 text-amber-600 dark:text-amber-400">Custom code</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- API Scrapers Section -->
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-8">
+    <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">API Scrapers (Auto-Detected)</h3>
+    <p class="text-gray-600 dark:text-gray-400 mb-6">These scrapers are automatically used when the listing URL matches a known platform. They fetch jobs from the platform's JSON API instead of parsing HTML.</p>
+
+    <!-- ADP WorkforceNow -->
+    <div class="border-l-4 border-blue-500 pl-4 mb-6">
+        <h4 class="font-semibold text-gray-900 dark:text-white mb-2">ADP WorkforceNow</h4>
+        <div class="text-sm text-gray-600 dark:text-gray-400 space-y-2">
+            <p><strong>URL Pattern:</strong> <code class="bg-gray-100 dark:bg-gray-700 px-1 rounded">https://workforcenow.adp.com/mascsr/default/mdf/recruitment/recruitment.html?cid=...&ccId=...</code></p>
+            <p><strong>How it works:</strong> Extracts <code>cid</code> (Company ID) and <code>ccId</code> (Career Center ID) from the URL, then fetches jobs from the ADP API.</p>
+            <p><strong>Fields extracted:</strong> Title, location, state, job type, organization</p>
+            <p><strong>Setup:</strong> Just paste the careers page URL as the listing URL. No configuration needed.</p>
+        </div>
+        <div class="mt-3 p-3 bg-gray-50 dark:bg-gray-900 rounded text-xs">
+            <p class="text-gray-500 dark:text-gray-400 mb-1">Example URL:</p>
+            <code class="text-gray-700 dark:text-gray-300 break-all">https://workforcenow.adp.com/mascsr/default/mdf/recruitment/recruitment.html?cid=abc12345&ccId=19000101_000001</code>
+        </div>
+    </div>
+
+    <!-- Workday -->
+    <div class="border-l-4 border-green-500 pl-4 mb-6">
+        <h4 class="font-semibold text-gray-900 dark:text-white mb-2">Workday</h4>
+        <div class="text-sm text-gray-600 dark:text-gray-400 space-y-2">
+            <p><strong>URL Pattern:</strong> <code class="bg-gray-100 dark:bg-gray-700 px-1 rounded">https://{tenant}.wd1.myworkdayjobs.com/{site}</code> or <code class="bg-gray-100 dark:bg-gray-700 px-1 rounded">wd5.myworkdayjobs.com</code></p>
+            <p><strong>How it works:</strong> Extracts tenant and site from the URL, then fetches jobs from Workday's JSON API with pagination.</p>
+            <p><strong>Fields extracted:</strong> Title, location, state, organization, job ID</p>
+            <p><strong>Setup:</strong> Paste the careers page URL. Supports optional <code>hiringCompany</code> filter in URL.</p>
+        </div>
+        <div class="mt-3 p-3 bg-gray-50 dark:bg-gray-900 rounded text-xs">
+            <p class="text-gray-500 dark:text-gray-400 mb-1">Example URLs:</p>
+            <code class="text-gray-700 dark:text-gray-300 block break-all mb-1">https://nana.wd1.myworkdayjobs.com/NANACareers</code>
+            <code class="text-gray-700 dark:text-gray-300 block break-all">https://ahtna.wd5.myworkdayjobs.com/Ahtna</code>
+        </div>
+    </div>
+
+    <!-- UltiPro / UKG -->
+    <div class="border-l-4 border-purple-500 pl-4 mb-6">
+        <h4 class="font-semibold text-gray-900 dark:text-white mb-2">UltiPro / UKG Pro Recruiting</h4>
+        <div class="text-sm text-gray-600 dark:text-gray-400 space-y-2">
+            <p><strong>URL Patterns:</strong></p>
+            <ul class="list-disc list-inside ml-2">
+                <li>Legacy: <code class="bg-gray-100 dark:bg-gray-700 px-1 rounded">https://recruiting2.ultipro.com/{tenant}/JobBoard/{board-id}/</code></li>
+                <li>UKG Pro: <code class="bg-gray-100 dark:bg-gray-700 px-1 rounded">https://{tenant}.rec.pro.ukg.net/{tenant}/JobBoard/{board-id}/</code></li>
+            </ul>
+            <p><strong>How it works:</strong> Extracts tenant and board ID, then fetches jobs from the UltiPro/UKG API with pagination.</p>
+            <p><strong>Fields extracted:</strong> Title, location, state, job type, organization, description</p>
+            <p><strong>Setup:</strong> Paste the job board URL. Works with both legacy UltiPro and new UKG Pro domains.</p>
+        </div>
+        <div class="mt-3 p-3 bg-gray-50 dark:bg-gray-900 rounded text-xs">
+            <p class="text-gray-500 dark:text-gray-400 mb-1">Example URLs:</p>
+            <code class="text-gray-700 dark:text-gray-300 block break-all mb-1">https://recruiting2.ultipro.com/BRI1234/JobBoard/abc-def-123/</code>
+            <code class="text-gray-700 dark:text-gray-300 block break-all">https://ukg.rec.pro.ukg.net/ukg/JobBoard/abc-def-123/</code>
+        </div>
+    </div>
+
+    <div class="p-4 bg-blue-50 dark:bg-blue-900/30 rounded-lg">
+        <p class="text-sm text-blue-800 dark:text-blue-200">
+            <strong>Note:</strong> API scrapers bypass robots.txt checks because they use the platform's public API, not HTML crawling. This is the intended behavior.
+        </p>
+    </div>
+</div>
+
+<!-- HTML Scrapers Section -->
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-8">
+    <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">HTML Scrapers (Configurable)</h3>
+    <p class="text-gray-600 dark:text-gray-400 mb-6">These scrapers parse HTML pages using CSS selectors. Use them for standard websites that don't match the API platforms above.</p>
+
+    <!-- GenericScraper -->
+    <div class="border-l-4 border-purple-500 pl-4 mb-6">
+        <h4 class="font-semibold text-gray-900 dark:text-white mb-2">GenericScraper</h4>
+        <div class="text-sm text-gray-600 dark:text-gray-400 space-y-2">
+            <p><strong>Best for:</strong> Standard HTML job listing pages with consistent structure</p>
+            <p><strong>How it works:</strong> Uses CSS selectors you configure to find job containers and extract fields like title, URL, location, etc.</p>
+            <p><strong>Supports:</strong> Pagination (next page links), multiple listing URLs, Playwright for JS rendering</p>
+        </div>
+        <div class="mt-4">
+            <p class="font-medium text-gray-900 dark:text-white mb-2">Setup Steps:</p>
+            <ol class="list-decimal list-inside text-sm text-gray-600 dark:text-gray-400 space-y-1">
+                <li>Add the source with the careers page URL</li>
+                <li>Click "Configure" on the source</li>
+                <li>Use browser DevTools to inspect the page structure</li>
+                <li>Enter CSS selectors for job container, title, and URL (required)</li>
+                <li>Optionally add selectors for location, organization, salary, etc.</li>
+                <li>Click "Analyze Page with AI" for automatic selector suggestions</li>
+                <li>Save and test with "Scrape" button</li>
+            </ol>
+        </div>
+        <div class="mt-3 p-3 bg-gray-50 dark:bg-gray-900 rounded">
+            <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">Example configuration (City of Kotzebue):</p>
+            <div class="text-xs font-mono text-gray-700 dark:text-gray-300 space-y-1">
+                <p>Container: <code>tbody tr</code></p>
+                <p>Title: <code>td.views-field-title .tablesaw-cell-content a</code></p>
+                <p>URL: <code>td.views-field-title .tablesaw-cell-content a</code></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- DynamicScraper -->
+    <div class="border-l-4 border-orange-500 pl-4 mb-6">
+        <h4 class="font-semibold text-gray-900 dark:text-white mb-2">DynamicScraper (Custom Code)</h4>
+        <div class="text-sm text-gray-600 dark:text-gray-400 space-y-2">
+            <p><strong>Best for:</strong> Complex JavaScript-heavy sites that require interactions (clicks, dropdowns) or have unusual structure</p>
+            <p><strong>How it works:</strong> Runs custom Python code stored in the database. The code can use Playwright features like clicking buttons and selecting dropdowns.</p>
+            <p><strong>When to use:</strong></p>
+            <ul class="list-disc list-inside ml-2">
+                <li>Site requires clicking a "Search" button to load results</li>
+                <li>Site uses JavaScript to render jobs (Oracle E-Business Suite, etc.)</li>
+                <li>Jobs are loaded via AJAX after page load</li>
+                <li>GenericScraper can't extract the data correctly</li>
+            </ul>
+        </div>
+        <div class="mt-4">
+            <p class="font-medium text-gray-900 dark:text-white mb-2">Setup Steps:</p>
+            <ol class="list-decimal list-inside text-sm text-gray-600 dark:text-gray-400 space-y-1">
+                <li>Add the source with the careers page URL</li>
+                <li>Click "Configure" and then "Analyze Page with AI"</li>
+                <li>If AI suggests "May Need Custom Scraper", click "Generate Custom Scraper"</li>
+                <li>Review and adjust the generated Python code</li>
+                <li>Set scraper_class to "DynamicScraper" in the database</li>
+                <li>Enable "use_playwright" and "skip_robots_check" if needed</li>
+            </ol>
+        </div>
+        <div class="mt-3 p-3 bg-gray-50 dark:bg-gray-900 rounded">
+            <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">Example: Tanana Chiefs Conference (Oracle EBS)</p>
+            <div class="text-xs text-gray-700 dark:text-gray-300 space-y-1">
+                <p>Requires: Selecting "All Open Reqs" dropdown, clicking Search button</p>
+                <p>Flags: <code>use_playwright=True</code>, <code>skip_robots_check=True</code></p>
+                <p>Custom code handles dropdown selection and button click before parsing</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Playwright Features -->
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-8">
+    <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">Playwright Features</h3>
+    <p class="text-gray-600 dark:text-gray-400 mb-4">Playwright is a headless browser that renders JavaScript. It's used automatically for all scrapers but provides extra features for DynamicScrapers.</p>
+
+    <div class="grid md:grid-cols-2 gap-4">
+        <div class="p-4 bg-gray-50 dark:bg-gray-900 rounded">
+            <h4 class="font-medium text-gray-900 dark:text-white mb-2">wait_for</h4>
+            <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">Wait for a CSS selector to appear before extracting HTML.</p>
+            <code class="text-xs text-gray-700 dark:text-gray-300">wait_for='table.job-list'</code>
+        </div>
+        <div class="p-4 bg-gray-50 dark:bg-gray-900 rounded">
+            <h4 class="font-medium text-gray-900 dark:text-white mb-2">click_selector</h4>
+            <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">Click a button or link after page loads.</p>
+            <code class="text-xs text-gray-700 dark:text-gray-300">click_selector='button#search'</code>
+        </div>
+        <div class="p-4 bg-gray-50 dark:bg-gray-900 rounded">
+            <h4 class="font-medium text-gray-900 dark:text-white mb-2">select_actions</h4>
+            <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">Select values from dropdowns before other actions.</p>
+            <code class="text-xs text-gray-700 dark:text-gray-300">select_actions=[{"selector": "select#filter", "value": {"label": "All Jobs"}}]</code>
+        </div>
+        <div class="p-4 bg-gray-50 dark:bg-gray-900 rounded">
+            <h4 class="font-medium text-gray-900 dark:text-white mb-2">click_wait_for</h4>
+            <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">Wait for a selector after clicking.</p>
+            <code class="text-xs text-gray-700 dark:text-gray-300">click_wait_for='table tr td a'</code>
+        </div>
+    </div>
+</div>
+
+<!-- Special Flags -->
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-8">
+    <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">Special Flags</h3>
+
+    <div class="space-y-4">
+        <div class="flex items-start gap-4 p-4 bg-gray-50 dark:bg-gray-900 rounded">
+            <div class="flex-shrink-0">
+                <span class="px-2 py-1 bg-amber-100 dark:bg-amber-900 text-amber-800 dark:text-amber-200 rounded text-xs font-medium">skip_robots_check</span>
+            </div>
+            <div>
+                <p class="text-sm text-gray-600 dark:text-gray-400">Bypass robots.txt restrictions. Use for public job boards that have overly restrictive robots.txt (e.g., blanket <code>Disallow: /</code>). Only enable for sites that are clearly intended to be public.</p>
+            </div>
+        </div>
+        <div class="flex items-start gap-4 p-4 bg-gray-50 dark:bg-gray-900 rounded">
+            <div class="flex-shrink-0">
+                <span class="px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded text-xs font-medium">use_playwright</span>
+            </div>
+            <div>
+                <p class="text-sm text-gray-600 dark:text-gray-400">Force Playwright browser rendering. Enabled by default for all scrapers, but can be explicitly set for DynamicScrapers that need it.</p>
+            </div>
+        </div>
+        <div class="flex items-start gap-4 p-4 bg-gray-50 dark:bg-gray-900 rounded">
+            <div class="flex-shrink-0">
+                <span class="px-2 py-1 bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 rounded text-xs font-medium">default_location</span>
+            </div>
+            <div>
+                <p class="text-sm text-gray-600 dark:text-gray-400">Fallback location when the scraper can't extract one. Useful for single-location employers (e.g., "City of Bethel" jobs are always in Bethel).</p>
+            </div>
+        </div>
+        <div class="flex items-start gap-4 p-4 bg-gray-50 dark:bg-gray-900 rounded">
+            <div class="flex-shrink-0">
+                <span class="px-2 py-1 bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200 rounded text-xs font-medium">default_state</span>
+            </div>
+            <div>
+                <p class="text-sm text-gray-600 dark:text-gray-400">Default state code for all jobs from this source. Use "AK" for Alaska-only job boards.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Troubleshooting -->
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+    <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Troubleshooting</h3>
+
+    <div class="space-y-4">
+        <div>
+            <h4 class="font-medium text-gray-900 dark:text-white mb-1">No jobs found</h4>
+            <ul class="text-sm text-gray-600 dark:text-gray-400 list-disc list-inside">
+                <li>Check if the page requires JavaScript - enable Playwright</li>
+                <li>Verify CSS selectors match actual page structure</li>
+                <li>Check for robots.txt blocking in scrape history</li>
+                <li>Try "Analyze Page with AI" for selector suggestions</li>
+            </ul>
+        </div>
+        <div>
+            <h4 class="font-medium text-gray-900 dark:text-white mb-1">Only 1 job found when page has many</h4>
+            <ul class="text-sm text-gray-600 dark:text-gray-400 list-disc list-inside">
+                <li>Container selector may be matching header row instead of job rows</li>
+                <li>Try more specific selectors like <code>td.job-title</code> instead of <code>.job-title</code></li>
+            </ul>
+        </div>
+        <div>
+            <h4 class="font-medium text-gray-900 dark:text-white mb-1">Duplicate job IDs (only 1 job saved)</h4>
+            <ul class="text-sm text-gray-600 dark:text-gray-400 list-disc list-inside">
+                <li>Job URLs may all be the same (common with JavaScript portals)</li>
+                <li>Need DynamicScraper with custom external_id generation</li>
+            </ul>
+        </div>
+        <div>
+            <h4 class="font-medium text-gray-900 dark:text-white mb-1">Blocked by robots.txt</h4>
+            <ul class="text-sm text-gray-600 dark:text-gray-400 list-disc list-inside">
+                <li>Check if it's an API platform (ADP, Workday, UltiPro) - use correct URL format</li>
+                <li>For public job boards with restrictive robots.txt, enable <code>skip_robots_check</code></li>
+            </ul>
+        </div>
+        <div>
+            <h4 class="font-medium text-gray-900 dark:text-white mb-1">SSL certificate errors</h4>
+            <ul class="text-sm text-gray-600 dark:text-gray-400 list-disc list-inside">
+                <li>The scraper automatically retries without SSL verification</li>
+                <li>Check scrape logs for details</li>
+            </ul>
+        </div>
+    </div>
+</div>
+{% endblock %}

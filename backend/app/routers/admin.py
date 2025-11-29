@@ -119,6 +119,18 @@ def admin_dashboard(request: Request, db: Session = Depends(get_db)):
     )
 
 
+@router.get("/scraper-guide")
+def scraper_guide(request: Request):
+    """Scraper guide documentation page."""
+    if not get_admin_user(request):
+        return RedirectResponse(url="/admin/login", status_code=302)
+
+    return templates.TemplateResponse(
+        "admin/scraper_guide.html",
+        {"request": request},
+    )
+
+
 @router.get("/sources")
 def list_sources(request: Request, db: Session = Depends(get_db)):
     """List active scrape sources (HTMX partial)."""
