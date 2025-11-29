@@ -619,11 +619,12 @@ Generated code must contain:
 - `backend/app/main.py` - `/about` route
 
 ### Phase 1U: For Employers Page ✅
-- [x] Employer portal at `/employers` with two submission options
+- [x] Employer portal at `/employers` with three submission options
 - [x] Job submission form with full validation (title, org, location, URL, etc.)
 - [x] Careers page URL submission for automatic scraping setup
+- [x] Bulk source submission via CSV (see Phase 1X)
 - [x] Input validation with SQL injection and XSS protection
-- [x] Email notifications to admin for both submission types
+- [x] Email notifications to admin for all submission types
 - [x] Header and footer navigation links
 - [x] Tabbed interface for switching between submission types
 - [x] Success/error messaging with form reset on success
@@ -639,6 +640,7 @@ Generated code must contain:
 **API Endpoints:**
 - POST `/api/employers/submit-job` - Submit a single job posting
 - POST `/api/employers/submit-careers-page` - Submit careers page URL for scraping
+- POST `/api/employers/submit-bulk-sources` - Submit CSV of sources for admin review
 
 **Security:**
 - URL validation blocks SQL injection chars (`'`, `"`, `;`)
@@ -736,6 +738,48 @@ Yukon-Kuskokwim Health,https://www.ykhc.org,https://www.ykhc.org/employment
 - URLs normalized: lowercase, trailing slashes stripped
 - Checks both existing database sources AND within the same CSV file
 - Skipped sources show specific reason (name exists, URL exists, duplicate in CSV)
+
+### Phase 1X: Employer Bulk Source Submission ✅
+- [x] Public bulk import form on For Employers page (`/employers` → "Bulk Import" tab)
+- [x] CSV upload with validation (Organization, Base URL required; Careers URL optional)
+- [x] Pydantic validation schemas with strict input sanitization
+- [x] URL injection protection (SQL, XSS, JavaScript, data: URLs blocked)
+- [x] HTML tag blocking in organization names
+- [x] 512KB file size limit (conservative for public endpoint)
+- [x] Maximum 100 sources per submission
+- [x] Email notification to admin with all submitted sources
+- [x] Does NOT auto-add to database (admin review required)
+- [x] Detailed success/error messaging with skipped row counts
+
+**Key Files:**
+- `backend/app/templates/employers.html` - Bulk Import tab with CSV upload form
+- `backend/app/routers/employers.py` - `/submit-bulk-sources` endpoint
+- `backend/app/schemas/employer.py` - `BulkSourceEntry`, `BulkSourceSubmission` schemas
+- `backend/app/services/email.py` - `send_bulk_source_submission_notification()`
+
+**API Endpoints:**
+- POST `/api/employers/submit-bulk-sources` - Upload CSV of sources for admin review
+
+**Security:**
+- URL validation blocks: `'`, `"`, `;` (SQL injection), `<script`, `javascript:`, `data:`, whitespace
+- Organization name blocks HTML tags (`<...>`)
+- Email validation with regex pattern
+- All user input HTML-escaped in notification emails
+- More conservative limits than admin bulk import (512KB vs 1MB, same 100 row limit)
+
+**CSV Format:**
+```csv
+Organization,Base URL,Careers URL
+City of Bethel,https://www.cityofbethel.net,https://www.cityofbethel.net/jobs
+NANA Regional,https://nana.com,https://nana.com/careers
+```
+
+**Workflow:**
+1. Employer goes to For Employers → "Bulk Import" tab
+2. Uploads CSV file with organization names and URLs
+3. Provides contact email and optional notes
+4. Admin receives email notification with all sources
+5. Admin reviews and adds sources via admin CSV import
 
 ## CSS Selector Troubleshooting
 

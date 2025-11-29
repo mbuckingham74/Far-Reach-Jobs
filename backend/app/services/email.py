@@ -492,3 +492,149 @@ Admin Panel: {settings.app_url}/admin
 """
 
     return _send_email(settings.admin_email, subject, html_body, text_body)
+
+
+def send_bulk_source_submission_notification(
+    contact_email: str,
+    sources: list[dict],
+    notes: str | None = None,
+) -> bool:
+    """Send notification to admin about a bulk source submission from an employer.
+
+    Args:
+        contact_email: The employer's contact email
+        sources: List of dicts with 'organization', 'base_url', and optional 'careers_url'
+        notes: Optional notes from the employer
+
+    Returns True if email was sent successfully, False otherwise.
+    """
+    if not settings.admin_email:
+        logger.debug("No admin_email configured, skipping bulk source notification")
+        return False
+
+    # Escape contact info
+    safe_email = html.escape(contact_email)
+    safe_notes = html.escape(notes) if notes else "None provided"
+
+    # Build the sources table
+    source_rows = ""
+    sources_text = ""
+    for i, source in enumerate(sources, 1):
+        safe_org = html.escape(source.get("organization", ""))
+        safe_base = html.escape(source.get("base_url", ""))
+        safe_careers = html.escape(source.get("careers_url", "")) if source.get("careers_url") else "—"
+
+        source_rows += f"""
+            <tr>
+                <td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0; font-size: 13px;">{i}</td>
+                <td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0; font-size: 13px;">{safe_org}</td>
+                <td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0; font-size: 13px; word-break: break-word;">
+                    <a href="{safe_base}" style="color: #2b6cb0;">{safe_base}</a>
+                </td>
+                <td style="padding: 8px 12px; border-bottom: 1px solid #e2e8f0; font-size: 13px; word-break: break-word;">
+                    {f'<a href="{safe_careers}" style="color: #2b6cb0;">{safe_careers}</a>' if safe_careers != "—" else safe_careers}
+                </td>
+            </tr>
+        """
+        careers_info = source.get("careers_url", "N/A")
+        sources_text += f"  {i}. {source.get('organization', '')} - {source.get('base_url', '')} (Careers: {careers_info})\n"
+
+    subject = f"Bulk Source Submission: {len(sources)} sources from {safe_email}"
+
+    html_body = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <style>
+            body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f7fafc; margin: 0; padding: 20px; }}
+            .container {{ max-width: 800px; margin: 0 auto; background: white; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); padding: 30px; }}
+            h1 {{ color: #2d3748; margin-top: 0; font-size: 24px; }}
+            .badge {{ display: inline-block; padding: 6px 12px; border-radius: 4px; font-weight: 600; margin-bottom: 20px; background: #e9d8fd; color: #553c9a; }}
+            table {{ width: 100%; border-collapse: collapse; margin-top: 10px; }}
+            .info-table td {{ padding: 10px 12px; border-bottom: 1px solid #e2e8f0; vertical-align: top; }}
+            .info-table td:first-child {{ font-weight: 600; color: #4a5568; width: 30%; }}
+            .info-table td:last-child {{ color: #2d3748; }}
+            .sources-table {{ background: #f7fafc; border-radius: 8px; overflow: hidden; margin-top: 20px; }}
+            .sources-table th {{ padding: 10px 12px; text-align: left; font-weight: 600; font-size: 13px; background: #edf2f7; }}
+            .notes {{ background: #f7fafc; padding: 15px; border-radius: 6px; margin-top: 20px; }}
+            .notes h3 {{ margin-top: 0; color: #4a5568; font-size: 14px; }}
+            .notes p {{ margin-bottom: 0; color: #2d3748; white-space: pre-wrap; }}
+            .footer {{ margin-top: 30px; padding-top: 20px; border-top: 1px solid #e2e8f0; color: #718096; font-size: 12px; }}
+            .button {{ display: inline-block; padding: 10px 20px; background: #2b6cb0; color: white; text-decoration: none; border-radius: 4px; margin-top: 15px; }}
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h1>Bulk Source Submission</h1>
+            <div class="badge">{len(sources)} Sources to Review</div>
+
+            <p style="color: #4a5568; margin-bottom: 20px;">
+                An employer has submitted multiple job sources via CSV upload.
+            </p>
+
+            <table class="info-table" style="background: #f7fafc; border-radius: 8px; overflow: hidden;">
+                <tr>
+                    <td>Contact Email</td>
+                    <td><a href="mailto:{safe_email}" style="color: #2b6cb0;">{safe_email}</a></td>
+                </tr>
+                <tr>
+                    <td>Total Sources</td>
+                    <td><strong>{len(sources)}</strong></td>
+                </tr>
+            </table>
+
+            <h2 style="color: #4a5568; margin-top: 25px; margin-bottom: 10px; font-size: 18px;">Submitted Sources</h2>
+            <table class="sources-table">
+                <thead>
+                    <tr>
+                        <th style="width: 40px;">#</th>
+                        <th>Organization</th>
+                        <th>Base URL</th>
+                        <th>Careers URL</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {source_rows}
+                </tbody>
+            </table>
+
+            <div class="notes">
+                <h3>Additional Notes</h3>
+                <p>{safe_notes}</p>
+            </div>
+
+            <a href="{settings.app_url}/admin" class="button">Go to Admin Panel</a>
+
+            <div class="footer">
+                <p>This submission was made through the For Employers bulk import form on Far Reach Jobs.</p>
+                <p>Next steps: Review each source, add them via bulk CSV import in admin, and configure selectors.</p>
+            </div>
+        </div>
+    </body>
+    </html>
+    """
+
+    text_body = f"""
+Bulk Source Submission - Far Reach Jobs
+========================================
+
+Contact Email: {contact_email}
+Total Sources: {len(sources)}
+
+Submitted Sources:
+{sources_text}
+Additional Notes:
+{notes or 'None provided'}
+
+---
+This submission was made through the For Employers bulk import form.
+
+Next steps:
+1. Review each source
+2. Add them via bulk CSV import in the admin panel
+3. Configure CSS selectors for each source
+
+Admin Panel: {settings.app_url}/admin
+"""
+
+    return _send_email(settings.admin_email, subject, html_body, text_body)

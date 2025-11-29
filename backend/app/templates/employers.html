@@ -45,6 +45,13 @@
         >
             Add Your Careers Page
         </button>
+        <button
+            onclick="showTab('bulk')"
+            id="tab-bulk"
+            class="tab-button px-4 py-2 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
+        >
+            Bulk Import
+        </button>
     </div>
 
     <!-- Job Submission Form -->
@@ -313,6 +320,118 @@
         </div>
     </div>
 
+    <!-- Bulk Import Form -->
+    <div id="form-bulk" class="tab-content hidden">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 transition-colors">
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Bulk Import Job Sources</h3>
+            <p class="text-gray-600 dark:text-gray-400 text-sm mb-6">
+                Have multiple job sources to submit? Upload a CSV file with your organizations' career pages and we'll review them for inclusion.
+            </p>
+
+            <!-- Limitations Notice -->
+            <div class="mb-6 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
+                <div class="flex">
+                    <div class="flex-shrink-0">
+                        <svg class="h-5 w-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                        </svg>
+                    </div>
+                    <div class="ml-3">
+                        <h3 class="text-sm font-medium text-amber-800 dark:text-amber-200">Limitations</h3>
+                        <ul class="mt-1 text-sm text-amber-700 dark:text-amber-300 list-disc list-inside space-y-1">
+                            <li>Maximum 100 sources per submission</li>
+                            <li>Maximum file size: 512KB</li>
+                            <li>Sources are reviewed before being added</li>
+                            <li>Each site requires manual configuration for scraping</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <form id="bulk-form" class="space-y-4" enctype="multipart/form-data">
+                <!-- CSV File Upload -->
+                <div>
+                    <label for="bulk_file" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        CSV File <span class="text-red-500">*</span>
+                    </label>
+                    <input
+                        type="file"
+                        id="bulk_file"
+                        name="file"
+                        accept=".csv"
+                        required
+                        class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-white file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-medium file:bg-primary-50 file:text-primary-700 dark:file:bg-primary-900 dark:file:text-primary-300 hover:file:bg-primary-100 dark:hover:file:bg-primary-800"
+                    >
+                    <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                        Required columns: <strong>Organization</strong>, <strong>Base URL</strong>. Optional: <strong>Careers URL</strong>
+                    </p>
+                </div>
+
+                <!-- CSV Format Help -->
+                <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
+                    <button type="button" onclick="toggleBulkHelp()" class="flex items-center text-sm font-medium text-gray-700 dark:text-gray-300">
+                        <svg id="bulk-help-icon" class="w-4 h-4 mr-2 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                        </svg>
+                        Show CSV format example
+                    </button>
+                    <div id="bulk-help-content" class="hidden mt-3">
+                        <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">Your CSV should look like this:</p>
+                        <pre class="bg-gray-100 dark:bg-gray-800 p-3 rounded text-xs overflow-x-auto">Organization,Base URL,Careers URL
+City of Bethel,https://www.cityofbethel.net,https://www.cityofbethel.net/jobs
+NANA Regional Corporation,https://nana.com,https://nana.com/careers
+Yukon-Kuskokwim Health Corp,https://www.ykhc.org,</pre>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                            Column names are flexible (e.g., "Source Name" works for Organization, "URL" works for Base URL).
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Contact Email -->
+                <div>
+                    <label for="bulk_contact_email" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Your Contact Email <span class="text-red-500">*</span>
+                    </label>
+                    <input
+                        type="email"
+                        id="bulk_contact_email"
+                        name="contact_email"
+                        required
+                        maxlength="255"
+                        class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-white"
+                        placeholder="your.email@organization.com"
+                    >
+                    <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">We may contact you if we have questions about any of the sources</p>
+                </div>
+
+                <!-- Notes -->
+                <div>
+                    <label for="bulk_notes" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Additional Notes
+                    </label>
+                    <textarea
+                        id="bulk_notes"
+                        name="notes"
+                        rows="3"
+                        maxlength="2000"
+                        class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-white"
+                        placeholder="Any additional context about these sources..."
+                    ></textarea>
+                </div>
+
+                <!-- Submit Button -->
+                <div class="pt-4">
+                    <button
+                        type="submit"
+                        class="w-full sm:w-auto px-6 py-2 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-md shadow-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        Submit Sources
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <div class="mt-6 text-center">
         <a href="/" class="text-primary-600 dark:text-primary-400 hover:underline">
             &larr; Back to job listings
@@ -434,6 +553,50 @@ document.getElementById('careers-form').addEventListener('submit', async functio
 
         if (response.ok) {
             showMessage('success', result.message || 'Thank you! Your careers page has been submitted for review.');
+            form.reset();
+        } else {
+            showMessage('error', result.detail || 'An error occurred. Please try again.');
+        }
+    } catch (error) {
+        showMessage('error', 'An error occurred. Please try again.');
+    } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = originalText;
+    }
+});
+
+// Toggle bulk help section
+function toggleBulkHelp() {
+    const content = document.getElementById('bulk-help-content');
+    const icon = document.getElementById('bulk-help-icon');
+    content.classList.toggle('hidden');
+    icon.classList.toggle('rotate-90');
+}
+
+// Bulk import form submission
+document.getElementById('bulk-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+
+    const form = e.target;
+    const submitBtn = form.querySelector('button[type="submit"]');
+    const originalText = submitBtn.textContent;
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Uploading...';
+
+    const formData = new FormData(form);
+
+    try {
+        const response = await fetch('/api/employers/submit-bulk-sources', {
+            method: 'POST',
+            body: formData,
+        });
+
+        const result = await response.json();
+
+        if (response.ok) {
+            let message = result.message || 'Thank you! Your sources have been submitted for review.';
+            showMessage('success', message);
             form.reset();
         } else {
             showMessage('error', result.detail || 'An error occurred. Please try again.');
