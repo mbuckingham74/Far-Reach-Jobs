@@ -857,9 +857,10 @@ def toggle_source(source_id: int, request: Request, db: Session = Depends(get_db
     if not get_admin_user(request):
         raise HTTPException(status_code=401)
 
-    # Check if request came from disabled sources page
+    # Check which list the request came from based on HX-Target
     hx_target = request.headers.get("HX-Target", "")
     show_disabled = hx_target == "disabled-source-list"
+    show_needs_configuration = hx_target == "needs-configuration-list"
 
     source = db.query(ScrapeSource).filter(ScrapeSource.id == source_id).first()
     if source:
@@ -872,23 +873,17 @@ def toggle_source(source_id: int, request: Request, db: Session = Depends(get_db
         except Exception as e:
             logger.error(f"Failed to toggle source {source_id}: {e}")
             db.rollback()
-            if show_disabled:
-                sources = db.query(ScrapeSource).filter(ScrapeSource.is_active == False).order_by(ScrapeSource.created_at.desc()).all()
-            else:
-                sources = db.query(ScrapeSource).filter(ScrapeSource.is_active == True).order_by(ScrapeSource.created_at.desc()).all()
+            sources = _get_sources_for_list(db, show_robots_blocked=False, show_disabled=show_disabled, show_needs_configuration=show_needs_configuration)
             return templates.TemplateResponse(
                 "admin/partials/source_list.html",
-                {"request": request, "sources": sources, "show_disabled": show_disabled, "error": "Failed to toggle source. Please try again."},
+                {"request": request, "sources": sources, "show_disabled": show_disabled, "show_needs_configuration": show_needs_configuration, "error": "Failed to toggle source. Please try again."},
             )
 
-    # After toggling, return the appropriate list
-    if show_disabled:
-        sources = db.query(ScrapeSource).filter(ScrapeSource.is_active == False).order_by(ScrapeSource.created_at.desc()).all()
-    else:
-        sources = db.query(ScrapeSource).filter(ScrapeSource.is_active == True).order_by(ScrapeSource.created_at.desc()).all()
+    # After toggling, return the appropriate list using consistent filters
+    sources = _get_sources_for_list(db, show_robots_blocked=False, show_disabled=show_disabled, show_needs_configuration=show_needs_configuration)
     return templates.TemplateResponse(
         "admin/partials/source_list.html",
-        {"request": request, "sources": sources, "show_disabled": show_disabled},
+        {"request": request, "sources": sources, "show_disabled": show_disabled, "show_needs_configuration": show_needs_configuration},
     )
 
 
