@@ -21,3 +21,14 @@ def is_ultipro_url(url: str | None) -> bool:
     # - recruiting2.ultipro.com or recruiting.ultipro.com (legacy)
     # - rec.pro.ukg.net (newer UKG Pro Recruiting)
     return "ultipro.com" in url_lower or "rec.pro.ukg.net" in url_lower
+
+
+def is_workday_url(url: str | None) -> bool:
+    """Check if a URL is a Workday career portal."""
+    if not url:
+        return False
+    url_lower = url.lower()
+    # Workday URLs are typically:
+    # - {tenant}.wd1.myworkdayjobs.com/{site}
+    # - {tenant}.wd5.myworkdayjobs.com/{site} (different regions)
+    return "myworkdayjobs.com" in url_lower

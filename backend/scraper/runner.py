@@ -12,7 +12,7 @@ from app.models import Job, ScrapeSource, ScrapeLog
 from scraper.base import BaseScraper, ScrapedJob, ScrapeResult
 from scraper.playwright_fetcher import get_playwright_fetcher
 from scraper.robots import RobotsChecker
-from scraper.url_utils import is_adp_workforce_url, is_ultipro_url
+from scraper.url_utils import is_adp_workforce_url, is_ultipro_url, is_workday_url
 
 logger = logging.getLogger(__name__)
 
@@ -436,6 +436,84 @@ def _run_ultipro_scraper(
     return result
 
 
+def _run_workday_scraper(
+    db: Session,
+    source: ScrapeSource,
+    listing_urls: list[str],
+    trigger_type: str,
+    started_at: datetime,
+) -> ScrapeResult:
+    """Run the Workday API scraper for a source.
+
+    Args:
+        listing_urls: List of Workday listing URLs to scrape
+    """
+    # Lazy import to avoid circular dependency
+    from scraper.sources.workday import WorkdayScraper
+
+    start_time = time.time()
+
+    jobs_new = 0
+    jobs_updated = 0
+    jobs_unchanged = 0
+    all_errors: list[str] = []
+    seen_ids: set[str] = set()
+
+    for listing_url in listing_urls:
+        try:
+            with WorkdayScraper(
+                source_name=source.name,
+                base_url=source.base_url,
+                listing_url=listing_url,
+            ) as scraper:
+                scraped_jobs, errors = scraper.run()
+                all_errors.extend(errors)
+
+                for scraped_job in scraped_jobs:
+                    if scraped_job.external_id in seen_ids:
+                        continue
+                    seen_ids.add(scraped_job.external_id)
+
+                    try:
+                        with db.begin_nested():
+                            is_new, is_updated = upsert_job(db, source.id, scraped_job)
+                        if is_new:
+                            jobs_new += 1
+                        elif is_updated:
+                            jobs_updated += 1
+                        else:
+                            jobs_unchanged += 1
+                    except Exception as e:
+                        seen_ids.discard(scraped_job.external_id)
+                        logger.error(f"Failed to upsert job {scraped_job.external_id}: {e}")
+                        all_errors.append(f"Failed to upsert job {scraped_job.external_id}")
+
+        except Exception as e:
+            all_errors.append(f"Workday scraper execution failed for {listing_url}: {e}")
+            logger.exception(f"Workday scraper failed for {source.name} URL: {listing_url}")
+
+    source.last_scraped_at = datetime.now(timezone.utc)
+    source.last_scrape_success = len(all_errors) == 0
+    duration = time.time() - start_time
+
+    logger.info(
+        f"[{source.name}] Workday scrape complete: {jobs_new} new, {jobs_updated} updated, "
+        f"{jobs_unchanged} unchanged, {len(all_errors)} errors in {duration:.1f}s"
+    )
+
+    result = ScrapeResult(
+        source_name=source.name,
+        jobs_found=jobs_new + jobs_updated + jobs_unchanged,
+        jobs_new=jobs_new,
+        jobs_updated=jobs_updated,
+        errors=all_errors,
+        duration_seconds=duration,
+    )
+
+    log_scrape_result(db, source, result, trigger_type, started_at)
+    return result
+
+
 def run_scraper(db: Session, source: ScrapeSource, trigger_type: str = "manual") -> ScrapeResult:
     """Run a single scraper and upsert jobs to database."""
     start_time = time.time()
@@ -457,6 +535,12 @@ def run_scraper(db: Session, source: ScrapeSource, trigger_type: str = "manual")
     if ultipro_urls:
         logger.info(f"Detected {len(ultipro_urls)} UltiPro URL(s) for {source.name}, using UltiProScraper")
         return _run_ultipro_scraper(db, source, ultipro_urls, trigger_type, started_at)
+
+    # Check for Workday URLs
+    workday_urls = [url for url in listing_urls if is_workday_url(url)]
+    if workday_urls:
+        logger.info(f"Detected {len(workday_urls)} Workday URL(s) for {source.name}, using WorkdayScraper")
+        return _run_workday_scraper(db, source, workday_urls, trigger_type, started_at)
 
     # Pre-flight check: Is this source blocked by robots.txt?
     # Only applies to HTML scrapers (GenericScraper, DynamicScraper)
