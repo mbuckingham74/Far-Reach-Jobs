@@ -332,6 +332,8 @@ cd backend && pytest tests/ -v
 - [x] Automatic fallback to httpx if Playwright service is unavailable
 - [x] robots.txt compliance checked before any fetch (Playwright or httpx)
 - [x] Test suite for fallback behavior (`test_playwright_fallback.py`)
+- [x] **Interactive page support:** Dropdown selection and button clicks for JS-heavy pages
+- [x] **SSL bypass:** Automatic retry without SSL verification for sites with broken certs
 
 **Key Files:**
 - `playwright-service/` - Node.js service with Express API
@@ -339,6 +341,12 @@ cd backend && pytest tests/ -v
 - `backend/scraper/sources/generic.py` - `_fetch_page()` with Playwright/httpx logic
 - `backend/scraper/runner.py` - Always enables Playwright for all scrapers
 - `backend/alembic/versions/006_add_use_playwright.py` - Migration (legacy)
+
+**Interactive Page Features (Playwright):**
+- `selectActions` - Array of `{selector, value}` for dropdown selection before page extraction
+- `clickSelector` - CSS selector for button/link to click after page loads
+- `clickWaitFor` - CSS selector to wait for after clicking (e.g., results table)
+- Useful for Oracle E-Business Suite, UKG, and other JS-heavy job portals
 
 **Architecture:**
 ```
@@ -388,6 +396,7 @@ PLAYWRIGHT_SERVICE_URL=http://playwright:3000
 - id, name, base_url, scraper_class
 - is_active, last_scraped_at, last_scrape_success, created_at
 - robots_blocked, robots_blocked_at (tracks robots.txt blocking status)
+- skip_robots_check (bypass robots.txt for public job boards with restrictive rules)
 - listing_url (GenericScraper: page containing job listings)
 - selector_job_container, selector_title, selector_url (required for GenericScraper)
 - selector_organization, selector_location, selector_job_type
@@ -522,6 +531,13 @@ This section documents CSS selectors that have been tested and work for specific
 - **Title:** `h4`
 - **URL:** `.row.cboardrow`
 
+### Tanana Chiefs Conference (Oracle E-Business Suite)
+- **URL:** `https://careers.tananachiefs.org/OA_HTML/OA.jsp?OAFunc=TCC_IRC_ALL_JOBS`
+- **Type:** DynamicScraper with custom code (requires Playwright + skip_robots_check)
+- **Flags:** `use_playwright=True`, `skip_robots_check=True`
+- **Interactive:** Selects "All Open Reqs" dropdown, clicks Search button
+- **Notes:** Oracle E-Business Suite uses JavaScript onclick handlers instead of real hrefs. Job IDs extracted from anchor text (e.g., `IRC47603`). Detail URLs from hidden input fields.
+
 ### Phase 1Q: AI-Powered Selector Detection ✅
 - [x] AI analysis endpoint using Claude API
 - [x] "Analyze Page with AI" button on source configuration page
@@ -637,6 +653,8 @@ Generated code must contain:
 - [x] Robots.txt content displayed in scrape error reports
 - [x] Content caching to avoid duplicate network requests
 - [x] 2KB truncation limit to prevent log bloat
+- [x] `skip_robots_check` flag for sites with overly restrictive robots.txt (e.g., blanket `Disallow: /`)
+- [x] SSL bypass for robots.txt fetch (handles sites with broken certificate chains)
 
 **Key Files:**
 - `backend/app/models/scrape_source.py` - `robots_blocked`, `robots_blocked_at` fields
@@ -649,6 +667,7 @@ Generated code must contain:
 **Database Fields:**
 - `robots_blocked` (Boolean) - True if site's robots.txt disallows crawling
 - `robots_blocked_at` (DateTime) - Timestamp when blocking was detected
+- `skip_robots_check` (Boolean) - Bypass robots.txt for public job boards with restrictive rules
 
 **API Endpoints:**
 - GET `/admin/sources/robots-blocked` - Page listing robots-blocked sources
