@@ -8,10 +8,10 @@
                 </svg>
                 <div>
                     <p class="font-medium text-green-800 dark:text-green-200">
-                        Successfully imported {{ added }} source{{ 's' if added != 1 else '' }}
+                        Successfully imported {{ added }} source{{ 's' if added != 1 else '' }} as disabled
                     </p>
                     <p class="text-sm text-green-700 dark:text-green-300 mt-1">
-                        Go to each source and click "Configure" to set up CSS selectors.
+                        Go to <a href="/admin/sources/disabled" class="underline hover:no-underline">Disabled Sources</a>, configure each one, then enable it.
                     </p>
                 </div>
             </div>

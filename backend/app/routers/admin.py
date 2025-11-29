@@ -373,6 +373,19 @@ async def create_source(request: Request, db: Session = Depends(get_db)):
     return response
 
 
+def _normalize_url(url: str) -> str:
+    """Normalize URL for deduplication: lowercase, strip trailing slash."""
+    url = url.lower().strip()
+    # Remove trailing slash (but not from root domain)
+    if url.endswith('/') and url.count('/') > 3:
+        url = url.rstrip('/')
+    return url
+
+
+# Maximum CSV file size (1MB should be plenty for source lists)
+MAX_CSV_SIZE = 1 * 1024 * 1024
+
+
 @router.post("/sources/import-csv")
 async def import_sources_csv(request: Request, file: UploadFile = File(...), db: Session = Depends(get_db)):
     """Bulk import scrape sources from a CSV file.
@@ -381,6 +394,9 @@ async def import_sources_csv(request: Request, file: UploadFile = File(...), db:
     - Source Name: Name of the organization/source
     - Base URL: Main website URL
     - Jobs URL: URL of the jobs listing page (if different from Base URL)
+
+    Imported sources are created as INACTIVE and need to be configured
+    with CSS selectors before they can be scraped.
     """
     if not get_admin_user(request):
         raise HTTPException(status_code=401)
@@ -393,8 +409,14 @@ async def import_sources_csv(request: Request, file: UploadFile = File(...), db:
         )
 
     try:
-        # Read file content
+        # Read file content with size limit
         content = await file.read()
+        if len(content) > MAX_CSV_SIZE:
+            return templates.TemplateResponse(
+                "admin/partials/csv_import_result.html",
+                {"request": request, "error": f"CSV file too large (max {MAX_CSV_SIZE // 1024}KB)", "success": False},
+            )
+
         try:
             text = content.decode('utf-8')
         except UnicodeDecodeError:
@@ -445,6 +467,15 @@ async def import_sources_csv(request: Request, file: UploadFile = File(...), db:
                 {"request": request, "error": "CSV must have a 'Base URL' or 'URL' column", "success": False},
             )
 
+        # Prefetch existing sources for fast duplicate detection
+        existing_sources = db.query(ScrapeSource.name, ScrapeSource.base_url).all()
+        existing_names = {name.lower().strip() for name, _ in existing_sources}
+        existing_urls = {_normalize_url(url) for _, url in existing_sources}
+
+        # Track sources added in this batch to detect in-CSV duplicates
+        batch_names: set[str] = set()
+        batch_urls: set[str] = set()
+
         # Process rows
         added = 0
         skipped = []
@@ -476,24 +507,40 @@ async def import_sources_csv(request: Request, file: UploadFile = File(...), db:
                 errors.append(f"Row {row_num}: Invalid Jobs URL for '{name}' (must start with http:// or https://)")
                 continue
 
-            # Check for duplicate (by name or base_url)
-            existing = db.query(ScrapeSource).filter(
-                (ScrapeSource.name == name) | (ScrapeSource.base_url == base_url)
-            ).first()
-            if existing:
-                skipped.append(f"'{name}' (already exists)")
+            # Normalize for duplicate detection
+            name_lower = name.lower().strip()
+            url_normalized = _normalize_url(base_url)
+
+            # Check for duplicate in database (using normalized values)
+            if name_lower in existing_names:
+                skipped.append(f"'{name}' (name already exists)")
+                continue
+            if url_normalized in existing_urls:
+                skipped.append(f"'{name}' (URL already exists)")
                 continue
 
-            # Create source
+            # Check for duplicate within this CSV batch
+            if name_lower in batch_names:
+                skipped.append(f"'{name}' (duplicate in CSV)")
+                continue
+            if url_normalized in batch_urls:
+                skipped.append(f"'{name}' (duplicate URL in CSV)")
+                continue
+
+            # Create source - INACTIVE by default so it won't be scraped until configured
             source = ScrapeSource(
                 name=name,
                 base_url=base_url,
                 listing_url=listing_url if listing_url else None,
                 scraper_class="GenericScraper",
-                is_active=True,
+                is_active=False,  # Must be configured before enabling
             )
             db.add(source)
             added += 1
+
+            # Track this source for in-batch duplicate detection
+            batch_names.add(name_lower)
+            batch_urls.add(url_normalized)
 
         # Commit all at once
         if added > 0:
