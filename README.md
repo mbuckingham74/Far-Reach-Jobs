@@ -38,7 +38,9 @@ We respect `robots.txt` and identify ourselves as `FarReachJobs/1.0` in our User
 
 ## Adding Job Sources (Admin)
 
-Far Reach Jobs uses a configurable scraper system. New job sources can be added via the admin panel without writing code:
+Far Reach Jobs uses a configurable scraper system. New job sources can be added via the admin panel without writing code.
+
+### Single Source
 
 1. Go to Admin Dashboard → Add Scrape Source
 2. Enter the source name and base URL
@@ -47,6 +49,24 @@ Far Reach Jobs uses a configurable scraper system. New job sources can be added 
 5. Review the suggested selectors and click "Apply All Suggestions"
 6. Set a **Default Location** (e.g., "Bethel") for sources where jobs don't have individual locations
 7. Save configuration and click "Scrape" to test
+
+### Bulk Import via CSV
+
+Have a list of sources to add? Import them all at once:
+
+1. Go to Admin Dashboard → Bulk Import from CSV
+2. Upload a CSV file with columns: `Source Name`, `Base URL`, `Jobs URL` (optional)
+3. Review results (duplicates are automatically skipped)
+4. Go to Disabled Sources to configure and enable each imported source
+
+**Example CSV:**
+```csv
+Source Name,Base URL,Jobs URL
+City of Bethel,https://www.cityofbethel.net,https://www.cityofbethel.net/jobs
+NANA Regional,https://nana.com,https://nana.com/careers
+```
+
+Imported sources start as disabled to prevent unconfigured scrapers from running.
 
 ### AI-Powered Configuration
 
