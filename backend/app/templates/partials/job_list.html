@@ -69,6 +69,7 @@
 {# Build filter query string for pagination #}
 {% set filter_params = [] %}
 {% if q %}{% set _ = filter_params.append('q=' ~ q) %}{% endif %}
+{% if state %}{% set _ = filter_params.append('state=' ~ state) %}{% endif %}
 {% if location %}{% set _ = filter_params.append('location=' ~ location) %}{% endif %}
 {% if job_type %}{% set _ = filter_params.append('job_type=' ~ job_type) %}{% endif %}
 {% if date_posted %}{% set _ = filter_params.append('date_posted=' ~ date_posted) %}{% endif %}
@@ -110,7 +111,7 @@
     </svg>
     <h3 class="text-lg font-medium text-gray-700 dark:text-gray-300 mb-2">No jobs found</h3>
     <p class="text-gray-500 dark:text-gray-400">
-        {% if q or location or job_type or date_posted or organization or source_id %}
+        {% if q or state or location or job_type or date_posted or organization or source_id %}
         Try adjusting your search filters or check back later for new listings.
         {% else %}
         No jobs available yet. Check back soon!<br>
