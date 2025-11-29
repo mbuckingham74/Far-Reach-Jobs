@@ -104,8 +104,15 @@ def admin_dashboard(request: Request, db: Session = Depends(get_db)):
         .order_by(ScrapeSource.created_at.desc())
         .all()
     )
-    disabled_count = db.query(ScrapeSource).filter(ScrapeSource.is_active == False).count()
+    # Disabled count excludes needs_configuration sources (they have their own page)
+    disabled_count = (
+        db.query(ScrapeSource)
+        .filter(ScrapeSource.is_active == False)
+        .filter((ScrapeSource.needs_configuration == False) | (ScrapeSource.needs_configuration == None))
+        .count()
+    )
     robots_blocked_count = db.query(ScrapeSource).filter(ScrapeSource.robots_blocked == True).count()
+    needs_configuration_count = db.query(ScrapeSource).filter(ScrapeSource.needs_configuration == True).count()
     job_count = db.query(Job).filter(Job.is_stale == False).count()
     stale_count = db.query(Job).filter(Job.is_stale == True).count()
 
@@ -116,6 +123,7 @@ def admin_dashboard(request: Request, db: Session = Depends(get_db)):
             "sources": active_sources,
             "disabled_count": disabled_count,
             "robots_blocked_count": robots_blocked_count,
+            "needs_configuration_count": needs_configuration_count,
             "job_count": job_count,
             "stale_count": stale_count,
         },
@@ -155,11 +163,17 @@ def list_sources(request: Request, db: Session = Depends(get_db)):
 
 @router.get("/sources/disabled")
 def disabled_sources_page(request: Request, db: Session = Depends(get_db)):
-    """Disabled sources page."""
+    """Disabled sources page (excludes needs_configuration sources)."""
     if not get_admin_user(request):
         return RedirectResponse(url="/admin/login", status_code=302)
 
-    disabled_sources = db.query(ScrapeSource).filter(ScrapeSource.is_active == False).order_by(ScrapeSource.created_at.desc()).all()
+    disabled_sources = (
+        db.query(ScrapeSource)
+        .filter(ScrapeSource.is_active == False)
+        .filter((ScrapeSource.needs_configuration == False) | (ScrapeSource.needs_configuration == None))
+        .order_by(ScrapeSource.created_at.desc())
+        .all()
+    )
 
     return templates.TemplateResponse(
         "admin/disabled_sources.html",
@@ -172,11 +186,17 @@ def disabled_sources_page(request: Request, db: Session = Depends(get_db)):
 
 @router.get("/sources/disabled/list")
 def list_disabled_sources(request: Request, db: Session = Depends(get_db)):
-    """List disabled scrape sources (HTMX partial)."""
+    """List disabled scrape sources (HTMX partial), excludes needs_configuration."""
     if not get_admin_user(request):
         raise HTTPException(status_code=401)
 
-    sources = db.query(ScrapeSource).filter(ScrapeSource.is_active == False).order_by(ScrapeSource.created_at.desc()).all()
+    sources = (
+        db.query(ScrapeSource)
+        .filter(ScrapeSource.is_active == False)
+        .filter((ScrapeSource.needs_configuration == False) | (ScrapeSource.needs_configuration == None))
+        .order_by(ScrapeSource.created_at.desc())
+        .all()
+    )
     return templates.TemplateResponse(
         "admin/partials/source_list.html",
         {"request": request, "sources": sources, "show_disabled": True},
@@ -185,64 +205,93 @@ def list_disabled_sources(request: Request, db: Session = Depends(get_db)):
 
 @router.get("/sources/disabled-count")
 def disabled_count_link(request: Request, db: Session = Depends(get_db)):
-    """Return the disabled sources count link (HTMX partial)."""
+    """Return the disabled sources count link (HTMX partial), excludes needs_configuration."""
     if not get_admin_user(request):
         raise HTTPException(status_code=401)
 
-    disabled_count = db.query(ScrapeSource).filter(ScrapeSource.is_active == False).count()
+    disabled_count = (
+        db.query(ScrapeSource)
+        .filter(ScrapeSource.is_active == False)
+        .filter((ScrapeSource.needs_configuration == False) | (ScrapeSource.needs_configuration == None))
+        .count()
+    )
     return templates.TemplateResponse(
         "admin/partials/disabled_count_link.html",
         {"request": request, "disabled_count": disabled_count},
     )
 
 
-@router.get("/sources/imported")
-def imported_sources_page(
-    request: Request,
-    db: Session = Depends(get_db),
-    minutes: Optional[str] = Query(default="5"),
-):
-    """Show recently imported sources for configuration.
-
-    Shows disabled sources created within the last N minutes (default 5, max 1440/24h).
-    This avoids URL length limits with large imports and survives page refresh.
-    Uses DB-side time calculation for timezone consistency.
-    """
+@router.get("/sources/needs-configuration")
+def needs_configuration_page(request: Request, db: Session = Depends(get_db)):
+    """Show sources that need configuration (bulk imported)."""
     if not get_admin_user(request):
         return RedirectResponse(url="/admin/login", status_code=302)
 
-    # Parse and validate minutes parameter - default to 5 on any invalid input
-    try:
-        mins = int(minutes) if minutes else 5
-        mins = max(1, min(mins, 1440))  # Clamp to 1-1440 range
-    except (ValueError, TypeError):
-        mins = 5
+    return templates.TemplateResponse(
+        "admin/needs_configuration.html",
+        {"request": request},
+    )
 
-    # Use DB-side time calculation to avoid timezone mismatches
-    # MySQL's NOW() matches the created_at column (also set via func.now())
-    from sqlalchemy import text
+
+@router.get("/sources/needs-configuration/list")
+def needs_configuration_list(request: Request, db: Session = Depends(get_db)):
+    """HTMX endpoint: list sources needing configuration."""
+    if not get_admin_user(request):
+        raise HTTPException(status_code=401)
 
     sources = (
         db.query(ScrapeSource)
-        .filter(ScrapeSource.is_active == False)
-        .filter(
-            ScrapeSource.created_at >= sql_func.now() - text(f"INTERVAL {mins} MINUTE")
-        )
+        .filter(ScrapeSource.needs_configuration == True)
         .order_by(ScrapeSource.name)
         .all()
     )
 
-    # If no recent imports found, redirect to all disabled sources
-    if not sources:
-        return RedirectResponse(url="/admin/sources/disabled", status_code=302)
+    return templates.TemplateResponse(
+        "admin/partials/source_list.html",
+        {"request": request, "sources": sources, "show_needs_configuration": True},
+    )
+
+
+@router.get("/sources/needs-configuration-count")
+def needs_configuration_count(request: Request, db: Session = Depends(get_db)):
+    """HTMX endpoint: return count of sources needing configuration."""
+    if not get_admin_user(request):
+        raise HTTPException(status_code=401)
+
+    count = db.query(ScrapeSource).filter(ScrapeSource.needs_configuration == True).count()
+    return templates.TemplateResponse(
+        "admin/partials/needs_configuration_count_link.html",
+        {"request": request, "needs_configuration_count": count},
+    )
+
+
+@router.post("/sources/{source_id}/mark-disabled")
+def mark_source_disabled(source_id: int, request: Request, db: Session = Depends(get_db)):
+    """Move a source from needs-configuration to disabled (tried but couldn't configure)."""
+    if not get_admin_user(request):
+        raise HTTPException(status_code=401)
+
+    source = db.query(ScrapeSource).filter(ScrapeSource.id == source_id).first()
+    if not source:
+        raise HTTPException(status_code=404, detail="Source not found")
+
+    # Clear needs_configuration flag - it will now appear in Disabled sources
+    source.needs_configuration = False
+    # Ensure it stays inactive
+    source.is_active = False
+    db.commit()
+
+    # Return updated list
+    sources = (
+        db.query(ScrapeSource)
+        .filter(ScrapeSource.needs_configuration == True)
+        .order_by(ScrapeSource.name)
+        .all()
+    )
 
     return templates.TemplateResponse(
-        "admin/imported_sources.html",
-        {
-            "request": request,
-            "sources": sources,
-            "count": len(sources),
-        },
+        "admin/partials/source_list.html",
+        {"request": request, "sources": sources, "show_needs_configuration": True},
     )
 
 
@@ -578,13 +627,15 @@ async def import_sources_csv(request: Request, file: UploadFile = File(...), db:
                 skipped.append(f"'{name}' (duplicate URL in CSV)")
                 continue
 
-            # Create source - INACTIVE by default so it won't be scraped until configured
+            # Create source - marked as needs_configuration so it appears in the
+            # "Needs Configuration" queue, separate from manually disabled sources
             source = ScrapeSource(
                 name=name,
                 base_url=base_url,
                 listing_url=listing_url if listing_url else None,
                 scraper_class="GenericScraper",
-                is_active=False,  # Must be configured before enabling
+                is_active=False,  # Not active until configured
+                needs_configuration=True,  # Appears in "Needs Configuration" page
             )
             db.add(source)
             added += 1
@@ -684,13 +735,14 @@ def export_active_sources(request: Request, db: Session = Depends(get_db)):
 
 @router.get("/sources/export-disabled")
 def export_disabled_sources(request: Request, db: Session = Depends(get_db)):
-    """Export disabled sources as CSV (alphabetically sorted)."""
+    """Export disabled sources as CSV (alphabetically sorted), excludes needs_configuration."""
     if not get_admin_user(request):
         raise HTTPException(status_code=401)
 
     sources = (
         db.query(ScrapeSource)
         .filter(ScrapeSource.is_active == False)
+        .filter((ScrapeSource.needs_configuration == False) | (ScrapeSource.needs_configuration == None))
         .order_by(ScrapeSource.name)
         .all()
     )
@@ -722,6 +774,26 @@ def export_robots_blocked_sources(request: Request, db: Session = Depends(get_db
     )
 
 
+@router.get("/sources/export-needs-configuration")
+def export_needs_configuration_sources(request: Request, db: Session = Depends(get_db)):
+    """Export needs-configuration sources as CSV (alphabetically sorted)."""
+    if not get_admin_user(request):
+        raise HTTPException(status_code=401)
+
+    sources = (
+        db.query(ScrapeSource)
+        .filter(ScrapeSource.needs_configuration == True)
+        .order_by(ScrapeSource.name)
+        .all()
+    )
+
+    return StreamingResponse(
+        _generate_sources_csv_stream(sources),
+        media_type="text/csv",
+        headers={"Content-Disposition": "attachment; filename=needs_configuration_sources.csv"},
+    )
+
+
 @router.delete("/sources/{source_id}")
 def delete_source(source_id: int, request: Request, db: Session = Depends(get_db)):
     """Delete a scrape source."""
@@ -732,6 +804,7 @@ def delete_source(source_id: int, request: Request, db: Session = Depends(get_db
     hx_target = request.headers.get("HX-Target", "")
     show_disabled = hx_target == "disabled-source-list"
     show_robots_blocked = hx_target == "robots-blocked-source-list"
+    show_needs_configuration = hx_target == "needs-configuration-list"
 
     source = db.query(ScrapeSource).filter(ScrapeSource.id == source_id).first()
     if source:
@@ -741,39 +814,41 @@ def delete_source(source_id: int, request: Request, db: Session = Depends(get_db
         except Exception as e:
             logger.error(f"Failed to delete source {source_id}: {e}")
             db.rollback()
-            if show_robots_blocked:
-                sources = db.query(ScrapeSource).filter(ScrapeSource.robots_blocked == True).order_by(ScrapeSource.robots_blocked_at.desc()).all()
-            elif show_disabled:
-                sources = db.query(ScrapeSource).filter(ScrapeSource.is_active == False).order_by(ScrapeSource.created_at.desc()).all()
-            else:
-                sources = (
-                    db.query(ScrapeSource)
-                    .filter(ScrapeSource.is_active == True)
-                    .filter((ScrapeSource.robots_blocked == False) | (ScrapeSource.robots_blocked == None))
-                    .order_by(ScrapeSource.created_at.desc())
-                    .all()
-                )
+            sources = _get_sources_for_list(db, show_robots_blocked, show_disabled, show_needs_configuration)
             return templates.TemplateResponse(
                 "admin/partials/source_list.html",
-                {"request": request, "sources": sources, "show_disabled": show_disabled, "show_robots_blocked": show_robots_blocked, "error": "Failed to delete source. Please try again."},
+                {"request": request, "sources": sources, "show_disabled": show_disabled, "show_robots_blocked": show_robots_blocked, "show_needs_configuration": show_needs_configuration, "error": "Failed to delete source. Please try again."},
             )
 
+    sources = _get_sources_for_list(db, show_robots_blocked, show_disabled, show_needs_configuration)
+    return templates.TemplateResponse(
+        "admin/partials/source_list.html",
+        {"request": request, "sources": sources, "show_disabled": show_disabled, "show_robots_blocked": show_robots_blocked, "show_needs_configuration": show_needs_configuration},
+    )
+
+
+def _get_sources_for_list(db: Session, show_robots_blocked: bool, show_disabled: bool, show_needs_configuration: bool):
+    """Helper to get sources based on which list is being shown."""
     if show_robots_blocked:
-        sources = db.query(ScrapeSource).filter(ScrapeSource.robots_blocked == True).order_by(ScrapeSource.robots_blocked_at.desc()).all()
+        return db.query(ScrapeSource).filter(ScrapeSource.robots_blocked == True).order_by(ScrapeSource.robots_blocked_at.desc()).all()
+    elif show_needs_configuration:
+        return db.query(ScrapeSource).filter(ScrapeSource.needs_configuration == True).order_by(ScrapeSource.name).all()
     elif show_disabled:
-        sources = db.query(ScrapeSource).filter(ScrapeSource.is_active == False).order_by(ScrapeSource.created_at.desc()).all()
+        return (
+            db.query(ScrapeSource)
+            .filter(ScrapeSource.is_active == False)
+            .filter((ScrapeSource.needs_configuration == False) | (ScrapeSource.needs_configuration == None))
+            .order_by(ScrapeSource.created_at.desc())
+            .all()
+        )
     else:
-        sources = (
+        return (
             db.query(ScrapeSource)
             .filter(ScrapeSource.is_active == True)
             .filter((ScrapeSource.robots_blocked == False) | (ScrapeSource.robots_blocked == None))
             .order_by(ScrapeSource.created_at.desc())
             .all()
         )
-    return templates.TemplateResponse(
-        "admin/partials/source_list.html",
-        {"request": request, "sources": sources, "show_disabled": show_disabled, "show_robots_blocked": show_robots_blocked},
-    )
 
 
 @router.post("/sources/{source_id}/toggle")
@@ -789,6 +864,9 @@ def toggle_source(source_id: int, request: Request, db: Session = Depends(get_db
     source = db.query(ScrapeSource).filter(ScrapeSource.id == source_id).first()
     if source:
         source.is_active = not source.is_active
+        # When enabling a source, clear the needs_configuration flag
+        if source.is_active and source.needs_configuration:
+            source.needs_configuration = False
         try:
             db.commit()
         except Exception as e:
