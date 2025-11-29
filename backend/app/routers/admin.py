@@ -2,7 +2,8 @@ import csv
 import io
 import logging
 import secrets
-from fastapi import APIRouter, Request, Depends, HTTPException, UploadFile, File
+from typing import Optional
+from fastapi import APIRouter, Request, Depends, HTTPException, UploadFile, File, Query
 from fastapi.responses import RedirectResponse, HTMLResponse, StreamingResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
@@ -192,6 +193,56 @@ def disabled_count_link(request: Request, db: Session = Depends(get_db)):
     return templates.TemplateResponse(
         "admin/partials/disabled_count_link.html",
         {"request": request, "disabled_count": disabled_count},
+    )
+
+
+@router.get("/sources/imported")
+def imported_sources_page(
+    request: Request,
+    db: Session = Depends(get_db),
+    minutes: Optional[str] = Query(default="5"),
+):
+    """Show recently imported sources for configuration.
+
+    Shows disabled sources created within the last N minutes (default 5, max 1440/24h).
+    This avoids URL length limits with large imports and survives page refresh.
+    Uses DB-side time calculation for timezone consistency.
+    """
+    if not get_admin_user(request):
+        return RedirectResponse(url="/admin/login", status_code=302)
+
+    # Parse and validate minutes parameter - default to 5 on any invalid input
+    try:
+        mins = int(minutes) if minutes else 5
+        mins = max(1, min(mins, 1440))  # Clamp to 1-1440 range
+    except (ValueError, TypeError):
+        mins = 5
+
+    # Use DB-side time calculation to avoid timezone mismatches
+    # MySQL's NOW() matches the created_at column (also set via func.now())
+    from sqlalchemy import text
+
+    sources = (
+        db.query(ScrapeSource)
+        .filter(ScrapeSource.is_active == False)
+        .filter(
+            ScrapeSource.created_at >= sql_func.now() - text(f"INTERVAL {mins} MINUTE")
+        )
+        .order_by(ScrapeSource.name)
+        .all()
+    )
+
+    # If no recent imports found, redirect to all disabled sources
+    if not sources:
+        return RedirectResponse(url="/admin/sources/disabled", status_code=302)
+
+    return templates.TemplateResponse(
+        "admin/imported_sources.html",
+        {
+            "request": request,
+            "sources": sources,
+            "count": len(sources),
+        },
     )
 
 
