@@ -160,13 +160,15 @@ UPDATED_TCC_SCRAPER_CODE = '''class TananaChiefsScraper(BaseScraper):
 
 
 def upgrade() -> None:
-    # 1. Clean up existing job location data - match all patterns from clean_location helper
+    # 1. Clean up existing job location data - scope to TCC source only
+    # These Oracle-specific suffixes only appear in TCC data
 
     # Handle "USVacancy Locations" suffix (with comma)
     op.execute("""
         UPDATE jobs
         SET location = TRIM(TRAILING ', USVacancy Locations' FROM location)
         WHERE location LIKE '%, USVacancy Locations'
+          AND source_id = (SELECT id FROM scrape_sources WHERE name LIKE '%Tanana Chiefs%' LIMIT 1)
     """)
 
     # Handle "USVacancy Locations" suffix (without comma)
@@ -174,6 +176,7 @@ def upgrade() -> None:
         UPDATE jobs
         SET location = TRIM(LEADING ' ' FROM TRIM(TRAILING 'USVacancy Locations' FROM location))
         WHERE location LIKE '%USVacancy Locations'
+          AND source_id = (SELECT id FROM scrape_sources WHERE name LIKE '%Tanana Chiefs%' LIMIT 1)
     """)
 
     # Handle "Vacancy Locations" suffix (with comma)
@@ -181,6 +184,7 @@ def upgrade() -> None:
         UPDATE jobs
         SET location = TRIM(TRAILING ', Vacancy Locations' FROM location)
         WHERE location LIKE '%, Vacancy Locations'
+          AND source_id = (SELECT id FROM scrape_sources WHERE name LIKE '%Tanana Chiefs%' LIMIT 1)
     """)
 
     # Handle "Vacancy Locations" suffix (without comma)
@@ -188,22 +192,30 @@ def upgrade() -> None:
         UPDATE jobs
         SET location = TRIM(LEADING ' ' FROM TRIM(TRAILING 'Vacancy Locations' FROM location))
         WHERE location LIKE '%Vacancy Locations'
+          AND source_id = (SELECT id FROM scrape_sources WHERE name LIKE '%Tanana Chiefs%' LIMIT 1)
     """)
 
-    # Handle trailing "US" (with comma) - but not state abbreviations like "AK, US"
-    # Only match ", US" at the very end
+    # Handle trailing "US" - scope to TCC to avoid affecting legitimate ", US" country markers
     op.execute("""
         UPDATE jobs
         SET location = TRIM(TRAILING ', US' FROM location)
         WHERE location LIKE '%, US'
-          AND location NOT LIKE '%, __, US'
+          AND source_id = (SELECT id FROM scrape_sources WHERE name LIKE '%Tanana Chiefs%' LIMIT 1)
     """)
 
-    # Clean up any trailing commas or spaces left behind
+    # Clean up any trailing commas or spaces left behind (TCC only)
     op.execute("""
         UPDATE jobs
         SET location = TRIM(TRAILING ',' FROM TRIM(location))
         WHERE location LIKE '%,'
+          AND source_id = (SELECT id FROM scrape_sources WHERE name LIKE '%Tanana Chiefs%' LIMIT 1)
+    """)
+
+    # Convert empty strings to NULL to avoid blank locations in UI
+    op.execute("""
+        UPDATE jobs
+        SET location = NULL
+        WHERE location IS NOT NULL AND TRIM(location) = ''
     """)
 
     # 2. Update the TCC scraper code to include location cleaning
