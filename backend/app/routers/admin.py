@@ -1,6 +1,8 @@
+import csv
+import io
 import logging
 import secrets
-from fastapi import APIRouter, Request, Depends, HTTPException
+from fastapi import APIRouter, Request, Depends, HTTPException, UploadFile, File
 from fastapi.responses import RedirectResponse, HTMLResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
@@ -369,6 +371,214 @@ async def create_source(request: Request, db: Session = Depends(get_db)):
     )
     response.headers["HX-Trigger"] = "sourceCreated"
     return response
+
+
+def _normalize_url(url: str) -> str:
+    """Normalize URL for deduplication: lowercase, strip trailing slash."""
+    url = url.lower().strip()
+    # Always strip trailing slash for consistency
+    # (https://example.com/ and https://example.com should match)
+    url = url.rstrip('/')
+    return url
+
+
+# Maximum CSV file size (1MB should be plenty for source lists)
+MAX_CSV_SIZE = 1 * 1024 * 1024
+
+
+@router.post("/sources/import-csv")
+async def import_sources_csv(request: Request, file: UploadFile = File(...), db: Session = Depends(get_db)):
+    """Bulk import scrape sources from a CSV file.
+
+    Expected CSV columns: Source Name, Base URL, Jobs URL (optional)
+    - Source Name: Name of the organization/source
+    - Base URL: Main website URL
+    - Jobs URL: URL of the jobs listing page (if different from Base URL)
+
+    Imported sources are created as INACTIVE and need to be configured
+    with CSS selectors before they can be scraped.
+    """
+    if not get_admin_user(request):
+        raise HTTPException(status_code=401)
+
+    # Validate file type
+    if not file.filename or not file.filename.lower().endswith('.csv'):
+        return templates.TemplateResponse(
+            "admin/partials/csv_import_result.html",
+            {"request": request, "error": "Please upload a CSV file", "success": False},
+        )
+
+    try:
+        # Read file content with size limit
+        content = await file.read()
+        if len(content) > MAX_CSV_SIZE:
+            return templates.TemplateResponse(
+                "admin/partials/csv_import_result.html",
+                {"request": request, "error": f"CSV file too large (max {MAX_CSV_SIZE // 1024}KB)", "success": False},
+            )
+
+        try:
+            text = content.decode('utf-8')
+        except UnicodeDecodeError:
+            # Try latin-1 as fallback for Excel-exported CSVs
+            text = content.decode('latin-1')
+
+        # Parse CSV
+        reader = csv.DictReader(io.StringIO(text))
+
+        # Normalize column names (case-insensitive, strip whitespace)
+        if reader.fieldnames is None:
+            return templates.TemplateResponse(
+                "admin/partials/csv_import_result.html",
+                {"request": request, "error": "CSV file is empty or has no headers", "success": False},
+            )
+
+        # Map column names to expected fields
+        fieldname_map = {}
+        normalized_fields = {name.strip().lower(): name for name in reader.fieldnames}
+
+        # Source Name variations
+        for variant in ['source name', 'name', 'source', 'organization', 'org']:
+            if variant in normalized_fields:
+                fieldname_map['name'] = normalized_fields[variant]
+                break
+
+        # Base URL variations
+        for variant in ['base url', 'base_url', 'baseurl', 'url', 'website']:
+            if variant in normalized_fields:
+                fieldname_map['base_url'] = normalized_fields[variant]
+                break
+
+        # Jobs URL variations (optional)
+        for variant in ['jobs url', 'jobs_url', 'jobsurl', 'listing url', 'listing_url', 'careers url', 'careers_url']:
+            if variant in normalized_fields:
+                fieldname_map['listing_url'] = normalized_fields[variant]
+                break
+
+        # Validate required columns
+        if 'name' not in fieldname_map:
+            return templates.TemplateResponse(
+                "admin/partials/csv_import_result.html",
+                {"request": request, "error": "CSV must have a 'Source Name' or 'Name' column", "success": False},
+            )
+        if 'base_url' not in fieldname_map:
+            return templates.TemplateResponse(
+                "admin/partials/csv_import_result.html",
+                {"request": request, "error": "CSV must have a 'Base URL' or 'URL' column", "success": False},
+            )
+
+        # Prefetch existing sources for fast duplicate detection
+        existing_sources = db.query(ScrapeSource.name, ScrapeSource.base_url).all()
+        existing_names = {name.lower().strip() for name, _ in existing_sources}
+        existing_urls = {_normalize_url(url) for _, url in existing_sources}
+
+        # Track sources added in this batch to detect in-CSV duplicates
+        batch_names: set[str] = set()
+        batch_urls: set[str] = set()
+
+        # Process rows
+        added = 0
+        skipped = []
+        errors = []
+
+        for row_num, row in enumerate(reader, start=2):  # Start at 2 to account for header row
+            name = row.get(fieldname_map['name'], '').strip()
+            base_url = row.get(fieldname_map['base_url'], '').strip()
+            listing_url = row.get(fieldname_map.get('listing_url', ''), '').strip() if 'listing_url' in fieldname_map else ''
+
+            # Skip empty rows
+            if not name and not base_url:
+                continue
+
+            # Validate required fields
+            if not name:
+                errors.append(f"Row {row_num}: Missing source name")
+                continue
+            if not base_url:
+                errors.append(f"Row {row_num}: Missing base URL for '{name}'")
+                continue
+
+            # Validate URL format
+            if not (base_url.startswith('http://') or base_url.startswith('https://')):
+                errors.append(f"Row {row_num}: Invalid URL for '{name}' (must start with http:// or https://)")
+                continue
+
+            if listing_url and not (listing_url.startswith('http://') or listing_url.startswith('https://')):
+                errors.append(f"Row {row_num}: Invalid Jobs URL for '{name}' (must start with http:// or https://)")
+                continue
+
+            # Normalize for duplicate detection
+            name_lower = name.lower().strip()
+            url_normalized = _normalize_url(base_url)
+
+            # Check for duplicate in database (using normalized values)
+            if name_lower in existing_names:
+                skipped.append(f"'{name}' (name already exists)")
+                continue
+            if url_normalized in existing_urls:
+                skipped.append(f"'{name}' (URL already exists)")
+                continue
+
+            # Check for duplicate within this CSV batch
+            if name_lower in batch_names:
+                skipped.append(f"'{name}' (duplicate in CSV)")
+                continue
+            if url_normalized in batch_urls:
+                skipped.append(f"'{name}' (duplicate URL in CSV)")
+                continue
+
+            # Create source - INACTIVE by default so it won't be scraped until configured
+            source = ScrapeSource(
+                name=name,
+                base_url=base_url,
+                listing_url=listing_url if listing_url else None,
+                scraper_class="GenericScraper",
+                is_active=False,  # Must be configured before enabling
+            )
+            db.add(source)
+            added += 1
+
+            # Track this source for in-batch duplicate detection
+            batch_names.add(name_lower)
+            batch_urls.add(url_normalized)
+
+        # Commit all at once
+        if added > 0:
+            try:
+                db.commit()
+            except Exception as e:
+                logger.error(f"Failed to import sources: {e}")
+                db.rollback()
+                return templates.TemplateResponse(
+                    "admin/partials/csv_import_result.html",
+                    {"request": request, "error": "Database error while importing. Please try again.", "success": False},
+                )
+
+        response = templates.TemplateResponse(
+            "admin/partials/csv_import_result.html",
+            {
+                "request": request,
+                "success": True,
+                "added": added,
+                "skipped": skipped,
+                "errors": errors,
+            },
+        )
+        response.headers["HX-Trigger"] = "refreshSourceList"
+        return response
+
+    except csv.Error as e:
+        logger.error(f"CSV parsing error: {e}")
+        return templates.TemplateResponse(
+            "admin/partials/csv_import_result.html",
+            {"request": request, "error": f"Invalid CSV format: {str(e)}", "success": False},
+        )
+    except Exception as e:
+        logger.exception(f"CSV import failed: {e}")
+        return templates.TemplateResponse(
+            "admin/partials/csv_import_result.html",
+            {"request": request, "error": "Failed to process CSV file. Please check the format.", "success": False},
+        )
 
 
 @router.delete("/sources/{source_id}")
