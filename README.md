@@ -57,6 +57,40 @@ The admin panel includes AI-powered tools to simplify scraper setup:
 
 The scraper respects `robots.txt` rules and uses crawl delays when specified.
 
+## Development
+
+### Quick Start
+
+```bash
+# Clone and setup
+git clone https://github.com/mbuckingham74/Far-Reach-Jobs.git
+cd Far-Reach-Jobs
+cp .env.example .env
+
+# Create Docker network (first time only)
+docker network create npm_default
+
+# Start services
+docker compose up -d --build
+```
+
+Then visit http://localhost:8000
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed setup instructions.
+
+## Contributing
+
+We welcome contributions! Check out:
+
+- [CONTRIBUTING.md](CONTRIBUTING.md) - Setup and guidelines
+- [ROADMAP.md](ROADMAP.md) - Planned features
+- [Issues](https://github.com/mbuckingham74/Far-Reach-Jobs/issues) - Open tasks
+
+Good first contributions:
+- Suggest new Alaska job sources via the "New Job Source" issue template
+- Improve test coverage
+- UI/UX enhancements
+
 ## For Employers
 
 If you're an employer in remote Alaska and want your jobs included, or if you'd like to be excluded from scraping, please open an issue or contact us.
