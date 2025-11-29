@@ -115,12 +115,20 @@ class BaseScraper(ABC):
             return 1.0
         return self.robots_checker.get_crawl_delay()
 
-    def fetch_page(self, url: str, wait_for: str | None = None) -> BeautifulSoup | None:
+    def fetch_page(
+        self,
+        url: str,
+        wait_for: str | None = None,
+        click_selector: str | None = None,
+        click_wait_for: str | None = None,
+    ) -> BeautifulSoup | None:
         """Fetch a page and return parsed BeautifulSoup, or None on error.
 
         Args:
             url: URL to fetch
             wait_for: CSS selector to wait for before extracting HTML (Playwright only)
+            click_selector: CSS selector to click after page loads (Playwright only)
+            click_wait_for: CSS selector to wait for after clicking (Playwright only)
         """
         if not self.can_fetch(url):
             logger.warning(f"robots.txt disallows fetching: {url}")
@@ -130,7 +138,12 @@ class BaseScraper(ABC):
         if self._use_playwright and self._playwright_fetcher:
             if self._playwright_fetcher.is_available:
                 logger.info(f"Using Playwright to fetch: {url}")
-                result = self._playwright_fetcher.fetch(url, wait_for=wait_for)
+                result = self._playwright_fetcher.fetch(
+                    url,
+                    wait_for=wait_for,
+                    click_selector=click_selector,
+                    click_wait_for=click_wait_for,
+                )
                 if result is not None:
                     return result
                 logger.warning(f"Playwright fetch failed for {url}, falling back to httpx")

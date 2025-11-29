@@ -13,7 +13,7 @@ app.get('/health', (req, res) => {
 
 // Fetch a page and return HTML
 app.post('/fetch', async (req, res) => {
-  const { url, waitFor, timeout } = req.body;
+  const { url, waitFor, clickSelector, clickWaitFor, timeout } = req.body;
 
   if (!url) {
     return res.status(400).json({ error: 'URL is required' });
@@ -62,6 +62,28 @@ app.post('/fetch', async (req, res) => {
         await page.waitForSelector(waitFor, { timeout: 10000 });
       } catch (e) {
         console.log(`Selector '${waitFor}' not found, continuing anyway`);
+      }
+    }
+
+    // Optional: click a button/link and wait for results
+    if (clickSelector) {
+      try {
+        console.log(`Clicking: ${clickSelector}`);
+        await page.click(clickSelector);
+
+        // Wait for results to load
+        await page.waitForTimeout(2000);
+
+        // If a specific selector to wait for after click is provided, wait for it
+        if (clickWaitFor) {
+          try {
+            await page.waitForSelector(clickWaitFor, { timeout: 15000 });
+          } catch (e) {
+            console.log(`Post-click selector '${clickWaitFor}' not found, continuing anyway`);
+          }
+        }
+      } catch (e) {
+        console.log(`Click failed for '${clickSelector}': ${e.message}`);
       }
     }
 

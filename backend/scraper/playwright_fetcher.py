@@ -27,12 +27,20 @@ class PlaywrightFetcher:
         """Check if Playwright service is configured."""
         return bool(self.settings.playwright_service_url)
 
-    def fetch(self, url: str, wait_for: Optional[str] = None) -> Optional[BeautifulSoup]:
+    def fetch(
+        self,
+        url: str,
+        wait_for: Optional[str] = None,
+        click_selector: Optional[str] = None,
+        click_wait_for: Optional[str] = None,
+    ) -> Optional[BeautifulSoup]:
         """Fetch a page using the Playwright service.
 
         Args:
             url: URL to fetch
             wait_for: Optional CSS selector to wait for before returning
+            click_selector: Optional CSS selector to click after page loads
+            click_wait_for: Optional CSS selector to wait for after clicking
 
         Returns:
             BeautifulSoup object or None on error
@@ -46,13 +54,19 @@ class PlaywrightFetcher:
         try:
             logger.info(f"Fetching with Playwright: {url}")
 
+            payload = {
+                "url": url,
+                "waitFor": wait_for,
+                "timeout": self.timeout,
+            }
+            if click_selector:
+                payload["clickSelector"] = click_selector
+            if click_wait_for:
+                payload["clickWaitFor"] = click_wait_for
+
             response = httpx.post(
                 service_url,
-                json={
-                    "url": url,
-                    "waitFor": wait_for,
-                    "timeout": self.timeout
-                },
+                json=payload,
                 timeout=60.0  # HTTP timeout for the service call
             )
 
