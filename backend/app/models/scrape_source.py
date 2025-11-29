@@ -57,4 +57,9 @@ class ScrapeSource(Base):
     robots_blocked = Column(Boolean, default=False)
     robots_blocked_at = Column(DateTime, nullable=True)  # When we detected the block
 
+    # Skip robots.txt check - for sites with overly restrictive robots.txt
+    # that block all crawlers but are clearly intended to be public job boards
+    # (e.g., Oracle E-Business Suite careers pages with blanket Disallow: /)
+    skip_robots_check = Column(Boolean, default=False)
+
     jobs = relationship("Job", back_populates="source", cascade="all, delete-orphan")
