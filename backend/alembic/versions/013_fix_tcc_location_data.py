@@ -160,18 +160,43 @@ UPDATED_TCC_SCRAPER_CODE = '''class TananaChiefsScraper(BaseScraper):
 
 
 def upgrade() -> None:
-    # 1. Clean up existing job location data that has "USVacancy Locations" suffix
+    # 1. Clean up existing job location data - match all patterns from clean_location helper
+
+    # Handle "USVacancy Locations" suffix (with comma)
     op.execute("""
         UPDATE jobs
         SET location = TRIM(TRAILING ', USVacancy Locations' FROM location)
         WHERE location LIKE '%, USVacancy Locations'
     """)
 
-    # Also handle any variations without the comma
+    # Handle "USVacancy Locations" suffix (without comma)
     op.execute("""
         UPDATE jobs
-        SET location = TRIM(TRAILING 'USVacancy Locations' FROM location)
+        SET location = TRIM(LEADING ' ' FROM TRIM(TRAILING 'USVacancy Locations' FROM location))
         WHERE location LIKE '%USVacancy Locations'
+    """)
+
+    # Handle "Vacancy Locations" suffix (with comma)
+    op.execute("""
+        UPDATE jobs
+        SET location = TRIM(TRAILING ', Vacancy Locations' FROM location)
+        WHERE location LIKE '%, Vacancy Locations'
+    """)
+
+    # Handle "Vacancy Locations" suffix (without comma)
+    op.execute("""
+        UPDATE jobs
+        SET location = TRIM(LEADING ' ' FROM TRIM(TRAILING 'Vacancy Locations' FROM location))
+        WHERE location LIKE '%Vacancy Locations'
+    """)
+
+    # Handle trailing "US" (with comma) - but not state abbreviations like "AK, US"
+    # Only match ", US" at the very end
+    op.execute("""
+        UPDATE jobs
+        SET location = TRIM(TRAILING ', US' FROM location)
+        WHERE location LIKE '%, US'
+          AND location NOT LIKE '%, __, US'
     """)
 
     # Clean up any trailing commas or spaces left behind
