@@ -164,17 +164,24 @@ Yukon-Kuskokwim Health,https://www.ykhc.org,https://www.ykhc.org/employment</cod
             </a>
         </div>
         <div class="flex gap-4">
+            <div id="needs-configuration-count-link" hx-get="/admin/sources/needs-configuration-count" hx-trigger="load, refreshSourceList from:body" hx-swap="innerHTML show:none">
+                {% if needs_configuration_count > 0 %}
+                <a href="/admin/sources/needs-configuration" class="text-sm text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 transition-colors font-medium">
+                    Needs Configuration ({{ needs_configuration_count }})
+                </a>
+                {% endif %}
+            </div>
             <div id="robots-blocked-count-link" hx-get="/admin/sources/robots-blocked-count" hx-trigger="load, refreshSourceList from:body" hx-swap="innerHTML show:none">
                 {% if robots_blocked_count > 0 %}
                 <a href="/admin/sources/robots-blocked" class="text-sm text-amber-600 dark:text-amber-400 hover:text-amber-700 dark:hover:text-amber-300 transition-colors">
-                    View Robots.txt Blocked ({{ robots_blocked_count }})
+                    Robots.txt Blocked ({{ robots_blocked_count }})
                 </a>
                 {% endif %}
             </div>
             <div id="disabled-count-link" hx-get="/admin/sources/disabled-count" hx-trigger="load, refreshSourceList from:body" hx-swap="innerHTML show:none">
                 {% if disabled_count > 0 %}
                 <a href="/admin/sources/disabled" class="text-sm text-gray-500 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
-                    View Disabled Sources ({{ disabled_count }})
+                    Disabled ({{ disabled_count }})
                 </a>
                 {% endif %}
             </div>

@@ -18,7 +18,7 @@
                 <th class="px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-300">Name</th>
                 <th class="px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-300 text-center">URL</th>
                 <th class="px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-300 text-center">Type</th>
-                {% if not show_disabled and not show_robots_blocked %}
+                {% if not show_disabled and not show_robots_blocked and not show_needs_configuration %}
                 <th class="px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-300 text-center">Status</th>
                 {% endif %}
                 {% if show_robots_blocked %}
@@ -40,7 +40,7 @@
                     </a>
                 </td>
                 <td class="px-4 py-3 text-sm text-gray-600 dark:text-gray-400">{{ source.scraper_class }}</td>
-                {% if not show_disabled and not show_robots_blocked %}
+                {% if not show_disabled and not show_robots_blocked and not show_needs_configuration %}
                 <td class="px-4 py-3">
                     {% if source.is_active %}
                     <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-200">
@@ -103,6 +103,36 @@
                             hx-confirm="Delete source '{{ source.name }}'? This will also delete all jobs from this source.">
                             Delete
                         </button>
+                        {% elif show_needs_configuration %}
+                        <!-- Needs configuration sources: Configure, Enable, Mark as Disabled, Delete -->
+                        <a href="/admin/sources/{{ source.id }}/configure"
+                           class="px-3 py-1 text-sm bg-primary-500 hover:bg-primary-600 text-white rounded transition-colors inline-block">
+                            Configure
+                        </a>
+                        <button
+                            class="px-3 py-1 text-sm bg-green-500 hover:bg-green-600 text-white rounded transition-colors"
+                            hx-post="/admin/sources/{{ source.id }}/toggle"
+                            hx-target="#needs-configuration-list"
+                            hx-swap="innerHTML show:none"
+                            title="Enable this source (moves to Active)">
+                            Enable
+                        </button>
+                        <button
+                            class="px-3 py-1 text-sm bg-amber-500 hover:bg-amber-600 text-white rounded transition-colors"
+                            hx-post="/admin/sources/{{ source.id }}/mark-disabled"
+                            hx-target="#needs-configuration-list"
+                            hx-swap="innerHTML show:none"
+                            title="Move to Disabled (tried but couldn't configure)">
+                            Mark Disabled
+                        </button>
+                        <button
+                            class="px-3 py-1 text-sm bg-red-500 hover:bg-red-600 text-white rounded transition-colors"
+                            hx-delete="/admin/sources/{{ source.id }}"
+                            hx-target="#needs-configuration-list"
+                            hx-swap="innerHTML show:none"
+                            hx-confirm="Delete source '{{ source.name }}'? This will also delete all jobs from this source.">
+                            Delete
+                        </button>
                         {% else %}
                         <!-- Normal and disabled sources -->
                         <a href="/admin/sources/{{ source.id }}/edit"
@@ -153,6 +183,9 @@
     <p class="text-sm mt-1"><a href="/admin" class="text-primary-600 dark:text-primary-400 hover:underline">Back to dashboard</a></p>
     {% elif show_disabled %}
     <p>No disabled sources.</p>
+    <p class="text-sm mt-1"><a href="/admin" class="text-primary-600 dark:text-primary-400 hover:underline">Back to dashboard</a></p>
+    {% elif show_needs_configuration %}
+    <p>No sources need configuration.</p>
     <p class="text-sm mt-1"><a href="/admin" class="text-primary-600 dark:text-primary-400 hover:underline">Back to dashboard</a></p>
     {% else %}
     <p>No scrape sources configured yet.</p>

@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block title %}Needs Configuration - Admin - Far Reach Jobs{% endblock %}
+
+{% block content %}
+<div class="mb-6 flex justify-between items-center">
+    <div>
+        <div class="flex items-center gap-3">
+            <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Needs Configuration</h2>
+            <a href="/admin/sources/export-needs-configuration" class="text-xs px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 rounded transition-colors inline-flex items-center gap-1">
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                </svg>
+                Export CSV
+            </a>
+        </div>
+        <p class="text-gray-600 dark:text-gray-300">Bulk-imported sources that need CSS selectors configured before enabling</p>
+    </div>
+    <div class="flex gap-2">
+        <a href="/admin" class="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white font-medium rounded-md transition-colors">
+            Back to Dashboard
+        </a>
+    </div>
+</div>
+
+<!-- Info Box -->
+<div class="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+    <div class="flex items-start gap-3">
+        <svg class="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        </svg>
+        <div class="text-sm text-blue-800 dark:text-blue-200">
+            <p class="font-medium mb-1">Configure each source before enabling</p>
+            <p>Click <strong>Configure</strong> to set up CSS selectors, then enable the source to start scraping. Sources that can't be configured can be moved to <strong>Disabled</strong>.</p>
+        </div>
+    </div>
+</div>
+
+<!-- Source List -->
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 transition-colors">
+    <div id="needs-configuration-list" hx-get="/admin/sources/needs-configuration/list" hx-trigger="load, refreshSourceList from:body" hx-swap="innerHTML show:none">
+        <div class="text-center py-8 text-gray-500 dark:text-gray-400">Loading sources...</div>
+    </div>
+</div>
+{% endblock %}
