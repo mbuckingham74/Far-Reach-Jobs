@@ -67,10 +67,12 @@ app.post('/fetch', async (req, res) => {
 
     // Optional: select dropdown values before clicking
     // selectActions is an array of {selector, value} objects
+    // value can be a string (option value) or {label: "text"} to select by visible text
     if (selectActions && Array.isArray(selectActions)) {
       for (const action of selectActions) {
         try {
-          console.log(`Selecting value '${action.value}' for '${action.selector}'`);
+          const valueStr = typeof action.value === 'object' ? JSON.stringify(action.value) : action.value;
+          console.log(`Selecting '${valueStr}' for '${action.selector}'`);
           await page.selectOption(action.selector, action.value);
           await page.waitForTimeout(500);
         } catch (e) {
