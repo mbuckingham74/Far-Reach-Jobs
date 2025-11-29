@@ -1,6 +1,6 @@
 # Far Reach Jobs - Implementation Status
 
-**Last Updated:** 2025-11-28
+**Last Updated:** 2025-11-29
 **Repository:** https://github.com/mbuckingham74/Far-Reach-Jobs
 **Domain:** far-reach-jobs.tachyonfuture.com
 
@@ -273,6 +273,8 @@ ADMIN_EMAIL=michael.buckingham74@gmail.com
 - `default_location` - Fallback location when scraper doesn't extract one (e.g., "Bethel" for City of Bethel jobs)
 
 **How to Add a New Job Source:**
+
+*Option A: Single Source*
 1. Go to Admin Dashboard → Add Scrape Source
 2. Enter source name and base URL
 3. Click "Configure" on the new source
@@ -280,6 +282,13 @@ ADMIN_EMAIL=michael.buckingham74@gmail.com
 5. Enter CSS selectors for job container, title, and URL (required)
 6. Optionally add selectors for organization, location, salary, etc.
 7. Save configuration and click "Scrape" to test
+
+*Option B: Bulk Import via CSV*
+1. Prepare a CSV file with columns: `Source Name`, `Base URL`, `Jobs URL` (optional)
+2. Go to Admin Dashboard → Bulk Import from CSV
+3. Upload the CSV file
+4. Review results (sources are imported as disabled)
+5. Go to Disabled Sources, configure each source, then enable it
 
 **API Endpoints:**
 - GET `/admin/sources/{id}/configure` - Configuration page
@@ -682,6 +691,51 @@ Generated code must contain:
 4. Admin can click "Recheck" to re-verify robots.txt (e.g., after site whitelist)
 5. If recheck passes, source is moved back to active sources
 6. Error reports include cached robots.txt content for debugging
+
+### Phase 1W: CSV Bulk Import ✅
+- [x] Bulk import sources from CSV file via admin dashboard
+- [x] Flexible column name matching (Source Name/Name, Base URL/URL, Jobs URL)
+- [x] Imported sources created as INACTIVE (must configure before scraping)
+- [x] In-batch duplicate detection (prevents duplicates within same CSV)
+- [x] Database duplicate detection with URL normalization (case, trailing slashes)
+- [x] 1MB file size limit for safety
+- [x] Prefetched existing sources for O(1) duplicate lookups
+- [x] Detailed result feedback (added, skipped with reasons, errors)
+- [x] HTMX integration with auto-refresh of source lists
+
+**Key Files:**
+- `backend/app/routers/admin.py` - `import_sources_csv()` endpoint, `_normalize_url()` helper
+- `backend/app/templates/admin/dashboard.html` - CSV upload form UI
+- `backend/app/templates/admin/partials/csv_import_result.html` - Import results partial
+
+**API Endpoints:**
+- POST `/admin/sources/import-csv` - Upload CSV file to bulk import sources
+
+**CSV Format:**
+```csv
+Source Name,Base URL,Jobs URL
+City of Bethel,https://www.cityofbethel.net,https://www.cityofbethel.net/jobs
+NANA Regional,https://nana.com,https://nana.com/careers
+Yukon-Kuskokwim Health,https://www.ykhc.org,https://www.ykhc.org/employment
+```
+
+**Column Name Variants Accepted:**
+- Source Name: `Source Name`, `Name`, `Source`, `Organization`, `Org`
+- Base URL: `Base URL`, `Base_URL`, `BaseURL`, `URL`, `Website`
+- Jobs URL (optional): `Jobs URL`, `Jobs_URL`, `JobsURL`, `Listing URL`, `Listing_URL`, `Careers URL`, `Careers_URL`
+
+**Workflow:**
+1. Go to Admin Dashboard → Bulk Import from CSV section
+2. Click "View CSV format example" for format reference
+3. Upload CSV file with source names and URLs
+4. Review import results (added count, skipped with reasons, errors)
+5. Go to Disabled Sources page to configure and enable each imported source
+
+**Deduplication Logic:**
+- Names compared case-insensitively
+- URLs normalized: lowercase, trailing slashes stripped
+- Checks both existing database sources AND within the same CSV file
+- Skipped sources show specific reason (name exists, URL exists, duplicate in CSV)
 
 ## CSS Selector Troubleshooting
 

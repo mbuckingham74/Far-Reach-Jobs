@@ -68,6 +68,44 @@
     </div>
 </div>
 
+<!-- Bulk Import Section -->
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-8">
+    <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">Bulk Import Sources</h3>
+    <p class="text-gray-600 dark:text-gray-400 mb-4">If you have a list of job sources to add, you can import them all at once using a CSV file instead of adding them one by one.</p>
+
+    <div class="border-l-4 border-purple-500 pl-4 mb-4">
+        <h4 class="font-semibold text-gray-900 dark:text-white mb-2">CSV Format</h4>
+        <div class="mt-2 p-3 bg-gray-50 dark:bg-gray-900 rounded">
+            <pre class="text-xs text-gray-700 dark:text-gray-300 font-mono overflow-x-auto">Source Name,Base URL,Jobs URL
+City of Bethel,https://www.cityofbethel.net,https://www.cityofbethel.net/jobs
+NANA Regional,https://nana.com,https://nana.com/careers</pre>
+        </div>
+        <div class="text-sm text-gray-600 dark:text-gray-400 mt-3 space-y-1">
+            <p><strong>Required columns:</strong> Source Name, Base URL</p>
+            <p><strong>Optional column:</strong> Jobs URL (defaults to Base URL if omitted)</p>
+            <p><strong>Column names are flexible:</strong> "Name", "Organization", "URL", "Website" also work</p>
+        </div>
+    </div>
+
+    <div class="border-l-4 border-amber-500 pl-4">
+        <h4 class="font-semibold text-gray-900 dark:text-white mb-2">Workflow</h4>
+        <ol class="list-decimal list-inside text-sm text-gray-600 dark:text-gray-400 space-y-1">
+            <li>Go to Admin Dashboard → Bulk Import from CSV</li>
+            <li>Upload your CSV file (max 1MB)</li>
+            <li>Review results: sources added, duplicates skipped, errors</li>
+            <li>Go to <a href="/admin/sources/disabled" class="text-primary-600 dark:text-primary-400 hover:underline">Disabled Sources</a> (imported sources start disabled)</li>
+            <li>Configure each source with CSS selectors</li>
+            <li>Enable sources and test with "Scrape" button</li>
+        </ol>
+    </div>
+
+    <div class="mt-4 p-4 bg-amber-50 dark:bg-amber-900/30 rounded-lg">
+        <p class="text-sm text-amber-800 dark:text-amber-200">
+            <strong>Note:</strong> Imported sources are created as <strong>disabled</strong> and won't be scraped until you configure their CSS selectors and enable them. This prevents errors from unconfigured sources.
+        </p>
+    </div>
+</div>
+
 <!-- API Scrapers Section -->
 <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-8">
     <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">API Scrapers (Auto-Detected)</h3>
