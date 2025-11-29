@@ -544,30 +544,34 @@ def run_scraper(db: Session, source: ScrapeSource, trigger_type: str = "manual")
 
     # Pre-flight check: Is this source blocked by robots.txt?
     # Only applies to HTML scrapers (GenericScraper, DynamicScraper)
-    is_blocked, blocked_url, block_reason, robots_content = check_robots_blocked(source)
-    if is_blocked:
-        # Mark source as robots-blocked
-        source.robots_blocked = True
-        source.robots_blocked_at = datetime.now(timezone.utc)
-        source.last_scraped_at = datetime.now(timezone.utc)
-        source.last_scrape_success = False
+    # Skip if source has skip_robots_check flag set (for sites with overly restrictive robots.txt)
+    if getattr(source, 'skip_robots_check', False):
+        logger.info(f"Skipping robots.txt check for {source.name} (skip_robots_check=True)")
+    else:
+        is_blocked, blocked_url, block_reason, robots_content = check_robots_blocked(source)
+        if is_blocked:
+            # Mark source as robots-blocked
+            source.robots_blocked = True
+            source.robots_blocked_at = datetime.now(timezone.utc)
+            source.last_scraped_at = datetime.now(timezone.utc)
+            source.last_scrape_success = False
 
-        # Build error message with robots.txt content for visibility
-        error_msg = f"Blocked ({block_reason}): {blocked_url}"
-        errors = [error_msg]
-        if robots_content:
-            errors.append(f"robots.txt content:\n{robots_content}")
+            # Build error message with robots.txt content for visibility
+            error_msg = f"Blocked ({block_reason}): {blocked_url}"
+            errors = [error_msg]
+            if robots_content:
+                errors.append(f"robots.txt content:\n{robots_content}")
 
-        result = ScrapeResult(
-            source_name=source.name,
-            jobs_found=0,
-            jobs_new=0,
-            jobs_updated=0,
-            errors=errors,
-            duration_seconds=0,
-        )
-        log_scrape_result(db, source, result, trigger_type, started_at)
-        return result
+            result = ScrapeResult(
+                source_name=source.name,
+                jobs_found=0,
+                jobs_new=0,
+                jobs_updated=0,
+                errors=errors,
+                duration_seconds=0,
+            )
+            log_scrape_result(db, source, result, trigger_type, started_at)
+            return result
 
     # Handle DynamicScraper - compile from custom_scraper_code
     if source.scraper_class == "DynamicScraper":
