@@ -104,20 +104,12 @@
                             Delete
                         </button>
                         {% elif show_needs_configuration %}
-                        <!-- Needs configuration sources: Configure, Enable, Mark as Disabled, Delete -->
-                        <!-- Note: Sources are auto-enabled on successful scrape with jobs found -->
+                        <!-- Needs configuration sources: Configure, Mark as Disabled, Delete -->
+                        <!-- Sources auto-enable on successful scrape with jobs found -->
                         <a href="/admin/sources/{{ source.id }}/configure"
                            class="px-3 py-1 text-sm bg-primary-500 hover:bg-primary-600 text-white rounded transition-colors inline-block">
                             Configure
                         </a>
-                        <button
-                            class="px-3 py-1 text-sm bg-green-500 hover:bg-green-600 text-white rounded transition-colors"
-                            hx-post="/admin/sources/{{ source.id }}/toggle"
-                            hx-target="#needs-configuration-list"
-                            hx-swap="innerHTML show:none"
-                            title="Enable this source (for sources with 0 current jobs)">
-                            Enable
-                        </button>
                         <button
                             class="px-3 py-1 text-sm bg-amber-500 hover:bg-amber-600 text-white rounded transition-colors"
                             hx-post="/admin/sources/{{ source.id }}/mark-disabled"
