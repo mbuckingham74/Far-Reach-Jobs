@@ -196,7 +196,63 @@
             <div class="text-xs text-gray-700 dark:text-gray-300 space-y-1">
                 <p>Requires: Selecting "All Open Reqs" dropdown, clicking Search button</p>
                 <p>Flags: <code>use_playwright=True</code>, <code>skip_robots_check=True</code></p>
-                <p>Custom code handles dropdown selection and button click before parsing</p>
+                <p>Custom code handles dropdown selection, button click, and location data cleaning (removes Oracle-specific suffixes like "USVacancy Locations")</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Data Cleaning Section -->
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-8">
+    <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">Data Cleaning</h3>
+    <p class="text-gray-600 dark:text-gray-400 mb-4">Some job platforms include extra metadata in scraped fields that needs to be cleaned before display.</p>
+
+    <div class="space-y-4">
+        <div class="border-l-4 border-yellow-500 pl-4">
+            <h4 class="font-semibold text-gray-900 dark:text-white mb-2">Location Cleaning</h4>
+            <div class="text-sm text-gray-600 dark:text-gray-400 space-y-2">
+                <p><strong>Problem:</strong> Some platforms (especially Oracle EBS) include extra text in location fields like "Fairbanks, AK, USVacancy Locations" instead of just "Fairbanks, AK".</p>
+                <p><strong>Solution:</strong> Custom scrapers should include a <code class="bg-gray-100 dark:bg-gray-700 px-1 rounded">_clean_location()</code> method to strip these suffixes.</p>
+            </div>
+            <div class="mt-3 p-3 bg-gray-50 dark:bg-gray-900 rounded">
+                <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">Common patterns to clean:</p>
+                <ul class="text-xs text-gray-700 dark:text-gray-300 list-disc list-inside space-y-1">
+                    <li><code>, USVacancy Locations</code> - Oracle EBS artifact</li>
+                    <li><code>, Vacancy Locations</code> - Oracle EBS variant</li>
+                    <li><code>, US</code> - Trailing country code (when state is already present)</li>
+                </ul>
+            </div>
+            <div class="mt-3 p-3 bg-gray-50 dark:bg-gray-900 rounded">
+                <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">Example cleaning code (Python):</p>
+                <pre class="text-xs text-gray-700 dark:text-gray-300 font-mono overflow-x-auto whitespace-pre-wrap">def _clean_location(self, location):
+    if not location:
+        return None
+    import re
+    cleaned = location.strip()
+    patterns = [
+        r",?\s*USVacancy Locations\s*$",
+        r",?\s*Vacancy Locations\s*$",
+        r",?\s*US\s*$",
+    ]
+    for pattern in patterns:
+        cleaned = re.sub(pattern, "", cleaned, flags=re.IGNORECASE).strip()
+    return cleaned if cleaned else None</pre>
+            </div>
+        </div>
+
+        <div class="border-l-4 border-blue-500 pl-4">
+            <h4 class="font-semibold text-gray-900 dark:text-white mb-2">Job Type Normalization</h4>
+            <div class="text-sm text-gray-600 dark:text-gray-400 space-y-2">
+                <p><strong>Problem:</strong> Job type fields may contain inconsistent formats like "80 Full time" or "full-time" or "FULL TIME".</p>
+                <p><strong>Solution:</strong> The Job model's <code class="bg-gray-100 dark:bg-gray-700 px-1 rounded">display_job_type</code> property automatically normalizes common patterns to "Full-Time" or "Part-Time".</p>
+            </div>
+        </div>
+
+        <div class="border-l-4 border-green-500 pl-4">
+            <h4 class="font-semibold text-gray-900 dark:text-white mb-2">State Abbreviation</h4>
+            <div class="text-sm text-gray-600 dark:text-gray-400 space-y-2">
+                <p><strong>Problem:</strong> Locations may include full state names like "Bristol Bay Region, Alaska" instead of "Bristol Bay Region, AK".</p>
+                <p><strong>Solution:</strong> The Job model's <code class="bg-gray-100 dark:bg-gray-700 px-1 rounded">display_location</code> property automatically normalizes full state names to abbreviations when a <code>default_state</code> is configured.</p>
             </div>
         </div>
     </div>
@@ -311,6 +367,14 @@
             <ul class="text-sm text-gray-600 dark:text-gray-400 list-disc list-inside">
                 <li>The scraper automatically retries without SSL verification</li>
                 <li>Check scrape logs for details</li>
+            </ul>
+        </div>
+        <div>
+            <h4 class="font-medium text-gray-900 dark:text-white mb-1">Location displays extra text (e.g., "Fairbanks, AK, USVacancy Locations")</h4>
+            <ul class="text-sm text-gray-600 dark:text-gray-400 list-disc list-inside">
+                <li>Oracle EBS and similar platforms include metadata in location fields</li>
+                <li>For DynamicScrapers: Add a <code>_clean_location()</code> method (see Data Cleaning section above)</li>
+                <li>For GenericScraper: Use a more specific CSS selector that targets only the location text</li>
             </ul>
         </div>
     </div>
