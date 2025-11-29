@@ -113,7 +113,29 @@ Good first contributions:
 
 ## For Employers
 
-If you're an employer in remote Alaska and want your jobs included, or if you'd like to be excluded from scraping, please open an issue or contact us.
+If you're an employer in remote Alaska and want your jobs included, visit our [For Employers](https://far-reach-jobs.tachyonfuture.com/employers) page where you can:
+
+- **Submit a single job** - Fill out a form with your job details
+- **Add your careers page** - We'll set up automatic scraping of your job listings
+- **Bulk import sources** - Upload a CSV with multiple organizations' career pages
+
+### Bulk Import for Employers
+
+Have multiple job sources to share? Upload a CSV file with your organizations:
+
+```csv
+Organization,Base URL,Careers URL
+City of Bethel,https://www.cityofbethel.net,https://www.cityofbethel.net/jobs
+NANA Regional,https://nana.com,https://nana.com/careers
+```
+
+**Limitations:**
+- Maximum 100 sources per submission
+- Maximum file size: 512KB
+- Sources are reviewed before being added
+- Rate limited to 5 submissions per hour
+
+If you'd like to be excluded from scraping, please open an issue or contact us.
 
 ## License
 
