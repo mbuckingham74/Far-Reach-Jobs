@@ -31,6 +31,7 @@ class PlaywrightFetcher:
         self,
         url: str,
         wait_for: Optional[str] = None,
+        select_actions: Optional[list[dict]] = None,
         click_selector: Optional[str] = None,
         click_wait_for: Optional[str] = None,
     ) -> Optional[BeautifulSoup]:
@@ -39,6 +40,7 @@ class PlaywrightFetcher:
         Args:
             url: URL to fetch
             wait_for: Optional CSS selector to wait for before returning
+            select_actions: Optional list of {selector, value} dicts for dropdown selection
             click_selector: Optional CSS selector to click after page loads
             click_wait_for: Optional CSS selector to wait for after clicking
 
@@ -59,6 +61,8 @@ class PlaywrightFetcher:
                 "waitFor": wait_for,
                 "timeout": self.timeout,
             }
+            if select_actions:
+                payload["selectActions"] = select_actions
             if click_selector:
                 payload["clickSelector"] = click_selector
             if click_wait_for:

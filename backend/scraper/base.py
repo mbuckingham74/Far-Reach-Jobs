@@ -119,6 +119,7 @@ class BaseScraper(ABC):
         self,
         url: str,
         wait_for: str | None = None,
+        select_actions: list[dict] | None = None,
         click_selector: str | None = None,
         click_wait_for: str | None = None,
     ) -> BeautifulSoup | None:
@@ -127,6 +128,7 @@ class BaseScraper(ABC):
         Args:
             url: URL to fetch
             wait_for: CSS selector to wait for before extracting HTML (Playwright only)
+            select_actions: List of {selector, value} dicts for dropdown selection (Playwright only)
             click_selector: CSS selector to click after page loads (Playwright only)
             click_wait_for: CSS selector to wait for after clicking (Playwright only)
         """
@@ -141,6 +143,7 @@ class BaseScraper(ABC):
                 result = self._playwright_fetcher.fetch(
                     url,
                     wait_for=wait_for,
+                    select_actions=select_actions,
                     click_selector=click_selector,
                     click_wait_for=click_wait_for,
                 )

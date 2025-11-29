@@ -13,7 +13,7 @@ app.get('/health', (req, res) => {
 
 // Fetch a page and return HTML
 app.post('/fetch', async (req, res) => {
-  const { url, waitFor, clickSelector, clickWaitFor, timeout } = req.body;
+  const { url, waitFor, selectActions, clickSelector, clickWaitFor, timeout } = req.body;
 
   if (!url) {
     return res.status(400).json({ error: 'URL is required' });
@@ -65,6 +65,20 @@ app.post('/fetch', async (req, res) => {
       }
     }
 
+    // Optional: select dropdown values before clicking
+    // selectActions is an array of {selector, value} objects
+    if (selectActions && Array.isArray(selectActions)) {
+      for (const action of selectActions) {
+        try {
+          console.log(`Selecting value '${action.value}' for '${action.selector}'`);
+          await page.selectOption(action.selector, action.value);
+          await page.waitForTimeout(500);
+        } catch (e) {
+          console.log(`Select failed for '${action.selector}': ${e.message}`);
+        }
+      }
+    }
+
     // Optional: click a button/link and wait for results
     if (clickSelector) {
       try {
@@ -72,7 +86,7 @@ app.post('/fetch', async (req, res) => {
         await page.click(clickSelector);
 
         // Wait for results to load
-        await page.waitForTimeout(2000);
+        await page.waitForTimeout(3000);
 
         // If a specific selector to wait for after click is provided, wait for it
         if (clickWaitFor) {
