@@ -66,4 +66,13 @@ class ScrapeSource(Base):
     # (e.g., Oracle E-Business Suite careers pages with blanket Disallow: /)
     skip_robots_check = Column(Boolean, default=False)
 
+    # SitemapScraper configuration - for sites with XML sitemaps containing job URLs
+    # sitemap_url: URL of the sitemap XML file (e.g., /sitemaps/jobs_1.xml)
+    sitemap_url = Column(String(1000), nullable=True)
+    # sitemap_url_pattern: Regex to filter URLs (e.g., "-ak/" for Alaska jobs only)
+    sitemap_url_pattern = Column(String(500), nullable=True)
+    # organization: Organization name to use for all jobs from this source
+    # (used when organization can't be extracted from URL)
+    organization = Column(String(255), nullable=True)
+
     jobs = relationship("Job", back_populates="source", cascade="all, delete-orphan")

@@ -276,6 +276,10 @@ def get_source_config(source: ScrapeSource) -> dict:
         "use_playwright": True,
         "default_location": source.default_location,
         "default_state": source.default_state,
+        # SitemapScraper configuration
+        "sitemap_url": getattr(source, 'sitemap_url', None),
+        "sitemap_url_pattern": getattr(source, 'sitemap_url_pattern', None),
+        "organization": getattr(source, 'organization', None),
     }
 
 
@@ -621,8 +625,8 @@ def run_scraper(db: Session, source: ScrapeSource, trigger_type: str = "manual")
     source_config = get_source_config(source)
 
     try:
-        # GenericScraper needs configuration, others use default constructor
-        if source.scraper_class == "GenericScraper":
+        # GenericScraper and SitemapScraper need configuration
+        if source.scraper_class in ("GenericScraper", "SitemapScraper"):
             scraper_instance = scraper_class(source_config=source_config)
         else:
             scraper_instance = scraper_class()
