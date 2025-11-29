@@ -404,6 +404,7 @@ PLAYWRIGHT_SERVICE_URL=http://playwright:3000
 ### scrape_sources
 - id, name, base_url, scraper_class
 - is_active, last_scraped_at, last_scrape_success, created_at
+- needs_configuration (True for bulk imports awaiting CSS selector setup)
 - robots_blocked, robots_blocked_at (tracks robots.txt blocking status)
 - skip_robots_check (bypass robots.txt for public job boards with restrictive rules)
 - listing_url (GenericScraper: page containing job listings)
@@ -697,7 +698,7 @@ Generated code must contain:
 ### Phase 1W: CSV Bulk Import ✅
 - [x] Bulk import sources from CSV file via admin dashboard
 - [x] Flexible column name matching (Source Name/Name, Base URL/URL, Jobs URL)
-- [x] Imported sources created as INACTIVE (must configure before scraping)
+- [x] Imported sources created with `needs_configuration=True` (go to Needs Configuration page)
 - [x] In-batch duplicate detection (prevents duplicates within same CSV)
 - [x] Database duplicate detection with URL normalization (case, trailing slashes)
 - [x] 1MB file size limit for safety
@@ -731,7 +732,8 @@ Yukon-Kuskokwim Health,https://www.ykhc.org,https://www.ykhc.org/employment
 2. Click "View CSV format example" for format reference
 3. Upload CSV file with source names and URLs
 4. Review import results (added count, skipped with reasons, errors)
-5. Go to Disabled Sources page to configure and enable each imported source
+5. Click "Configure Imported Sources" → goes to Needs Configuration page
+6. For each source: Configure → Test Scrape → auto-enabled when jobs found
 
 **Deduplication Logic:**
 - Names compared case-insensitively
@@ -780,6 +782,59 @@ NANA Regional,https://nana.com,https://nana.com/careers
 3. Provides contact email and optional notes
 4. Admin receives email notification with all sources
 5. Admin reviews and adds sources via admin CSV import
+
+### Phase 1Y: Needs Configuration Page & Auto-Enable ✅
+- [x] Separate "Needs Configuration" page for bulk-imported sources
+- [x] `needs_configuration` Boolean field on ScrapeSource model
+- [x] Bulk imports set `needs_configuration=True` instead of just `is_active=False`
+- [x] Disabled page excludes needs_configuration sources (keeps them separate)
+- [x] Dashboard shows "Needs Configuration (N)" link when count > 0
+- [x] Auto-enable on successful scrape: when jobs_found > 0 and no errors
+- [x] "Source enabled!" message in scrape result modal after auto-enable
+- [x] Manual Enable button as fallback (for sources with 0 current jobs)
+- [x] Mark Disabled button moves source to Disabled page
+- [x] Export CSV of needs-configuration sources
+- [x] Consistent filtering across all source list endpoints
+
+**Key Files:**
+- `backend/app/models/scrape_source.py` - `needs_configuration` field
+- `backend/alembic/versions/014_add_needs_configuration.py` - Migration
+- `backend/app/routers/admin.py` - Needs configuration endpoints, auto-enable logic
+- `backend/app/templates/admin/needs_configuration.html` - Dedicated page
+- `backend/app/templates/admin/partials/needs_configuration_count_link.html` - Dashboard count
+- `backend/app/templates/admin/partials/source_list.html` - Actions for needs_configuration
+- `backend/app/templates/admin/partials/scrape_modal_result.html` - Auto-enabled message
+
+**Database Fields:**
+- `needs_configuration` (Boolean) - True for bulk-imported sources awaiting CSS selector setup
+
+**API Endpoints:**
+- GET `/admin/sources/needs-configuration` - Page listing sources needing configuration
+- GET `/admin/sources/needs-configuration/list` - HTMX partial for source list
+- GET `/admin/sources/needs-configuration-count` - HTMX partial for count badge
+- POST `/admin/sources/{id}/mark-disabled` - Move source from needs-config to disabled
+- GET `/admin/sources/export-needs-configuration` - Export CSV of needs-config sources
+
+**Source Categories:**
+1. **Active** - Configured and scraping (`is_active=True`)
+2. **Needs Configuration** - Bulk imported, awaiting setup (`needs_configuration=True`)
+3. **Disabled** - Tried to configure but couldn't make work (`is_active=False`, `needs_configuration=False`)
+4. **Robots Blocked** - Site disallows crawling (`robots_blocked=True`)
+
+**Auto-Enable Flow:**
+1. Admin clicks Configure on a needs-configuration source
+2. Admin sets up CSS selectors and clicks Test Scrape
+3. If scrape finds jobs (>0) with no errors → source auto-enabled
+4. Source moves to Active list, "Source enabled!" shown in modal
+5. If 0 jobs or errors → stays in Needs Configuration for further work
+6. Manual Enable button available for sources with correct config but 0 current openings
+
+**Workflow:**
+1. Bulk import CSV → sources go to "Needs Configuration" page
+2. For each source: Configure selectors → Test Scrape
+3. Success with jobs → auto-enabled, moves to Active
+4. Can't configure → Mark Disabled (moves to Disabled page)
+5. Robots.txt block → automatically moves to Robots Blocked page
 
 ## CSS Selector Troubleshooting
 

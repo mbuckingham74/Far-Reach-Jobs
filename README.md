@@ -57,7 +57,8 @@ Have a list of sources to add? Import them all at once:
 1. Go to Admin Dashboard → Bulk Import from CSV
 2. Upload a CSV file with columns: `Source Name`, `Base URL`, `Jobs URL` (optional)
 3. Review results (duplicates are automatically skipped)
-4. Go to Disabled Sources to configure and enable each imported source
+4. Click "Configure Imported Sources" to go to the Needs Configuration page
+5. For each source: Configure → Test Scrape → auto-enabled when jobs are found
 
 **Example CSV:**
 ```csv
@@ -66,7 +67,7 @@ City of Bethel,https://www.cityofbethel.net,https://www.cityofbethel.net/jobs
 NANA Regional,https://nana.com,https://nana.com/careers
 ```
 
-Imported sources start as disabled to prevent unconfigured scrapers from running.
+Imported sources go to "Needs Configuration" and are auto-enabled when scraping successfully finds jobs.
 
 ### AI-Powered Scraper Configuration
 
