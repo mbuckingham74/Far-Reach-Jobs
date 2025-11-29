@@ -376,9 +376,9 @@ async def create_source(request: Request, db: Session = Depends(get_db)):
 def _normalize_url(url: str) -> str:
     """Normalize URL for deduplication: lowercase, strip trailing slash."""
     url = url.lower().strip()
-    # Remove trailing slash (but not from root domain)
-    if url.endswith('/') and url.count('/') > 3:
-        url = url.rstrip('/')
+    # Always strip trailing slash for consistency
+    # (https://example.com/ and https://example.com should match)
+    url = url.rstrip('/')
     return url
 
 
