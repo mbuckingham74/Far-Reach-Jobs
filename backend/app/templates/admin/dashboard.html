@@ -154,7 +154,15 @@ Yukon-Kuskokwim Health,https://www.ykhc.org,https://www.ykhc.org/employment</cod
 <!-- Source List -->
 <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 transition-colors">
     <div class="flex justify-between items-center mb-4">
-        <h3 class="text-lg font-semibold dark:text-white">Active Sources</h3>
+        <div class="flex items-center gap-3">
+            <h3 class="text-lg font-semibold dark:text-white">Active Sources</h3>
+            <a href="/admin/sources/export-active" class="text-xs px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 rounded transition-colors inline-flex items-center gap-1">
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                </svg>
+                Export CSV
+            </a>
+        </div>
         <div class="flex gap-4">
             <div id="robots-blocked-count-link" hx-get="/admin/sources/robots-blocked-count" hx-trigger="load, refreshSourceList from:body" hx-swap="innerHTML show:none">
                 {% if robots_blocked_count > 0 %}

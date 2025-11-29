@@ -3,7 +3,7 @@ import io
 import logging
 import secrets
 from fastapi import APIRouter, Request, Depends, HTTPException, UploadFile, File
-from fastapi.responses import RedirectResponse, HTMLResponse
+from fastapi.responses import RedirectResponse, HTMLResponse, StreamingResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
@@ -579,6 +579,96 @@ async def import_sources_csv(request: Request, file: UploadFile = File(...), db:
             "admin/partials/csv_import_result.html",
             {"request": request, "error": "Failed to process CSV file. Please check the format.", "success": False},
         )
+
+
+from typing import Iterator
+
+
+def _generate_sources_csv_stream(sources: list[ScrapeSource]) -> Iterator[str]:
+    """Generate CSV rows as a stream for memory-efficient export.
+
+    Format matches the import template: Source Name, Base URL, Jobs URL
+    Exports are sorted alphabetically by name for easier reference in spreadsheets.
+    """
+    output = io.StringIO()
+    writer = csv.writer(output)
+
+    # Header row matching import format
+    writer.writerow(["Source Name", "Base URL", "Jobs URL"])
+    yield output.getvalue()
+    output.seek(0)
+    output.truncate(0)
+
+    for source in sources:
+        writer.writerow([
+            source.name,
+            source.base_url,
+            source.listing_url or "",
+        ])
+        yield output.getvalue()
+        output.seek(0)
+        output.truncate(0)
+
+
+@router.get("/sources/export-active")
+def export_active_sources(request: Request, db: Session = Depends(get_db)):
+    """Export active sources as CSV (alphabetically sorted)."""
+    if not get_admin_user(request):
+        raise HTTPException(status_code=401)
+
+    sources = (
+        db.query(ScrapeSource)
+        .filter(ScrapeSource.is_active == True)
+        .filter((ScrapeSource.robots_blocked == False) | (ScrapeSource.robots_blocked == None))
+        .order_by(ScrapeSource.name)
+        .all()
+    )
+
+    return StreamingResponse(
+        _generate_sources_csv_stream(sources),
+        media_type="text/csv",
+        headers={"Content-Disposition": "attachment; filename=active_sources.csv"},
+    )
+
+
+@router.get("/sources/export-disabled")
+def export_disabled_sources(request: Request, db: Session = Depends(get_db)):
+    """Export disabled sources as CSV (alphabetically sorted)."""
+    if not get_admin_user(request):
+        raise HTTPException(status_code=401)
+
+    sources = (
+        db.query(ScrapeSource)
+        .filter(ScrapeSource.is_active == False)
+        .order_by(ScrapeSource.name)
+        .all()
+    )
+
+    return StreamingResponse(
+        _generate_sources_csv_stream(sources),
+        media_type="text/csv",
+        headers={"Content-Disposition": "attachment; filename=disabled_sources.csv"},
+    )
+
+
+@router.get("/sources/export-robots-blocked")
+def export_robots_blocked_sources(request: Request, db: Session = Depends(get_db)):
+    """Export robots.txt blocked sources as CSV (alphabetically sorted)."""
+    if not get_admin_user(request):
+        raise HTTPException(status_code=401)
+
+    sources = (
+        db.query(ScrapeSource)
+        .filter(ScrapeSource.robots_blocked == True)
+        .order_by(ScrapeSource.name)
+        .all()
+    )
+
+    return StreamingResponse(
+        _generate_sources_csv_stream(sources),
+        media_type="text/csv",
+        headers={"Content-Disposition": "attachment; filename=robots_blocked_sources.csv"},
+    )
 
 
 @router.delete("/sources/{source_id}")

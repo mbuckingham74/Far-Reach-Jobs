@@ -615,6 +615,144 @@ class TestTriggerScrape:
             mock_run.assert_called_once()
 
 
+class TestSourceExport:
+    """Tests for CSV export functionality."""
+
+    def test_export_active_requires_auth(self, client):
+        """Export active sources requires authentication."""
+        response = client.get("/admin/sources/export-active")
+        assert response.status_code == 401
+
+    def test_export_disabled_requires_auth(self, client):
+        """Export disabled sources requires authentication."""
+        response = client.get("/admin/sources/export-disabled")
+        assert response.status_code == 401
+
+    def test_export_robots_blocked_requires_auth(self, client):
+        """Export robots-blocked sources requires authentication."""
+        response = client.get("/admin/sources/export-robots-blocked")
+        assert response.status_code == 401
+
+    def test_export_active_returns_csv(self, admin_client, db, active_source):
+        """Export active sources returns valid CSV with correct headers."""
+        response = admin_client.get("/admin/sources/export-active")
+        assert response.status_code == 200
+        assert response.headers["content-type"] == "text/csv; charset=utf-8"
+        assert "attachment" in response.headers["content-disposition"]
+        assert "active_sources.csv" in response.headers["content-disposition"]
+
+        # Parse CSV content (use splitlines to handle CRLF from csv.writer)
+        content = response.text
+        lines = content.strip().splitlines()
+        assert len(lines) >= 1  # At least header row
+
+        # Verify header row matches import format
+        assert lines[0] == "Source Name,Base URL,Jobs URL"
+
+        # Verify source data is present
+        if len(lines) > 1:
+            assert active_source.name in content
+
+    def test_export_active_excludes_inactive(self, admin_client, db, active_source, inactive_source):
+        """Export active should not include disabled sources."""
+        response = admin_client.get("/admin/sources/export-active")
+        assert response.status_code == 200
+        assert active_source.name in response.text
+        assert inactive_source.name not in response.text
+
+    def test_export_active_excludes_robots_blocked(self, admin_client, db, active_source, robots_blocked_source):
+        """Export active should not include robots-blocked sources."""
+        response = admin_client.get("/admin/sources/export-active")
+        assert response.status_code == 200
+        assert active_source.name in response.text
+        assert robots_blocked_source.name not in response.text
+
+    def test_export_disabled_returns_csv(self, admin_client, db, inactive_source):
+        """Export disabled sources returns valid CSV."""
+        response = admin_client.get("/admin/sources/export-disabled")
+        assert response.status_code == 200
+        assert response.headers["content-type"] == "text/csv; charset=utf-8"
+        assert "disabled_sources.csv" in response.headers["content-disposition"]
+
+        # Verify header and source data
+        assert "Source Name,Base URL,Jobs URL" in response.text
+        assert inactive_source.name in response.text
+
+    def test_export_disabled_excludes_active(self, admin_client, db, active_source, inactive_source):
+        """Export disabled should only include inactive sources."""
+        response = admin_client.get("/admin/sources/export-disabled")
+        assert response.status_code == 200
+        assert inactive_source.name in response.text
+        assert active_source.name not in response.text
+
+    def test_export_robots_blocked_returns_csv(self, admin_client, db, robots_blocked_source):
+        """Export robots-blocked sources returns valid CSV."""
+        response = admin_client.get("/admin/sources/export-robots-blocked")
+        assert response.status_code == 200
+        assert response.headers["content-type"] == "text/csv; charset=utf-8"
+        assert "robots_blocked_sources.csv" in response.headers["content-disposition"]
+
+        # Verify header and source data
+        assert "Source Name,Base URL,Jobs URL" in response.text
+        assert robots_blocked_source.name in response.text
+
+    def test_export_robots_blocked_excludes_active(self, admin_client, db, active_source, robots_blocked_source):
+        """Export robots-blocked should only include blocked sources."""
+        response = admin_client.get("/admin/sources/export-robots-blocked")
+        assert response.status_code == 200
+        assert robots_blocked_source.name in response.text
+        assert active_source.name not in response.text
+
+    def test_export_empty_returns_header_only(self, admin_client, db):
+        """Export with no matching sources returns CSV with header only."""
+        response = admin_client.get("/admin/sources/export-active")
+        assert response.status_code == 200
+        # Use splitlines to handle CRLF, then check we only have header
+        lines = response.text.strip().splitlines()
+        assert len(lines) == 1
+        assert lines[0] == "Source Name,Base URL,Jobs URL"
+
+    def test_export_alphabetical_order(self, admin_client, db):
+        """Sources are exported in alphabetical order by name."""
+        # Create sources in non-alphabetical order
+        from app.models import ScrapeSource
+        source_z = ScrapeSource(name="Zebra Corp", base_url="https://zebra.com", is_active=True)
+        source_a = ScrapeSource(name="Alpha Inc", base_url="https://alpha.com", is_active=True)
+        source_m = ScrapeSource(name="Mega LLC", base_url="https://mega.com", is_active=True)
+        db.add_all([source_z, source_a, source_m])
+        db.commit()
+
+        response = admin_client.get("/admin/sources/export-active")
+        assert response.status_code == 200
+
+        # Use splitlines to handle CRLF from csv.writer
+        lines = response.text.strip().splitlines()
+        # Skip header, get data lines
+        data_lines = lines[1:]
+        names = [line.split(",")[0] for line in data_lines]
+
+        # Should be alphabetically sorted
+        assert names == sorted(names)
+        assert names[0] == "Alpha Inc"
+        assert names[-1] == "Zebra Corp"
+
+    def test_export_includes_listing_url(self, admin_client, db):
+        """Export includes listing_url in Jobs URL column."""
+        from app.models import ScrapeSource
+        source = ScrapeSource(
+            name="Test Export Source",
+            base_url="https://example.com",
+            listing_url="https://example.com/careers",
+            is_active=True
+        )
+        db.add(source)
+        db.commit()
+
+        response = admin_client.get("/admin/sources/export-active")
+        assert response.status_code == 200
+        assert "https://example.com/careers" in response.text
+
+
 class TestAIFeatures:
     """Tests for AI-powered features (analyze, generate scraper)."""
 
