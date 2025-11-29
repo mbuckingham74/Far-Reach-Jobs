@@ -68,7 +68,7 @@ NANA Regional,https://nana.com,https://nana.com/careers
 
 Imported sources start as disabled to prevent unconfigured scrapers from running.
 
-### AI-Powered Configuration
+### AI-Powered Scraper Configuration
 
 The admin panel includes AI-powered tools to simplify scraper setup:
 
