@@ -35,7 +35,7 @@
           hx-target="#job-list"
           hx-trigger="submit"
           hx-indicator="#job-list-container">
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div>
                 <label for="q" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Search</label>
                 <input type="text" id="q" name="q" placeholder="Job title, keywords..."
@@ -44,6 +44,20 @@
                        hx-trigger="keyup changed delay:400ms"
                        hx-include="#job-filters"
                        class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white dark:bg-gray-700 dark:text-white dark:placeholder-gray-400">
+            </div>
+            <div>
+                <label for="state" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">State</label>
+                <select id="state" name="state"
+                        hx-get="/api/jobs"
+                        hx-target="#job-list"
+                        hx-trigger="change"
+                        hx-include="#job-filters"
+                        class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white dark:bg-gray-700 dark:text-white">
+                    <option value="">All States</option>
+                    {% for st in states %}
+                    <option value="{{ st }}">{{ st }}</option>
+                    {% endfor %}
+                </select>
             </div>
             <div>
                 <label for="location" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">City or Tribal Community</label>
@@ -169,6 +183,7 @@
 <script>
 function clearFilters() {
     document.getElementById('q').value = '';
+    document.getElementById('state').value = '';
     document.getElementById('location').value = '';
     document.getElementById('job_type').value = '';
     document.getElementById('date_posted').value = '';

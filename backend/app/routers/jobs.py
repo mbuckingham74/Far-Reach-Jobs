@@ -93,6 +93,7 @@ def list_jobs(
                 "per_page": per_page,
                 "total_pages": total_pages,
                 "q": q or "",
+                "state": state or "",
                 "location": location or "",
                 "job_type": job_type or "",
                 "date_posted": date_posted_days or "",

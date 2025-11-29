@@ -69,6 +69,16 @@ def home(request: Request, db: Session = Depends(get_db)):
     from app.models import Job, ScrapeSource
     user = get_optional_current_user(request)
 
+    # Pre-load states for the filter dropdown
+    states = (
+        db.query(Job.state)
+        .filter(Job.is_stale == False, Job.state.isnot(None), Job.state != "")
+        .distinct()
+        .order_by(Job.state)
+        .all()
+    )
+    state_list = [st[0] for st in states if st[0]]
+
     # Pre-load locations for the filter dropdown (server-side render as fallback)
     locations = (
         db.query(Job.location)
@@ -100,6 +110,7 @@ def home(request: Request, db: Session = Depends(get_db)):
     return templates.TemplateResponse("index.html", {
         "request": request,
         "user": user,
+        "states": state_list,
         "locations": location_list,
         "organizations": organization_list,
         "sources": sources,
