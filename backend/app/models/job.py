@@ -37,6 +37,7 @@ class Job(Base):
         Examples:
             - location="Bethel", state="AK" -> "Bethel, AK"
             - location="Anchorage, AK", state="AK" -> "Anchorage, AK" (no duplication)
+            - location="Bristol Bay Region, Alaska", state="AK" -> "Bristol Bay Region, AK"
             - location=None, state="AK" -> "AK"
             - location="Bethel", state=None -> "Bethel"
         """
@@ -49,11 +50,100 @@ class Job(Base):
         if not self.state:
             return self.location
 
-        # Check if state is already in location to avoid duplication
+        # Check if state abbreviation is already in location to avoid duplication
         if self.state in self.location:
             return self.location
 
+        # Normalize: remove full state name if present and replace with abbreviation
+        # This handles cases like "Bristol Bay Region, Alaska" + state="AK"
+        normalized = self._normalize_location_state(self.location, self.state)
+        if normalized != self.location:
+            return normalized
+
         return f"{self.location}, {self.state}"
+
+    def _normalize_location_state(self, location: str, state: str) -> str:
+        """Remove redundant full state name from location if abbreviation is provided.
+
+        Handles patterns like:
+            - "Bristol Bay Region, Alaska" + "AK" -> "Bristol Bay Region, AK"
+            - "Fairbanks, Alaska" + "AK" -> "Fairbanks, AK"
+        """
+        # Map of state abbreviations to full names (50 states + DC + territories)
+        state_names = {
+            "AK": "Alaska",
+            "AL": "Alabama",
+            "AR": "Arkansas",
+            "AS": "American Samoa",
+            "AZ": "Arizona",
+            "CA": "California",
+            "CO": "Colorado",
+            "CT": "Connecticut",
+            "DC": "District of Columbia",
+            "DE": "Delaware",
+            "FL": "Florida",
+            "GA": "Georgia",
+            "GU": "Guam",
+            "HI": "Hawaii",
+            "IA": "Iowa",
+            "ID": "Idaho",
+            "IL": "Illinois",
+            "IN": "Indiana",
+            "KS": "Kansas",
+            "KY": "Kentucky",
+            "LA": "Louisiana",
+            "MA": "Massachusetts",
+            "MD": "Maryland",
+            "ME": "Maine",
+            "MI": "Michigan",
+            "MN": "Minnesota",
+            "MO": "Missouri",
+            "MP": "Northern Mariana Islands",
+            "MS": "Mississippi",
+            "MT": "Montana",
+            "NC": "North Carolina",
+            "ND": "North Dakota",
+            "NE": "Nebraska",
+            "NH": "New Hampshire",
+            "NJ": "New Jersey",
+            "NM": "New Mexico",
+            "NV": "Nevada",
+            "NY": "New York",
+            "OH": "Ohio",
+            "OK": "Oklahoma",
+            "OR": "Oregon",
+            "PA": "Pennsylvania",
+            "PR": "Puerto Rico",
+            "RI": "Rhode Island",
+            "SC": "South Carolina",
+            "SD": "South Dakota",
+            "TN": "Tennessee",
+            "TX": "Texas",
+            "UT": "Utah",
+            "VA": "Virginia",
+            "VI": "Virgin Islands",
+            "VT": "Vermont",
+            "WA": "Washington",
+            "WI": "Wisconsin",
+            "WV": "West Virginia",
+            "WY": "Wyoming",
+        }
+
+        full_name = state_names.get(state.upper())
+        if not full_name:
+            return location
+
+        # Check if full state name appears at the end (with comma or standalone)
+        # Pattern: ", Alaska" or " Alaska" at the end
+        pattern = rf",?\s*{re.escape(full_name)}\s*$"
+        if re.search(pattern, location, re.IGNORECASE):
+            # Replace with abbreviation
+            normalized = re.sub(pattern, "", location, flags=re.IGNORECASE).strip()
+            if normalized:
+                return f"{normalized}, {state}"
+            return state
+
+        return location
 
     @property
     def display_job_type(self) -> str | None:

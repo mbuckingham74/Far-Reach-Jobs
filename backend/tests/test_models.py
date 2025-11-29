@@ -276,6 +276,33 @@ class TestJobModel:
             db.commit()
             assert job.display_location == expected, f"Expected {expected} for location={location}, state={state}"
 
+    def test_display_location_normalizes_full_state_name(self, db, active_source):
+        """display_location replaces full state name with abbreviation."""
+        test_cases = [
+            # (location, state, expected)
+            ("Bristol Bay Region, Alaska", "AK", "Bristol Bay Region, AK"),
+            ("Fairbanks, Alaska", "AK", "Fairbanks, AK"),
+            ("Alaska", "AK", "AK"),  # Just state name becomes abbreviation
+            ("Los Angeles, California", "CA", "Los Angeles, CA"),
+            ("Washington, District of Columbia", "DC", "Washington, DC"),
+            # Case insensitivity
+            ("Juneau, alaska", "AK", "Juneau, AK"),
+            # Without comma
+            ("Rural Alaska", "AK", "Rural, AK"),
+        ]
+        for i, (location, state, expected) in enumerate(test_cases):
+            job = Job(
+                source_id=active_source.id,
+                external_id=f"norm-loc-job-{i}",
+                title="Normalization Test",
+                url="https://example.com/job",
+                location=location,
+                state=state,
+            )
+            db.add(job)
+            db.commit()
+            assert job.display_location == expected, f"Expected {expected} for location={location}, state={state}"
+
     def test_display_job_type_full_time(self, db, active_source):
         """display_job_type returns Full-Time for full-time variants."""
         test_cases = [
