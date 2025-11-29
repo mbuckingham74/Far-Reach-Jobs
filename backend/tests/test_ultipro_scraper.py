@@ -702,6 +702,9 @@ class TestApiScrapersSkipRobotsCheck:
         mock_source.name = "Test Generic Source"
         mock_source.listing_url = "https://example.com/careers"
         mock_source.scraper_class = "GenericScraper"
+        # Must explicitly set to False - MagicMock auto-creates attributes
+        # which makes getattr() return a truthy MagicMock instead of the default
+        mock_source.skip_robots_check = False
 
         with patch("scraper.runner._run_ultipro_scraper") as mock_ultipro, \
              patch("scraper.runner._run_adp_scraper") as mock_adp, \
