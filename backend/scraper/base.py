@@ -49,9 +49,10 @@ class BaseScraper(ABC):
     - parse_job_listing_page(soup, url): parse a listing page and yield ScrapedJob objects
     """
 
-    def __init__(self, use_playwright: bool = False):
+    def __init__(self, use_playwright: bool = False, skip_robots_check: bool = False):
         self.robots_checker: RobotsChecker | None = None
         self._use_playwright = use_playwright
+        self._skip_robots_check = skip_robots_check
         self._playwright_fetcher = get_playwright_fetcher() if use_playwright else None
         self._ssl_verify = True  # Will be set to False if SSL verification fails
         # Use browser-like headers to avoid WAF blocks
@@ -102,6 +103,8 @@ class BaseScraper(ABC):
 
     def can_fetch(self, url: str) -> bool:
         """Check if a URL can be fetched according to robots.txt."""
+        if self._skip_robots_check:
+            return True
         if self.robots_checker is None:
             self.check_robots()
         return self.robots_checker.can_fetch(url)

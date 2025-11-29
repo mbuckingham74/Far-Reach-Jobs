@@ -633,6 +633,10 @@ def run_scraper(db: Session, source: ScrapeSource, trigger_type: str = "manual")
             scraper_instance._use_playwright = True
             scraper_instance._playwright_fetcher = get_playwright_fetcher()
 
+        # Pass skip_robots_check flag if source has it set
+        if getattr(source, 'skip_robots_check', False):
+            scraper_instance._skip_robots_check = True
+
         with scraper_instance as scraper:
             scraped_jobs, errors = scraper.run()
             all_errors.extend(errors)
