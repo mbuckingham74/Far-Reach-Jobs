@@ -58,6 +58,12 @@
                     <td class="py-2 px-3 text-amber-600 dark:text-amber-400">Configure CSS</td>
                 </tr>
                 <tr>
+                    <td class="py-2 px-3 font-mono text-xs text-gray-600 dark:text-gray-400">sitemap.xml with job URLs</td>
+                    <td class="py-2 px-3 text-gray-900 dark:text-white">JS-heavy sites with sitemaps</td>
+                    <td class="py-2 px-3"><span class="px-2 py-1 bg-teal-100 dark:bg-teal-900 text-teal-800 dark:text-teal-200 rounded text-xs">SitemapScraper</span></td>
+                    <td class="py-2 px-3 text-amber-600 dark:text-amber-400">Configure XML</td>
+                </tr>
+                <tr>
                     <td class="py-2 px-3 font-mono text-xs text-gray-600 dark:text-gray-400">Complex JS pages</td>
                     <td class="py-2 px-3 text-gray-900 dark:text-white">Oracle EBS, custom portals</td>
                     <td class="py-2 px-3"><span class="px-2 py-1 bg-orange-100 dark:bg-orange-900 text-orange-800 dark:text-orange-200 rounded text-xs">DynamicScraper</span></td>
@@ -165,6 +171,79 @@ NANA Regional,https://nana.com,https://nana.com/careers</pre>
     <div class="p-4 bg-blue-50 dark:bg-blue-900/30 rounded-lg">
         <p class="text-sm text-blue-800 dark:text-blue-200">
             <strong>Note:</strong> API scrapers bypass robots.txt checks because they use the platform's public API, not HTML crawling. This is the intended behavior.
+        </p>
+    </div>
+</div>
+
+<!-- SitemapScraper Section -->
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-8">
+    <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">SitemapScraper (XML Sitemap Parsing)</h3>
+    <p class="text-gray-600 dark:text-gray-400 mb-6">Extracts jobs from XML sitemaps by parsing job data from URL structure. Ideal for JavaScript-heavy sites where direct scraping fails.</p>
+
+    <div class="border-l-4 border-teal-500 pl-4 mb-6">
+        <h4 class="font-semibold text-gray-900 dark:text-white mb-2">When to Use</h4>
+        <div class="text-sm text-gray-600 dark:text-gray-400 space-y-2">
+            <ul class="list-disc list-inside">
+                <li>Site is JavaScript-heavy (Vue, React, Angular) and returns 404 for direct URL access</li>
+                <li>Site has an XML sitemap at <code class="bg-gray-100 dark:bg-gray-700 px-1 rounded">/sitemap.xml</code> or similar</li>
+                <li>Job URLs contain structured data (e.g., <code class="bg-gray-100 dark:bg-gray-700 px-1 rounded">/kotzebue-ak/customer-service-agent/</code>)</li>
+                <li>No public API available (not ADP, Workday, etc.)</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="border-l-4 border-teal-500 pl-4 mb-6">
+        <h4 class="font-semibold text-gray-900 dark:text-white mb-2">How It Works</h4>
+        <div class="text-sm text-gray-600 dark:text-gray-400 space-y-2">
+            <ol class="list-decimal list-inside space-y-1">
+                <li>Fetches and parses the XML sitemap</li>
+                <li>Filters URLs by pattern (if configured)</li>
+                <li>Extracts job data from URL structure:
+                    <ul class="list-disc list-inside ml-4 mt-1">
+                        <li><strong>Location:</strong> <code class="bg-gray-100 dark:bg-gray-700 px-1 rounded">/kotzebue-ak/</code> → "Kotzebue, AK"</li>
+                        <li><strong>Title:</strong> <code class="bg-gray-100 dark:bg-gray-700 px-1 rounded">/customer-service-agent/</code> → "Customer Service Agent"</li>
+                        <li><strong>External ID:</strong> UUID/hex segment from URL path</li>
+                    </ul>
+                </li>
+                <li>Handles sitemap indexes recursively (fetches child sitemaps)</li>
+            </ol>
+        </div>
+    </div>
+
+    <div class="border-l-4 border-teal-500 pl-4 mb-6">
+        <h4 class="font-semibold text-gray-900 dark:text-white mb-2">Configuration</h4>
+        <div class="text-sm text-gray-600 dark:text-gray-400 space-y-2">
+            <p><strong>Sitemap URL (required):</strong> URL of the XML sitemap file</p>
+            <p><strong>URL Filter Pattern:</strong> Regex to filter URLs (e.g., <code class="bg-gray-100 dark:bg-gray-700 px-1 rounded">-ak/</code> for Alaska jobs only)</p>
+            <p><strong>Organization:</strong> Organization name for all jobs (defaults to source name)</p>
+            <p><strong>Default State:</strong> Fallback state code (e.g., "AK")</p>
+        </div>
+        <div class="mt-3 p-3 bg-gray-50 dark:bg-gray-900 rounded text-xs">
+            <p class="text-gray-500 dark:text-gray-400 mb-2">Example: Alaska Airlines</p>
+            <div class="text-gray-700 dark:text-gray-300 font-mono space-y-1">
+                <p>Sitemap URL: <code>https://careers.alaskaair.com/sitemaps/jobs_1.xml</code></p>
+                <p>URL Pattern: <code>-ak/</code></p>
+                <p>Organization: <code>Alaska Airlines</code></p>
+                <p>Default State: <code>AK</code></p>
+            </div>
+        </div>
+    </div>
+
+    <div class="border-l-4 border-teal-500 pl-4 mb-6">
+        <h4 class="font-semibold text-gray-900 dark:text-white mb-2">Finding the Sitemap</h4>
+        <div class="text-sm text-gray-600 dark:text-gray-400 space-y-2">
+            <ol class="list-decimal list-inside space-y-1">
+                <li>Check <code class="bg-gray-100 dark:bg-gray-700 px-1 rounded">/robots.txt</code> for <code>Sitemap:</code> entries</li>
+                <li>Try common paths: <code class="bg-gray-100 dark:bg-gray-700 px-1 rounded">/sitemap.xml</code>, <code class="bg-gray-100 dark:bg-gray-700 px-1 rounded">/sitemaps/sitemap.xml</code></li>
+                <li>Look for job-specific sitemaps: <code class="bg-gray-100 dark:bg-gray-700 px-1 rounded">/sitemaps/jobs.xml</code></li>
+                <li>Use browser DevTools Network tab while browsing the site</li>
+            </ol>
+        </div>
+    </div>
+
+    <div class="p-4 bg-teal-50 dark:bg-teal-900/30 rounded-lg">
+        <p class="text-sm text-teal-800 dark:text-teal-200">
+            <strong>Benefits:</strong> SitemapScraper is fast (~1 second), doesn't need Playwright, and works reliably on JS-heavy sites. It bypasses the need to render JavaScript entirely.
         </p>
     </div>
 </div>
@@ -413,6 +492,30 @@ NANA Regional,https://nana.com,https://nana.com/careers</pre>
                 <li>Oracle EBS and similar platforms include metadata in location fields</li>
                 <li>For DynamicScrapers: Add a <code>_clean_location()</code> method (see Data Cleaning section above)</li>
                 <li>For GenericScraper: Use a more specific CSS selector that targets only the location text</li>
+            </ul>
+        </div>
+        <div>
+            <h4 class="font-medium text-gray-900 dark:text-white mb-1">SitemapScraper: No jobs parsed from URLs</h4>
+            <ul class="text-sm text-gray-600 dark:text-gray-400 list-disc list-inside">
+                <li>URL structure may not match expected pattern (city-state/title/)</li>
+                <li>Check the error message for sample URLs that couldn't be parsed</li>
+                <li>Try adjusting the URL filter pattern or use a different scraper type</li>
+            </ul>
+        </div>
+        <div>
+            <h4 class="font-medium text-gray-900 dark:text-white mb-1">SitemapScraper: No URLs found in sitemap</h4>
+            <ul class="text-sm text-gray-600 dark:text-gray-400 list-disc list-inside">
+                <li>Verify the sitemap URL is correct and accessible</li>
+                <li>Check if it's a sitemap index - the scraper handles these automatically</li>
+                <li>Look in <code>/robots.txt</code> for alternate sitemap locations</li>
+            </ul>
+        </div>
+        <div>
+            <h4 class="font-medium text-gray-900 dark:text-white mb-1">SitemapScraper: All URLs filtered out</h4>
+            <ul class="text-sm text-gray-600 dark:text-gray-400 list-disc list-inside">
+                <li>Your URL filter pattern may be too restrictive</li>
+                <li>Try removing or broadening the pattern to see all jobs first</li>
+                <li>Pattern uses regex - escape special characters like <code>.</code> and <code>?</code></li>
             </ul>
         </div>
     </div>

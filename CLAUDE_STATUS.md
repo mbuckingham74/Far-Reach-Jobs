@@ -414,7 +414,11 @@ PLAYWRIGHT_SERVICE_URL=http://playwright:3000
 - url_attribute, selector_next_page, max_pages
 - use_playwright (enables headless browser for bot-protected sites)
 - default_location (fallback location when selector doesn't find one)
+- default_state (fallback state code, e.g., "AK" for Alaska-only sources)
 - custom_scraper_code (AI-generated Python code for custom scrapers)
+- sitemap_url (SitemapScraper: URL of the XML sitemap)
+- sitemap_url_pattern (SitemapScraper: regex to filter URLs)
+- organization (SitemapScraper: organization name for all jobs)
 
 ## Environment Variables
 
@@ -547,6 +551,15 @@ This section documents CSS selectors that have been tested and work for specific
 - **Flags:** `use_playwright=True`, `skip_robots_check=True`
 - **Interactive:** Selects "All Open Reqs" dropdown, clicks Search button
 - **Notes:** Oracle E-Business Suite uses JavaScript onclick handlers instead of real hrefs. Job IDs extracted from anchor text (e.g., `IRC47603`). Detail URLs from hidden input fields.
+
+### Alaska Airlines (SitemapScraper)
+- **Base URL:** `https://careers.alaskaair.com`
+- **Type:** SitemapScraper
+- **Sitemap URL:** `https://careers.alaskaair.com/sitemaps/jobs_1.xml`
+- **URL Pattern:** `-ak/` (filters to Alaska jobs only)
+- **Organization:** `Alaska Airlines`
+- **Default State:** `AK`
+- **Notes:** JavaScript-heavy Vue/Nuxt site that returns 404 for direct URL access with query params. Uses sitemap to extract job URLs containing location and title in the path structure (e.g., `/kotzebue-ak/customer-service-agent/`). Fast and reliable (~1 second vs 2.5 minutes for Playwright approach).
 
 ### Phase 1Q: AI-Powered Selector Detection ✅
 - [x] AI analysis endpoint using Claude API
@@ -782,6 +795,47 @@ NANA Regional,https://nana.com,https://nana.com/careers
 3. Provides contact email and optional notes
 4. Admin receives email notification with all sources
 5. Admin reviews and adds sources via admin CSV import
+
+### Phase 1Z: SitemapScraper ✅
+- [x] New scraper type for extracting jobs from XML sitemaps
+- [x] Parses job title, location, and state from URL structure
+- [x] URL pattern filtering (e.g., `-ak/` for Alaska jobs)
+- [x] Recursive sitemap index handling (fetches child sitemaps)
+- [x] robots.txt compliance for child sitemaps
+- [x] Admin UI for configuring sitemap URL, pattern, and organization
+- [x] SitemapScraper option in Add Source and Configure Source dropdowns
+- [x] Database migration for sitemap_url, sitemap_url_pattern, organization fields
+
+**Key Files:**
+- `backend/scraper/sources/sitemap.py` - SitemapScraper implementation
+- `backend/app/models/scrape_source.py` - sitemap fields
+- `backend/alembic/versions/015_add_sitemap_scraper_fields.py` - Migration
+- `backend/app/templates/admin/configure_source.html` - Sitemap config UI
+
+**When to Use:**
+- Site is JavaScript-heavy (Vue, React, Angular) and returns 404 for direct URL access
+- Site has an XML sitemap at `/sitemap.xml` or similar
+- Job URLs contain structured data (e.g., `/kotzebue-ak/customer-service-agent/`)
+- No public API available
+
+**Configuration:**
+- `sitemap_url`: URL of the XML sitemap (e.g., `https://careers.alaskaair.com/sitemaps/jobs_1.xml`)
+- `sitemap_url_pattern`: Regex to filter URLs (e.g., `-ak/` for Alaska jobs only)
+- `organization`: Organization name for all jobs (e.g., "Alaska Airlines")
+- `default_state`: Fallback state code (e.g., "AK")
+
+**URL Parsing:**
+- Location: Extracts from URL patterns like `/kotzebue-ak/` → "Kotzebue, AK"
+- Title: Extracts from URL slug like `/customer-service-agent/` → "Customer Service Agent"
+- External ID: Uses UUID/hex segment from URL path
+
+**Example: Alaska Airlines**
+```
+Sitemap URL: https://careers.alaskaair.com/sitemaps/jobs_1.xml
+URL Pattern: -ak/
+Organization: Alaska Airlines
+Default State: AK
+```
 
 ### Phase 1Y: Needs Configuration Page & Auto-Enable ✅
 - [x] Separate "Needs Configuration" page for bulk-imported sources
