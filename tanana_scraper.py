@@ -18,70 +18,82 @@ class TananaChiefsScraper(BaseScraper):
         if not job_table:
             return jobs
 
-        # Look for job rows - skip header and navigation rows
+        # Look for job rows
         job_rows = job_table.find_all('tr')
 
         for row in job_rows:
-            # Skip header row (has th), qbe row, and navigation row
-            if (row.find('th') or
-                row.get('id') == 'JobSearchTable:qbeRow' or
-                'navigationRow' in row.get('class', [])):
-                continue
-
             cells = row.find_all('td')
+            # Need at least 8 cells for a valid job row
             if len(cells) < 8:
                 continue
 
             try:
-                # Extract job information from table cells
-                # Columns: Select, Name, Job Title, Organization, Job Category, Location, Date Posted, Employment Type, Apply
+                # Table structure (0-indexed):
+                # 0: Checkbox (select)
+                # 1: Name/ID with link to job details
+                # 2: Job Title (text only)
+                # 3: Organization Name
+                # 4: Professional Area (Job Category)
+                # 5: Location
+                # 6: Date Posted
+                # 7: Employment Type
+                # 8: Apply button (optional)
 
-                # Job title is in the 3rd column (index 2)
-                title_cell = cells[2]
-                title_link = title_cell.find('a')
-                if not title_link:
+                # Get job link from cell 1 (Name column)
+                name_cell = cells[1]
+                job_link = name_cell.find('a', href=True)
+                if not job_link or job_link.get('href') == '#':
+                    # Try finding the other link
+                    links = name_cell.find_all('a', href=True)
+                    job_link = None
+                    for link in links:
+                        href = link.get('href', '')
+                        if href and href != '#' and 'IRC_VIS_VAC_DISPLAY' in href:
+                            job_link = link
+                            break
+
+                if not job_link:
                     continue
 
-                title = title_link.get_text(strip=True)
+                # Get job title from cell 2
+                title_cell = cells[2]
+                title = title_cell.get_text(strip=True)
                 if not title:
                     continue
 
-                # Extract the job URL from the link
-                job_href = title_link.get('href', '')
-                if job_href.startswith('javascript:') or not job_href:
-                    job_url = url
+                # Build the job URL
+                job_href = job_link.get('href', '')
+                if job_href.startswith('/'):
+                    job_url = 'https://careers.tananachiefs.org' + job_href
+                elif job_href.startswith('OA.jsp'):
+                    job_url = 'https://careers.tananachiefs.org/OA_HTML/' + job_href
                 else:
                     job_url = urljoin(self.base_url, job_href)
 
-                # Organization name is in the 4th column (index 3)
-                organization_cell = cells[3]
-                organization = organization_cell.get_text(strip=True) or "Tanana Chiefs Conference"
+                # Organization name is in cell 3
+                organization = cells[3].get_text(strip=True) or "Tanana Chiefs Conference"
 
-                # Job category is in the 5th column (index 4)
-                job_type_cell = cells[4]
-                job_type = job_type_cell.get_text(strip=True) or None
+                # Job category is in cell 4
+                job_category = cells[4].get_text(strip=True) or None
 
-                # Location is in the 6th column (index 5)
-                location_cell = cells[5]
-                location = location_cell.get_text(strip=True) or None
+                # Location is in cell 5
+                location = cells[5].get_text(strip=True) or None
 
-                # Date posted is in the 7th column (index 6)
-                date_cell = cells[6]
-                date_posted = date_cell.get_text(strip=True) or None
+                # Date posted is in cell 6
+                date_posted = cells[6].get_text(strip=True) or None
 
-                # Employment type is in the 8th column (index 7)
-                employment_type_cell = cells[7] if len(cells) > 7 else None
-                employment_type = employment_type_cell.get_text(strip=True) if employment_type_cell else None
+                # Employment type is in cell 7
+                employment_type = cells[7].get_text(strip=True) if len(cells) > 7 else None
 
                 job = ScrapedJob(
-                    external_id=self.generate_external_id(job_url + title),
+                    external_id=self.generate_external_id(job_url),
                     title=title,
                     url=job_url,
                     organization=organization,
                     location=location,
                     state="AK",
                     description=f"Posted: {date_posted}" if date_posted else None,
-                    job_type=f"{job_type} - {employment_type}" if job_type and employment_type else job_type or employment_type,
+                    job_type=f"{job_category} - {employment_type}" if job_category and employment_type else job_category or employment_type,
                     salary_info=None
                 )
 

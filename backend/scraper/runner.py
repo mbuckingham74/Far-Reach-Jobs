@@ -638,7 +638,9 @@ def run_scraper(db: Session, source: ScrapeSource, trigger_type: str = "manual")
             scraper_instance._skip_robots_check = True
 
         with scraper_instance as scraper:
+            logger.info(f"Calling {scraper.__class__.__name__}.run() for {source.name}")
             scraped_jobs, errors = scraper.run()
+            logger.info(f"Scraper returned {len(scraped_jobs)} jobs")
             all_errors.extend(errors)
 
             for scraped_job in scraped_jobs:

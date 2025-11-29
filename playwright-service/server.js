@@ -87,8 +87,8 @@ app.post('/fetch', async (req, res) => {
         console.log(`Clicking: ${clickSelector}`);
         await page.click(clickSelector);
 
-        // Wait for results to load
-        await page.waitForTimeout(3000);
+        // Wait for results to load (increased for slow sites like Oracle E-Business Suite)
+        await page.waitForTimeout(5000);
 
         // If a specific selector to wait for after click is provided, wait for it
         if (clickWaitFor) {
