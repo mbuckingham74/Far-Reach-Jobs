@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+
+{% block title %}Imported Sources - Admin - Far Reach Jobs{% endblock %}
+
+{% block content %}
+<div class="mb-6 flex justify-between items-center">
+    <div>
+        <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Recently Imported Sources</h2>
+        <p class="text-gray-600 dark:text-gray-300">{{ count }} source{{ 's' if count != 1 else '' }} ready to configure</p>
+    </div>
+    <div class="flex gap-2">
+        <a href="/admin" class="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white font-medium rounded-md transition-colors">
+            Back to Dashboard
+        </a>
+    </div>
+</div>
+
+<!-- Info Box -->
+<div class="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+    <div class="flex items-start gap-3">
+        <svg class="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        </svg>
+        <div class="text-sm text-blue-800 dark:text-blue-200">
+            <p class="font-medium mb-1">Configure each source before enabling</p>
+            <p>Click <strong>Configure</strong> to set up CSS selectors, then <strong>Enable</strong> to start scraping.</p>
+        </div>
+    </div>
+</div>
+
+<!-- Imported Source List -->
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 transition-colors">
+    {% if sources %}
+    <div class="space-y-4">
+        {% for source in sources %}
+        <div class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-600">
+            <div class="flex-1 min-w-0">
+                <h4 class="font-medium text-gray-900 dark:text-white truncate">{{ source.name }}</h4>
+                <a href="{{ source.base_url }}" target="_blank" class="text-sm text-gray-500 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 truncate block">
+                    {{ source.base_url }}
+                </a>
+            </div>
+            <div class="flex items-center gap-2 ml-4">
+                <span class="px-2 py-1 text-xs font-medium rounded-full bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300">
+                    Disabled
+                </span>
+                <a href="/admin/sources/{{ source.id }}/configure"
+                   class="px-3 py-1.5 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded transition-colors">
+                    Configure
+                </a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="text-center py-8 text-gray-500 dark:text-gray-400">
+        <p>No sources found. They may have been deleted or already configured.</p>
+        <a href="/admin/sources/disabled" class="text-primary-600 dark:text-primary-400 hover:underline mt-2 inline-block">
+            View all disabled sources
+        </a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -195,6 +195,42 @@ def disabled_count_link(request: Request, db: Session = Depends(get_db)):
     )
 
 
+@router.get("/sources/imported")
+def imported_sources_page(request: Request, ids: str, db: Session = Depends(get_db)):
+    """Show recently imported sources for configuration.
+
+    Args:
+        ids: Comma-separated list of source IDs to display
+    """
+    if not get_admin_user(request):
+        return RedirectResponse(url="/admin/login", status_code=302)
+
+    # Parse IDs from query param
+    try:
+        source_ids = [int(id.strip()) for id in ids.split(",") if id.strip()]
+    except ValueError:
+        return RedirectResponse(url="/admin/sources/disabled", status_code=302)
+
+    if not source_ids:
+        return RedirectResponse(url="/admin/sources/disabled", status_code=302)
+
+    sources = (
+        db.query(ScrapeSource)
+        .filter(ScrapeSource.id.in_(source_ids))
+        .order_by(ScrapeSource.name)
+        .all()
+    )
+
+    return templates.TemplateResponse(
+        "admin/imported_sources.html",
+        {
+            "request": request,
+            "sources": sources,
+            "count": len(sources),
+        },
+    )
+
+
 @router.get("/sources/robots-blocked")
 def robots_blocked_sources_page(request: Request, db: Session = Depends(get_db)):
     """Sources blocked by robots.txt page."""
@@ -480,6 +516,7 @@ async def import_sources_csv(request: Request, file: UploadFile = File(...), db:
         added = 0
         skipped = []
         errors = []
+        imported_ids = []
 
         for row_num, row in enumerate(reader, start=2):  # Start at 2 to account for header row
             name = row.get(fieldname_map['name'], '').strip()
@@ -536,6 +573,8 @@ async def import_sources_csv(request: Request, file: UploadFile = File(...), db:
                 is_active=False,  # Must be configured before enabling
             )
             db.add(source)
+            db.flush()  # Get the ID assigned
+            imported_ids.append(source.id)
             added += 1
 
             # Track this source for in-batch duplicate detection
@@ -562,6 +601,7 @@ async def import_sources_csv(request: Request, file: UploadFile = File(...), db:
                 "added": added,
                 "skipped": skipped,
                 "errors": errors,
+                "imported_ids": imported_ids,
             },
         )
         response.headers["HX-Trigger"] = "refreshSourceList"
