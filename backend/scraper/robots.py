@@ -41,39 +41,54 @@ class RobotsChecker:
         Returns (parser, no_robots, crawl_delay, raw_content) or None on failure.
         """
         robots_url = f"{scheme}://{domain}/robots.txt"
-        try:
-            response = httpx.get(
-                robots_url,
-                headers={"User-Agent": USER_AGENT},
-                timeout=10.0,
-                follow_redirects=True,
-            )
-            parser = RobotFileParser()
-            if response.status_code == 200:
-                raw_content = response.text
-                parser.parse(raw_content.splitlines())
-                # Get crawl delay - check both UAs and use the most restrictive
-                delay_bot = parser.crawl_delay(ROBOTS_USER_AGENT)
-                delay_mozilla = parser.crawl_delay("Mozilla")
-                delays = [d for d in [delay_bot, delay_mozilla] if d is not None]
-                crawl_delay = max(delays) if delays else None
-                logger.info(f"Loaded robots.txt from {robots_url}")
-                return (parser, False, crawl_delay, raw_content)
-            elif response.status_code == 404:
-                # No robots.txt = all allowed
-                parser.parse([])
-                logger.info(f"No robots.txt found at {robots_url}, all paths allowed")
-                return (parser, True, None, "(No robots.txt found - 404)")
-            else:
-                logger.warning(f"Unexpected status {response.status_code} for {robots_url}")
+
+        # Try with SSL verification first, then retry without if it fails
+        # Some sites have broken certificate chains (missing intermediates)
+        for verify_ssl in [True, False]:
+            try:
+                response = httpx.get(
+                    robots_url,
+                    headers={"User-Agent": USER_AGENT},
+                    timeout=10.0,
+                    follow_redirects=True,
+                    verify=verify_ssl,
+                )
+                if not verify_ssl:
+                    logger.warning(f"SSL verification disabled for {robots_url} due to certificate issues")
+
+                parser = RobotFileParser()
+                if response.status_code == 200:
+                    raw_content = response.text
+                    parser.parse(raw_content.splitlines())
+                    # Get crawl delay - check both UAs and use the most restrictive
+                    delay_bot = parser.crawl_delay(ROBOTS_USER_AGENT)
+                    delay_mozilla = parser.crawl_delay("Mozilla")
+                    delays = [d for d in [delay_bot, delay_mozilla] if d is not None]
+                    crawl_delay = max(delays) if delays else None
+                    logger.info(f"Loaded robots.txt from {robots_url}")
+                    return (parser, False, crawl_delay, raw_content)
+                elif response.status_code == 404:
+                    # No robots.txt = all allowed
+                    parser.parse([])
+                    logger.info(f"No robots.txt found at {robots_url}, all paths allowed")
+                    return (parser, True, None, "(No robots.txt found - 404)")
+                else:
+                    logger.warning(f"Unexpected status {response.status_code} for {robots_url}")
+                    # Store the error as raw content for reporting
+                    self._raw_content = f"(HTTP {response.status_code} from {robots_url})"
+                    return None
+            except Exception as e:
+                # If SSL verification failed, retry without it
+                if verify_ssl and "CERTIFICATE_VERIFY_FAILED" in str(e):
+                    logger.warning(f"SSL verification failed for {robots_url}, retrying without verification")
+                    continue
+                logger.error(f"Failed to fetch robots.txt from {robots_url}: {e}")
                 # Store the error as raw content for reporting
-                self._raw_content = f"(HTTP {response.status_code} from {robots_url})"
+                self._raw_content = f"(Failed to fetch {robots_url}: {e})"
                 return None
-        except Exception as e:
-            logger.error(f"Failed to fetch robots.txt from {robots_url}: {e}")
-            # Store the error as raw content for reporting
-            self._raw_content = f"(Failed to fetch {robots_url}: {e})"
-            return None
+
+        # Should not reach here, but just in case
+        return None
 
     def load(self) -> bool:
         """Fetch and parse robots.txt for the base domain. Returns True if successful."""

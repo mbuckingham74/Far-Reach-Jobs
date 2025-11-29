@@ -53,8 +53,9 @@ class BaseScraper(ABC):
         self.robots_checker: RobotsChecker | None = None
         self._use_playwright = use_playwright
         self._playwright_fetcher = get_playwright_fetcher() if use_playwright else None
+        self._ssl_verify = True  # Will be set to False if SSL verification fails
         # Use browser-like headers to avoid WAF blocks
-        headers = {
+        self._headers = {
             "User-Agent": USER_AGENT,
             "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
             "Accept-Language": "en-US,en;q=0.9",
@@ -63,7 +64,7 @@ class BaseScraper(ABC):
             "Upgrade-Insecure-Requests": "1",
         }
         self.client = httpx.Client(
-            headers=headers,
+            headers=self._headers,
             timeout=30.0,
             follow_redirects=True,
         )
@@ -136,6 +137,25 @@ class BaseScraper(ABC):
             response.raise_for_status()
             return BeautifulSoup(response.text, "lxml")
         except Exception as e:
+            # If SSL verification failed, retry without it
+            if self._ssl_verify and "CERTIFICATE_VERIFY_FAILED" in str(e):
+                logger.warning(f"SSL verification failed for {url}, retrying without verification")
+                self._ssl_verify = False
+                # Create a new client without SSL verification
+                self.client.close()
+                self.client = httpx.Client(
+                    headers=self._headers,
+                    timeout=30.0,
+                    follow_redirects=True,
+                    verify=False,
+                )
+                try:
+                    response = self.client.get(url)
+                    response.raise_for_status()
+                    return BeautifulSoup(response.text, "lxml")
+                except Exception as e2:
+                    logger.error(f"Failed to fetch {url} even without SSL verification: {e2}")
+                    return None
             logger.error(f"Failed to fetch {url}: {e}")
             return None
 
