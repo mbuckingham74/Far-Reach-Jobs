@@ -641,9 +641,9 @@ class TestSourceExport:
         assert "attachment" in response.headers["content-disposition"]
         assert "active_sources.csv" in response.headers["content-disposition"]
 
-        # Parse CSV content
+        # Parse CSV content (use splitlines to handle CRLF from csv.writer)
         content = response.text
-        lines = content.strip().split("\n")
+        lines = content.strip().splitlines()
         assert len(lines) >= 1  # At least header row
 
         # Verify header row matches import format
@@ -707,8 +707,10 @@ class TestSourceExport:
         """Export with no matching sources returns CSV with header only."""
         response = admin_client.get("/admin/sources/export-active")
         assert response.status_code == 200
-        content = response.text.strip()
-        assert content == "Source Name,Base URL,Jobs URL"
+        # Use splitlines to handle CRLF, then check we only have header
+        lines = response.text.strip().splitlines()
+        assert len(lines) == 1
+        assert lines[0] == "Source Name,Base URL,Jobs URL"
 
     def test_export_alphabetical_order(self, admin_client, db):
         """Sources are exported in alphabetical order by name."""
@@ -723,7 +725,8 @@ class TestSourceExport:
         response = admin_client.get("/admin/sources/export-active")
         assert response.status_code == 200
 
-        lines = response.text.strip().split("\n")
+        # Use splitlines to handle CRLF from csv.writer
+        lines = response.text.strip().splitlines()
         # Skip header, get data lines
         data_lines = lines[1:]
         names = [line.split(",")[0] for line in data_lines]
