@@ -106,3 +106,81 @@ class PlaywrightFetcher:
 def get_playwright_fetcher() -> PlaywrightFetcher:
     """Get a PlaywrightFetcher instance."""
     return PlaywrightFetcher()
+
+
+def fetch_all_pages(
+    url: str,
+    next_page_selector: str,
+    wait_for: Optional[str] = None,
+    max_pages: int = 10,
+) -> list[BeautifulSoup]:
+    """Fetch multiple pages by clicking through pagination in a single browser session.
+
+    This is useful for SPAs where pagination requires clicking buttons rather than
+    navigating to new URLs. The browser session is maintained across pages.
+
+    Args:
+        url: Initial URL to fetch
+        next_page_selector: CSS selector for the "next page" button
+        wait_for: Optional CSS selector to wait for on each page
+        max_pages: Maximum number of pages to fetch (default 10)
+
+    Returns:
+        List of BeautifulSoup objects, one per page
+    """
+    settings = get_settings()
+    if not settings.playwright_service_url:
+        logger.warning("Playwright service not configured")
+        return []
+
+    service_url = f"{settings.playwright_service_url}/fetch-paginated"
+
+    try:
+        logger.info(f"Fetching paginated: {url} (max {max_pages} pages)")
+
+        payload = {
+            "url": url,
+            "nextPageSelector": next_page_selector,
+            "maxPages": max_pages,
+            "timeout": 30000,
+        }
+        if wait_for:
+            payload["waitFor"] = wait_for
+
+        response = httpx.post(
+            service_url,
+            json=payload,
+            timeout=120.0  # Longer timeout for multiple pages
+        )
+
+        if response.status_code != 200:
+            logger.error(f"Playwright service error: {response.status_code} - {response.text}")
+            return []
+
+        data = response.json()
+
+        if not data.get("success"):
+            logger.error(f"Playwright paginated fetch failed: {data.get('error', 'Unknown error')}")
+            return []
+
+        pages = data.get("pages", [])
+        logger.info(f"Playwright fetched {len(pages)} pages from {url}")
+
+        # Convert HTML strings to BeautifulSoup objects
+        soups = []
+        for page_data in pages:
+            html = page_data.get("html", "")
+            if html:
+                soups.append(BeautifulSoup(html, "html.parser"))
+
+        return soups
+
+    except httpx.ConnectError:
+        logger.error(f"Cannot connect to Playwright service")
+        return []
+    except httpx.TimeoutException:
+        logger.error(f"Playwright service timeout for paginated fetch")
+        return []
+    except Exception as e:
+        logger.error(f"Playwright paginated fetch error: {e}")
+        return []

@@ -132,6 +132,138 @@ app.post('/fetch', async (req, res) => {
   }
 });
 
+// Fetch multiple pages with pagination (clicks through pages in single browser session)
+app.post('/fetch-paginated', async (req, res) => {
+  const {
+    url,
+    waitFor,
+    nextPageSelector,
+    maxPages = 10,
+    timeout
+  } = req.body;
+
+  if (!url) {
+    return res.status(400).json({ error: 'URL is required' });
+  }
+
+  if (!nextPageSelector) {
+    return res.status(400).json({ error: 'nextPageSelector is required' });
+  }
+
+  let browser = null;
+  try {
+    console.log(`Fetching paginated: ${url} (max ${maxPages} pages)`);
+
+    browser = await chromium.launch({
+      headless: true,
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-gpu'
+      ]
+    });
+
+    const context = await browser.newContext({
+      userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      viewport: { width: 1920, height: 1080 },
+      locale: 'en-US',
+    });
+
+    const page = await context.newPage();
+    const pageTimeout = timeout || 30000;
+    page.setDefaultTimeout(pageTimeout);
+
+    // Navigate to first page
+    await page.goto(url, {
+      waitUntil: 'domcontentloaded',
+      timeout: pageTimeout
+    });
+
+    await page.waitForTimeout(2000);
+
+    if (waitFor) {
+      try {
+        await page.waitForSelector(waitFor, { timeout: 10000 });
+      } catch (e) {
+        console.log(`Selector '${waitFor}' not found, continuing anyway`);
+      }
+    }
+
+    const pages = [];
+    let pageNum = 1;
+
+    while (pageNum <= maxPages) {
+      // Get current page HTML
+      const html = await page.content();
+      pages.push({
+        pageNum,
+        html,
+        url: page.url()
+      });
+      console.log(`Got page ${pageNum} (${html.length} bytes)`);
+
+      // Check if there's a next page button that's not disabled
+      const nextButton = await page.$(nextPageSelector);
+      if (!nextButton) {
+        console.log(`No next page button found, stopping at page ${pageNum}`);
+        break;
+      }
+
+      // Check if button is disabled
+      const isDisabled = await nextButton.getAttribute('disabled');
+      if (isDisabled !== null) {
+        console.log(`Next page button is disabled, stopping at page ${pageNum}`);
+        break;
+      }
+
+      if (pageNum >= maxPages) {
+        console.log(`Reached max pages (${maxPages})`);
+        break;
+      }
+
+      // Click next page
+      console.log(`Clicking next page button`);
+      await nextButton.click();
+      await page.waitForTimeout(2000);
+
+      // Wait for content to update
+      if (waitFor) {
+        try {
+          await page.waitForSelector(waitFor, { timeout: 10000 });
+        } catch (e) {
+          // Content may already be there
+        }
+      }
+
+      pageNum++;
+    }
+
+    await browser.close();
+    browser = null;
+
+    console.log(`Success: ${url} - fetched ${pages.length} pages`);
+
+    res.json({
+      success: true,
+      pages,
+      totalPages: pages.length
+    });
+
+  } catch (error) {
+    console.error(`Error fetching paginated ${url}:`, error.message);
+
+    if (browser) {
+      await browser.close();
+    }
+
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Playwright service listening on port ${PORT}`);
 });
