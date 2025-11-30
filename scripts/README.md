@@ -119,16 +119,37 @@ Recovery steps:
 4. Wait for MySQL to be healthy
 5. Run `./restore-database.sh backup_file.sql.gz`
 
-## Off-Site Backup (Optional)
+## Off-Site Backup (Local Machine)
 
-For additional safety, sync backups to another location:
+`sync-backups-local.sh` pulls backups from the server to your local machine.
+
+### Setup (on your Mac)
 
 ```bash
-# Add to cron after the backup job
-15 12 * * * rsync -avz /root/backups/far-reach-jobs/ user@backup-server:/backups/far-reach-jobs/
+# Create local backup directory
+mkdir -p ~/Backups/far-reach-jobs
+
+# Run manually
+./scripts/sync-backups-local.sh
+
+# Or set up a daily cron job (8 AM local time)
+crontab -e
+# Add: 0 8 * * * /Users/michaelbuckingham/Documents/my-apps/far-reach-jobs/scripts/sync-backups-local.sh >> ~/Library/Logs/far-reach-jobs-backup-sync.log 2>&1
 ```
 
-Or use cloud storage with rclone:
-```bash
-rclone sync /root/backups/far-reach-jobs remote:far-reach-jobs-backups/
-```
+### Prerequisites
+- SSH alias `tachyon` configured in `~/.ssh/config`
+- SSH key authentication (no password prompts)
+
+### Configuration (Environment Variables)
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `REMOTE_HOST` | `tachyon` | SSH host alias |
+| `REMOTE_BACKUP_DIR` | `/root/backups/far-reach-jobs` | Server backup path |
+| `LOCAL_BACKUP_DIR` | `~/Backups/far-reach-jobs` | Local destination |
+
+### How It Works
+- Uses rsync to sync only new/changed files (efficient)
+- `--delete` removes local files deleted from server (matches retention policy)
+- Checks SSH connectivity before attempting sync
