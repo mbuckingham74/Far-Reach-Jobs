@@ -582,15 +582,19 @@ async def import_sources_csv(request: Request, file: UploadFile = File(...), db:
             )
 
         # Prefetch existing sources for fast duplicate detection
+        # Use a single unified URL set for cross-field collision detection
+        # (catches cases where CSV base_url matches existing listing_url or vice versa)
         existing_sources = db.query(ScrapeSource.name, ScrapeSource.base_url, ScrapeSource.listing_url).all()
         existing_names = {name.lower().strip() for name, _, _ in existing_sources}
-        existing_base_urls = {_normalize_url(base_url) for _, base_url, _ in existing_sources}
-        existing_listing_urls = {_normalize_url(listing_url) for _, _, listing_url in existing_sources if listing_url}
+        existing_urls: set[str] = set()
+        for _, base_url, listing_url in existing_sources:
+            existing_urls.add(_normalize_url(base_url))
+            if listing_url:
+                existing_urls.add(_normalize_url(listing_url))
 
         # Track sources added in this batch to detect in-CSV duplicates
         batch_names: set[str] = set()
-        batch_base_urls: set[str] = set()
-        batch_listing_urls: set[str] = set()
+        batch_urls: set[str] = set()
 
         # Process rows
         added = 0
@@ -629,13 +633,14 @@ async def import_sources_csv(request: Request, file: UploadFile = File(...), db:
             listing_url_normalized = _normalize_url(listing_url) if listing_url else None
 
             # Check for duplicate in database (using normalized values)
+            # Uses unified URL set for cross-field collision detection
             if name_lower in existing_names:
                 skipped.append(f"'{name}' (name already exists)")
                 continue
-            if base_url_normalized in existing_base_urls:
+            if base_url_normalized in existing_urls:
                 skipped.append(f"'{name}' (base URL already exists)")
                 continue
-            if listing_url_normalized and listing_url_normalized in existing_listing_urls:
+            if listing_url_normalized and listing_url_normalized in existing_urls:
                 skipped.append(f"'{name}' (jobs URL already exists)")
                 continue
 
@@ -643,10 +648,10 @@ async def import_sources_csv(request: Request, file: UploadFile = File(...), db:
             if name_lower in batch_names:
                 skipped.append(f"'{name}' (duplicate name in CSV)")
                 continue
-            if base_url_normalized in batch_base_urls:
+            if base_url_normalized in batch_urls:
                 skipped.append(f"'{name}' (duplicate base URL in CSV)")
                 continue
-            if listing_url_normalized and listing_url_normalized in batch_listing_urls:
+            if listing_url_normalized and listing_url_normalized in batch_urls:
                 skipped.append(f"'{name}' (duplicate jobs URL in CSV)")
                 continue
 
@@ -665,9 +670,9 @@ async def import_sources_csv(request: Request, file: UploadFile = File(...), db:
 
             # Track this source for in-batch duplicate detection
             batch_names.add(name_lower)
-            batch_base_urls.add(base_url_normalized)
+            batch_urls.add(base_url_normalized)
             if listing_url_normalized:
-                batch_listing_urls.add(listing_url_normalized)
+                batch_urls.add(listing_url_normalized)
 
         # Commit all at once
         if added > 0:
