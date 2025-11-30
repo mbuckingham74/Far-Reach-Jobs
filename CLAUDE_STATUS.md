@@ -919,21 +919,22 @@ Automated MySQL backups with 14-day retention.
 **Scripts:**
 - `scripts/backup-database.sh` - Creates compressed backups with rotation
 - `scripts/restore-database.sh` - Interactive restore from backup
+- `scripts/sync-backups-local.sh` - Pull backups to local machine (off-site)
 
-**Schedule:** Daily at 3 AM Alaska time (12:00 UTC) via cron
+**Schedule:** Daily at noon UTC (3-4 AM Alaska depending on DST) via cron
 
-**Setup on server:**
+**Setup on server (as user michael):**
 ```bash
 # Make executable
 chmod +x ~/apps/far-reach-jobs/scripts/backup-database.sh
 chmod +x ~/apps/far-reach-jobs/scripts/restore-database.sh
 
-# Create backup directory
-mkdir -p /root/backups/far-reach-jobs
+# Create directories
+mkdir -p ~/backups/far-reach-jobs ~/logs
 
 # Add cron job
 crontab -e
-# Add: 0 12 * * * /root/apps/far-reach-jobs/scripts/backup-database.sh >> /var/log/far-reach-jobs-backup.log 2>&1
+# Add: 0 12 * * * ~/apps/far-reach-jobs/scripts/backup-database.sh >> ~/logs/far-reach-jobs-backup.log 2>&1
 ```
 
 **Restore:**
@@ -948,4 +949,4 @@ See `scripts/README.md` for full documentation.
 1. **Gitleaks** is used to prevent secret leaks - all secrets in server .env only
 2. **Scheduler** runs daily at noon Alaska time (production only)
 3. **To redeploy:** `ssh michael@tachyonfuture.com` then `cd ~/apps/far-reach-jobs && git pull && docker compose up -d --build`
-4. **Database backups** run daily at 3 AM Alaska time with 14-day retention
+4. **Database backups** run daily at noon UTC (3-4 AM Alaska) with 14-day retention

@@ -13,7 +13,7 @@
 set -euo pipefail
 
 # Configuration
-BACKUP_DIR="${BACKUP_DIR:-/root/backups/far-reach-jobs}"
+BACKUP_DIR="${BACKUP_DIR:-$HOME/backups/far-reach-jobs}"
 CONTAINER_NAME="${CONTAINER_NAME:-far-reach-jobs-mysql}"
 DATABASE_NAME="${DATABASE_NAME:-far_reach_jobs}"
 
@@ -128,10 +128,14 @@ MYSQL_ROOT_PASSWORD=$(docker exec "$CONTAINER_NAME" printenv MYSQL_ROOT_PASSWORD
 log_info "Restoring from $(basename "$BACKUP_FILE")..."
 log_info "This may take a few minutes depending on backup size..."
 
+# Capture stderr to show actual error on failure
+STDERR_FILE=$(mktemp)
+trap "rm -f '$STDERR_FILE'" EXIT
+
 if gunzip -c "$BACKUP_FILE" | docker exec -i "$CONTAINER_NAME" mysql \
     -u root \
     -p"$MYSQL_ROOT_PASSWORD" \
-    "$DATABASE_NAME" 2>/dev/null; then
+    "$DATABASE_NAME" 2>"$STDERR_FILE"; then
 
     echo ""
     log_info "Restore completed successfully!"
@@ -139,5 +143,8 @@ if gunzip -c "$BACKUP_FILE" | docker exec -i "$CONTAINER_NAME" mysql \
     echo -e "  ${CYAN}docker restart far-reach-jobs-web${NC}"
 else
     log_error "Restore failed"
+    if [ -s "$STDERR_FILE" ]; then
+        log_error "MySQL error: $(cat "$STDERR_FILE")"
+    fi
     exit 1
 fi

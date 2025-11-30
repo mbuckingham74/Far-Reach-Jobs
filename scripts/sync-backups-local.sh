@@ -20,7 +20,7 @@ set -euo pipefail
 
 # Configuration
 REMOTE_HOST="${REMOTE_HOST:-tachyon}"
-REMOTE_BACKUP_DIR="${REMOTE_BACKUP_DIR:-/root/backups/far-reach-jobs}"
+REMOTE_BACKUP_DIR="${REMOTE_BACKUP_DIR:-backups/far-reach-jobs}"  # Relative to remote user's home
 LOCAL_BACKUP_DIR="${LOCAL_BACKUP_DIR:-$HOME/Backups/far-reach-jobs}"
 
 # Colors for output
@@ -61,7 +61,7 @@ if ! ssh -o ConnectTimeout=10 -o BatchMode=yes "$REMOTE_HOST" "echo ok" &>/dev/n
 fi
 
 # Check if remote backup directory exists
-if ! ssh "$REMOTE_HOST" "test -d $REMOTE_BACKUP_DIR"; then
+if ! ssh "$REMOTE_HOST" "test -d ~/$REMOTE_BACKUP_DIR"; then
     log_warn "Remote backup directory does not exist yet: $REMOTE_BACKUP_DIR"
     log_warn "Run a backup on the server first"
     exit 0
@@ -73,7 +73,7 @@ fi
 # -z: compress during transfer
 # --delete: remove local files that no longer exist on server (respects retention)
 if rsync -avz --delete \
-    "$REMOTE_HOST:$REMOTE_BACKUP_DIR/" \
+    "$REMOTE_HOST:~/$REMOTE_BACKUP_DIR/" \
     "$LOCAL_BACKUP_DIR/"; then
 
     # Count local backups

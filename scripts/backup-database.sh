@@ -10,14 +10,14 @@
 #   BACKUP_DIR=/custom/path ./backup-database.sh
 #   RETENTION_DAYS=7 ./backup-database.sh   # Keep only 7 days
 #
-# Cron example (daily at 3 AM Alaska time = 12:00 UTC):
-#   0 12 * * * /root/apps/far-reach-jobs/scripts/backup-database.sh >> /var/log/far-reach-jobs-backup.log 2>&1
+# Cron example (daily at noon UTC - see README for timezone notes):
+#   0 12 * * * ~/apps/far-reach-jobs/scripts/backup-database.sh >> ~/logs/far-reach-jobs-backup.log 2>&1
 #
 
 set -euo pipefail
 
 # Configuration (can be overridden via environment variables)
-BACKUP_DIR="${BACKUP_DIR:-/root/backups/far-reach-jobs}"
+BACKUP_DIR="${BACKUP_DIR:-$HOME/backups/far-reach-jobs}"
 RETENTION_DAYS="${RETENTION_DAYS:-14}"
 CONTAINER_NAME="${CONTAINER_NAME:-far-reach-jobs-mysql}"
 DATABASE_NAME="${DATABASE_NAME:-far_reach_jobs}"
@@ -76,6 +76,10 @@ MYSQL_ROOT_PASSWORD=$(docker exec "$CONTAINER_NAME" printenv MYSQL_ROOT_PASSWORD
 # --quick: Retrieve rows one at a time (memory efficient for large tables)
 log_info "Running mysqldump..."
 
+# Capture stderr to a temp file so we can log it on failure
+STDERR_FILE=$(mktemp)
+trap "rm -f '$STDERR_FILE'" EXIT
+
 if docker exec "$CONTAINER_NAME" mysqldump \
     -u root \
     -p"$MYSQL_ROOT_PASSWORD" \
@@ -83,7 +87,7 @@ if docker exec "$CONTAINER_NAME" mysqldump \
     --routines \
     --triggers \
     --quick \
-    "$DATABASE_NAME" > "$BACKUP_FILE" 2>/dev/null; then
+    "$DATABASE_NAME" > "$BACKUP_FILE" 2>"$STDERR_FILE"; then
 
     # Check if backup file has content
     if [ ! -s "$BACKUP_FILE" ]; then
@@ -101,6 +105,10 @@ if docker exec "$CONTAINER_NAME" mysqldump \
     log_info "Backup completed: $(basename "$COMPRESSED_FILE") ($BACKUP_SIZE)"
 else
     log_error "mysqldump failed"
+    # Log the actual error for troubleshooting
+    if [ -s "$STDERR_FILE" ]; then
+        log_error "MySQL error: $(cat "$STDERR_FILE")"
+    fi
     rm -f "$BACKUP_FILE"
     exit 1
 fi

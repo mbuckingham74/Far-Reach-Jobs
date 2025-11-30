@@ -4,15 +4,18 @@ Automated MySQL backup and restore scripts for Far Reach Jobs.
 
 ## Setup on Production Server
 
+Run these as user `michael` on tachyonfuture.com:
+
 1. **Make scripts executable:**
    ```bash
    chmod +x ~/apps/far-reach-jobs/scripts/backup-database.sh
    chmod +x ~/apps/far-reach-jobs/scripts/restore-database.sh
    ```
 
-2. **Create backup directory:**
+2. **Create backup and log directories:**
    ```bash
-   mkdir -p /root/backups/far-reach-jobs
+   mkdir -p ~/backups/far-reach-jobs
+   mkdir -p ~/logs
    ```
 
 3. **Test the backup script:**
@@ -20,14 +23,22 @@ Automated MySQL backup and restore scripts for Far Reach Jobs.
    ~/apps/far-reach-jobs/scripts/backup-database.sh
    ```
 
-4. **Set up cron job (daily at 3 AM Alaska time = 12:00 UTC):**
+4. **Set up cron job (daily at noon UTC):**
    ```bash
    crontab -e
    ```
    Add this line:
    ```
-   0 12 * * * /root/apps/far-reach-jobs/scripts/backup-database.sh >> /var/log/far-reach-jobs-backup.log 2>&1
+   0 12 * * * ~/apps/far-reach-jobs/scripts/backup-database.sh >> ~/logs/far-reach-jobs-backup.log 2>&1
    ```
+
+### Timezone Note
+
+The cron runs at a fixed UTC time (noon = 12:00 UTC). In Alaska:
+- **Winter (AKST, UTC-9):** 3:00 AM
+- **Summer (AKDT, UTC-8):** 4:00 AM
+
+This is intentional - a fixed UTC time is simpler and the 1-hour shift during DST is acceptable for backups.
 
 ## Backup Script
 
@@ -43,7 +54,7 @@ Automated MySQL backup and restore scripts for Far Reach Jobs.
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `BACKUP_DIR` | `/root/backups/far-reach-jobs` | Where backups are stored |
+| `BACKUP_DIR` | `~/backups/far-reach-jobs` | Where backups are stored |
 | `RETENTION_DAYS` | `14` | Days to keep backups |
 | `CONTAINER_NAME` | `far-reach-jobs-mysql` | MySQL container name |
 | `DATABASE_NAME` | `far_reach_jobs` | Database to backup |
@@ -72,7 +83,7 @@ Lists available backups and prompts for selection.
 
 ### Direct Mode
 ```bash
-./restore-database.sh /root/backups/far-reach-jobs/far_reach_jobs_20251130_120000.sql.gz
+./restore-database.sh ~/backups/far-reach-jobs/far_reach_jobs_20251130_120000.sql.gz
 ```
 
 ### After Restore
@@ -91,17 +102,17 @@ Example: `far_reach_jobs_20251130_120000.sql.gz`
 
 Check recent backup logs:
 ```bash
-tail -50 /var/log/far-reach-jobs-backup.log
+tail -50 ~/logs/far-reach-jobs-backup.log
 ```
 
 List current backups:
 ```bash
-ls -lh /root/backups/far-reach-jobs/
+ls -lh ~/backups/far-reach-jobs/
 ```
 
 Check disk usage:
 ```bash
-du -sh /root/backups/far-reach-jobs/
+du -sh ~/backups/far-reach-jobs/
 ```
 
 ## Disaster Recovery
@@ -146,7 +157,7 @@ crontab -e
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `REMOTE_HOST` | `tachyon` | SSH host alias |
-| `REMOTE_BACKUP_DIR` | `/root/backups/far-reach-jobs` | Server backup path |
+| `REMOTE_BACKUP_DIR` | `~/backups/far-reach-jobs` | Server backup path (michael's home) |
 | `LOCAL_BACKUP_DIR` | `~/Backups/far-reach-jobs` | Local destination |
 
 ### How It Works
