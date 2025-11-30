@@ -912,8 +912,41 @@ Common issues when configuring GenericScraper:
    - Playwright handles this automatically (always enabled)
    - Check Playwright service logs: `docker compose logs playwright`
 
+## Database Backups
+
+Automated MySQL backups with 14-day retention.
+
+**Scripts:**
+- `scripts/backup-database.sh` - Creates compressed backups with rotation
+- `scripts/restore-database.sh` - Interactive restore from backup
+- `scripts/sync-backups-local.sh` - Pull backups to local machine (off-site)
+
+**Schedule:** Daily at noon UTC (3-4 AM Alaska depending on DST) via cron
+
+**Setup on server (as user michael):**
+```bash
+# Make executable
+chmod +x ~/apps/far-reach-jobs/scripts/backup-database.sh
+chmod +x ~/apps/far-reach-jobs/scripts/restore-database.sh
+
+# Create directories
+mkdir -p ~/backups/far-reach-jobs ~/logs
+
+# Add cron job
+crontab -e
+# Add: 0 12 * * * ~/apps/far-reach-jobs/scripts/backup-database.sh >> ~/logs/far-reach-jobs-backup.log 2>&1
+```
+
+**Restore:**
+```bash
+./scripts/restore-database.sh  # Interactive mode - lists backups
+```
+
+See `scripts/README.md` for full documentation.
+
 ## Notes
 
 1. **Gitleaks** is used to prevent secret leaks - all secrets in server .env only
 2. **Scheduler** runs daily at noon Alaska time (production only)
 3. **To redeploy:** `ssh michael@tachyonfuture.com` then `cd ~/apps/far-reach-jobs && git pull && docker compose up -d --build`
+4. **Database backups** run daily at noon UTC (3-4 AM Alaska) with 14-day retention
