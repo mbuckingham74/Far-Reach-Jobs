@@ -1,0 +1,134 @@
+# Database Backup Scripts
+
+Automated MySQL backup and restore scripts for Far Reach Jobs.
+
+## Setup on Production Server
+
+1. **Make scripts executable:**
+   ```bash
+   chmod +x ~/apps/far-reach-jobs/scripts/backup-database.sh
+   chmod +x ~/apps/far-reach-jobs/scripts/restore-database.sh
+   ```
+
+2. **Create backup directory:**
+   ```bash
+   mkdir -p /root/backups/far-reach-jobs
+   ```
+
+3. **Test the backup script:**
+   ```bash
+   ~/apps/far-reach-jobs/scripts/backup-database.sh
+   ```
+
+4. **Set up cron job (daily at 3 AM Alaska time = 12:00 UTC):**
+   ```bash
+   crontab -e
+   ```
+   Add this line:
+   ```
+   0 12 * * * /root/apps/far-reach-jobs/scripts/backup-database.sh >> /var/log/far-reach-jobs-backup.log 2>&1
+   ```
+
+## Backup Script
+
+`backup-database.sh` creates compressed MySQL dumps with automatic rotation.
+
+### Features
+- Uses `--single-transaction` for consistent InnoDB backups without locking
+- Compresses backups with gzip (typically 80-90% size reduction)
+- Automatically deletes backups older than retention period
+- Logs all operations with timestamps
+
+### Configuration (Environment Variables)
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `BACKUP_DIR` | `/root/backups/far-reach-jobs` | Where backups are stored |
+| `RETENTION_DAYS` | `14` | Days to keep backups |
+| `CONTAINER_NAME` | `far-reach-jobs-mysql` | MySQL container name |
+| `DATABASE_NAME` | `far_reach_jobs` | Database to backup |
+
+### Manual Backup
+```bash
+# Default settings
+./backup-database.sh
+
+# Custom retention
+RETENTION_DAYS=7 ./backup-database.sh
+
+# Custom backup location
+BACKUP_DIR=/mnt/external/backups ./backup-database.sh
+```
+
+## Restore Script
+
+`restore-database.sh` restores a compressed backup file.
+
+### Interactive Mode (Recommended)
+```bash
+./restore-database.sh
+```
+Lists available backups and prompts for selection.
+
+### Direct Mode
+```bash
+./restore-database.sh /root/backups/far-reach-jobs/far_reach_jobs_20251130_120000.sql.gz
+```
+
+### After Restore
+The web container may need a restart to clear connection pools:
+```bash
+docker restart far-reach-jobs-web
+```
+
+## Backup File Format
+
+Backups are named: `far_reach_jobs_YYYYMMDD_HHMMSS.sql.gz`
+
+Example: `far_reach_jobs_20251130_120000.sql.gz`
+
+## Monitoring
+
+Check recent backup logs:
+```bash
+tail -50 /var/log/far-reach-jobs-backup.log
+```
+
+List current backups:
+```bash
+ls -lh /root/backups/far-reach-jobs/
+```
+
+Check disk usage:
+```bash
+du -sh /root/backups/far-reach-jobs/
+```
+
+## Disaster Recovery
+
+If the server fails completely, you'll need:
+
+1. A backup `.sql.gz` file (copy off-server periodically!)
+2. The `.env` file with credentials
+3. The git repository
+
+Recovery steps:
+1. Set up new server with Docker
+2. Clone repository and copy `.env`
+3. Run `docker compose up -d`
+4. Wait for MySQL to be healthy
+5. Run `./restore-database.sh backup_file.sql.gz`
+
+## Off-Site Backup (Optional)
+
+For additional safety, sync backups to another location:
+
+```bash
+# Add to cron after the backup job
+15 12 * * * rsync -avz /root/backups/far-reach-jobs/ user@backup-server:/backups/far-reach-jobs/
+```
+
+Or use cloud storage with rclone:
+```bash
+rclone sync /root/backups/far-reach-jobs remote:far-reach-jobs-backups/
+```
