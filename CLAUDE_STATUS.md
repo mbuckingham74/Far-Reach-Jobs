@@ -1,6 +1,6 @@
 # Far Reach Jobs - Implementation Status
 
-**Last Updated:** 2025-11-29
+**Last Updated:** 2025-11-30
 **Repository:** https://github.com/mbuckingham74/Far-Reach-Jobs
 **Domain:** far-reach-jobs.tachyonfuture.com
 
@@ -560,6 +560,15 @@ This section documents CSS selectors that have been tested and work for specific
 - **Organization:** `Alaska Airlines`
 - **Default State:** `AK`
 - **Notes:** JavaScript-heavy Vue/Nuxt site that returns 404 for direct URL access with query params. Uses sitemap to extract job URLs containing location and title in the path structure (e.g., `/kotzebue-ak/customer-service-agent/`). Fast and reliable (~1 second vs 2.5 minutes for Playwright approach).
+
+### Dayforce HCM Sites (DynamicScraper)
+- **URL Pattern:** `jobs.dayforcehcm.com`
+- **Type:** DynamicScraper with custom code
+- **Flags:** `skip_robots_check=True` (Dayforce has restrictive robots.txt)
+- **Working Examples:**
+  - **Sealaska:** `https://jobs.dayforcehcm.com/en-US/sealaska/CANDIDATEPORTAL`
+  - **BBNC:** `https://jobs.dayforcehcm.com/en-US/brs/BBNCALLJOBSROLLUP`
+- **Notes:** Dayforce is a React/Next.js job board that loads data via JavaScript. Standard CSS selectors often fail because the HTML structure varies. Uses fallback link detection - finds all `<a>` tags with job-related keywords in the href (`job`, `career`, `candidateapply`, etc.). "ALLJOBSROLLUP" URLs aggregate jobs from multiple subsidiaries. See admin scraper guide for full template code.
 
 ### Phase 1Q: AI-Powered Selector Detection ✅
 - [x] AI analysis endpoint using Claude API
