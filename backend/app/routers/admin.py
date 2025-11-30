@@ -474,11 +474,25 @@ async def create_source(request: Request, db: Session = Depends(get_db)):
 
 
 def _normalize_url(url: str) -> str:
-    """Normalize URL for deduplication: lowercase, strip trailing slash."""
+    """Normalize URL for deduplication.
+
+    Handles:
+    - Case normalization (lowercase)
+    - Trailing slash removal
+    - www. prefix removal (example.com == www.example.com)
+    - Protocol normalization (treats http/https as equivalent for matching)
+    """
     url = url.lower().strip()
     # Always strip trailing slash for consistency
-    # (https://example.com/ and https://example.com should match)
     url = url.rstrip('/')
+    # Remove protocol for comparison (http://example.com == https://example.com)
+    if url.startswith('https://'):
+        url = url[8:]
+    elif url.startswith('http://'):
+        url = url[7:]
+    # Remove www. prefix (example.com == www.example.com)
+    if url.startswith('www.'):
+        url = url[4:]
     return url
 
 
@@ -568,9 +582,15 @@ async def import_sources_csv(request: Request, file: UploadFile = File(...), db:
             )
 
         # Prefetch existing sources for fast duplicate detection
-        existing_sources = db.query(ScrapeSource.name, ScrapeSource.base_url).all()
-        existing_names = {name.lower().strip() for name, _ in existing_sources}
-        existing_urls = {_normalize_url(url) for _, url in existing_sources}
+        # Use a single unified URL set for cross-field collision detection
+        # (catches cases where CSV base_url matches existing listing_url or vice versa)
+        existing_sources = db.query(ScrapeSource.name, ScrapeSource.base_url, ScrapeSource.listing_url).all()
+        existing_names = {name.lower().strip() for name, _, _ in existing_sources}
+        existing_urls: set[str] = set()
+        for _, base_url, listing_url in existing_sources:
+            existing_urls.add(_normalize_url(base_url))
+            if listing_url:
+                existing_urls.add(_normalize_url(listing_url))
 
         # Track sources added in this batch to detect in-CSV duplicates
         batch_names: set[str] = set()
@@ -609,22 +629,30 @@ async def import_sources_csv(request: Request, file: UploadFile = File(...), db:
 
             # Normalize for duplicate detection
             name_lower = name.lower().strip()
-            url_normalized = _normalize_url(base_url)
+            base_url_normalized = _normalize_url(base_url)
+            listing_url_normalized = _normalize_url(listing_url) if listing_url else None
 
             # Check for duplicate in database (using normalized values)
+            # Uses unified URL set for cross-field collision detection
             if name_lower in existing_names:
                 skipped.append(f"'{name}' (name already exists)")
                 continue
-            if url_normalized in existing_urls:
-                skipped.append(f"'{name}' (URL already exists)")
+            if base_url_normalized in existing_urls:
+                skipped.append(f"'{name}' (base URL already exists)")
+                continue
+            if listing_url_normalized and listing_url_normalized in existing_urls:
+                skipped.append(f"'{name}' (jobs URL already exists)")
                 continue
 
             # Check for duplicate within this CSV batch
             if name_lower in batch_names:
-                skipped.append(f"'{name}' (duplicate in CSV)")
+                skipped.append(f"'{name}' (duplicate name in CSV)")
                 continue
-            if url_normalized in batch_urls:
-                skipped.append(f"'{name}' (duplicate URL in CSV)")
+            if base_url_normalized in batch_urls:
+                skipped.append(f"'{name}' (duplicate base URL in CSV)")
+                continue
+            if listing_url_normalized and listing_url_normalized in batch_urls:
+                skipped.append(f"'{name}' (duplicate jobs URL in CSV)")
                 continue
 
             # Create source - marked as needs_configuration so it appears in the
@@ -642,7 +670,9 @@ async def import_sources_csv(request: Request, file: UploadFile = File(...), db:
 
             # Track this source for in-batch duplicate detection
             batch_names.add(name_lower)
-            batch_urls.add(url_normalized)
+            batch_urls.add(base_url_normalized)
+            if listing_url_normalized:
+                batch_urls.add(listing_url_normalized)
 
         # Commit all at once
         if added > 0:

@@ -802,6 +802,222 @@ class TestAIFeatures:
         assert "not available" in response.text.lower() or "api" in response.text.lower()
 
 
+class TestUrlNormalization:
+    """Tests for _normalize_url function used in duplicate detection."""
+
+    def test_normalize_strips_trailing_slash(self):
+        """Should remove trailing slashes."""
+        from app.routers.admin import _normalize_url
+        assert _normalize_url("https://example.com/") == "example.com"
+        assert _normalize_url("https://example.com/path/") == "example.com/path"
+
+    def test_normalize_lowercase(self):
+        """Should convert to lowercase."""
+        from app.routers.admin import _normalize_url
+        assert _normalize_url("HTTPS://EXAMPLE.COM") == "example.com"
+        assert _normalize_url("https://Example.Com/Path") == "example.com/path"
+
+    def test_normalize_strips_protocol(self):
+        """Should remove http:// and https:// protocols."""
+        from app.routers.admin import _normalize_url
+        assert _normalize_url("https://example.com") == "example.com"
+        assert _normalize_url("http://example.com") == "example.com"
+        # Both should match
+        assert _normalize_url("https://example.com") == _normalize_url("http://example.com")
+
+    def test_normalize_strips_www(self):
+        """Should remove www. prefix."""
+        from app.routers.admin import _normalize_url
+        assert _normalize_url("https://www.example.com") == "example.com"
+        assert _normalize_url("https://example.com") == "example.com"
+        # Both should match
+        assert _normalize_url("https://www.example.com") == _normalize_url("https://example.com")
+
+    def test_normalize_combined(self):
+        """Should handle all normalizations together."""
+        from app.routers.admin import _normalize_url
+        # All these variations should normalize to the same value
+        variations = [
+            "https://www.example.com/path/",
+            "http://www.example.com/path",
+            "HTTPS://WWW.EXAMPLE.COM/PATH/",
+            "https://example.com/path/",
+            "http://example.com/path",
+        ]
+        normalized = [_normalize_url(v) for v in variations]
+        assert all(n == "example.com/path" for n in normalized)
+
+
+class TestCSVImport:
+    """Tests for CSV bulk import functionality."""
+
+    def test_import_requires_auth(self, client):
+        """CSV import requires authentication."""
+        import io
+        csv_content = "Source Name,Base URL\nTest,https://example.com"
+        response = client.post(
+            "/admin/sources/import-csv",
+            files={"file": ("sources.csv", io.BytesIO(csv_content.encode()), "text/csv")},
+        )
+        assert response.status_code == 401
+
+    def test_import_requires_csv_file(self, admin_client, db):
+        """Should reject non-CSV files."""
+        import io
+        response = admin_client.post(
+            "/admin/sources/import-csv",
+            files={"file": ("sources.txt", io.BytesIO(b"test"), "text/plain")},
+        )
+        assert response.status_code == 200
+        assert "csv" in response.text.lower()
+
+    def test_import_basic_success(self, admin_client, db):
+        """Successfully import sources from CSV."""
+        import io
+        csv_content = "Source Name,Base URL,Jobs URL\nNew Source,https://newsource.com,https://newsource.com/jobs"
+        response = admin_client.post(
+            "/admin/sources/import-csv",
+            files={"file": ("sources.csv", io.BytesIO(csv_content.encode()), "text/csv")},
+        )
+        assert response.status_code == 200
+
+        # Verify source was created
+        source = db.query(ScrapeSource).filter(ScrapeSource.name == "New Source").first()
+        assert source is not None
+        assert source.base_url == "https://newsource.com"
+        assert source.listing_url == "https://newsource.com/jobs"
+        assert source.needs_configuration is True
+        assert source.is_active is False
+
+    def test_import_detects_duplicate_name(self, admin_client, db, active_source):
+        """Should skip sources with duplicate names."""
+        import io
+        csv_content = f"Source Name,Base URL\n{active_source.name},https://different.com"
+        response = admin_client.post(
+            "/admin/sources/import-csv",
+            files={"file": ("sources.csv", io.BytesIO(csv_content.encode()), "text/csv")},
+        )
+        assert response.status_code == 200
+        assert "name already exists" in response.text.lower()
+
+    def test_import_detects_duplicate_base_url(self, admin_client, db, active_source):
+        """Should skip sources with duplicate base URLs."""
+        import io
+        csv_content = f"Source Name,Base URL\nDifferent Name,{active_source.base_url}"
+        response = admin_client.post(
+            "/admin/sources/import-csv",
+            files={"file": ("sources.csv", io.BytesIO(csv_content.encode()), "text/csv")},
+        )
+        assert response.status_code == 200
+        assert "base url already exists" in response.text.lower()
+
+    def test_import_detects_duplicate_base_url_with_www_variation(self, admin_client, db):
+        """Should detect duplicates even with www. prefix difference."""
+        import io
+        # Create source without www
+        source = ScrapeSource(name="Existing", base_url="https://example.com", is_active=True)
+        db.add(source)
+        db.commit()
+
+        # Try to import with www
+        csv_content = "Source Name,Base URL\nNew Source,https://www.example.com"
+        response = admin_client.post(
+            "/admin/sources/import-csv",
+            files={"file": ("sources.csv", io.BytesIO(csv_content.encode()), "text/csv")},
+        )
+        assert response.status_code == 200
+        assert "base url already exists" in response.text.lower()
+
+    def test_import_detects_duplicate_base_url_with_protocol_variation(self, admin_client, db):
+        """Should detect duplicates even with http/https protocol difference."""
+        import io
+        # Create source with https
+        source = ScrapeSource(name="Existing", base_url="https://example.com", is_active=True)
+        db.add(source)
+        db.commit()
+
+        # Try to import with http
+        csv_content = "Source Name,Base URL\nNew Source,http://example.com"
+        response = admin_client.post(
+            "/admin/sources/import-csv",
+            files={"file": ("sources.csv", io.BytesIO(csv_content.encode()), "text/csv")},
+        )
+        assert response.status_code == 200
+        assert "base url already exists" in response.text.lower()
+
+    def test_import_detects_cross_field_collision_base_matches_existing_listing(self, admin_client, db):
+        """Should detect when CSV base_url matches existing source's listing_url."""
+        import io
+        # Create source with listing_url
+        source = ScrapeSource(
+            name="Existing",
+            base_url="https://company.com",
+            listing_url="https://company.com/careers",
+            is_active=True
+        )
+        db.add(source)
+        db.commit()
+
+        # Try to import with base_url that matches existing listing_url
+        csv_content = "Source Name,Base URL\nNew Source,https://company.com/careers"
+        response = admin_client.post(
+            "/admin/sources/import-csv",
+            files={"file": ("sources.csv", io.BytesIO(csv_content.encode()), "text/csv")},
+        )
+        assert response.status_code == 200
+        assert "base url already exists" in response.text.lower()
+
+    def test_import_detects_cross_field_collision_listing_matches_existing_base(self, admin_client, db):
+        """Should detect when CSV listing_url matches existing source's base_url."""
+        import io
+        # Create source with just base_url
+        source = ScrapeSource(
+            name="Existing",
+            base_url="https://company.com/careers",
+            is_active=True
+        )
+        db.add(source)
+        db.commit()
+
+        # Try to import with listing_url that matches existing base_url
+        csv_content = "Source Name,Base URL,Jobs URL\nNew Source,https://company.com,https://company.com/careers"
+        response = admin_client.post(
+            "/admin/sources/import-csv",
+            files={"file": ("sources.csv", io.BytesIO(csv_content.encode()), "text/csv")},
+        )
+        assert response.status_code == 200
+        assert "jobs url already exists" in response.text.lower()
+
+    def test_import_detects_in_batch_duplicates(self, admin_client, db):
+        """Should detect duplicates within the same CSV file."""
+        import io
+        csv_content = """Source Name,Base URL
+First Source,https://example.com
+Second Source,https://example.com"""
+        response = admin_client.post(
+            "/admin/sources/import-csv",
+            files={"file": ("sources.csv", io.BytesIO(csv_content.encode()), "text/csv")},
+        )
+        assert response.status_code == 200
+        # First one should succeed, second should be skipped
+        assert "duplicate base url in csv" in response.text.lower()
+
+    def test_import_detects_in_batch_cross_field_duplicates(self, admin_client, db):
+        """Should detect cross-field duplicates within the same CSV file."""
+        import io
+        csv_content = """Source Name,Base URL,Jobs URL
+First Source,https://example.com,https://example.com/jobs
+Second Source,https://example.com/jobs,"""
+        response = admin_client.post(
+            "/admin/sources/import-csv",
+            files={"file": ("sources.csv", io.BytesIO(csv_content.encode()), "text/csv")},
+        )
+        assert response.status_code == 200
+        # First one should succeed, second should be skipped because its base_url
+        # matches the first source's listing_url
+        assert "duplicate base url in csv" in response.text.lower()
+
+
 # Fixtures specific to admin tests
 
 @pytest.fixture
