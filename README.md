@@ -1,91 +1,78 @@
-# Far Reach Jobs
+<p align="center">
+  <img src="https://img.shields.io/badge/FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white" alt="FastAPI">
+  <img src="https://img.shields.io/badge/HTMX-3D72D7?style=for-the-badge&logo=htmx&logoColor=white" alt="HTMX">
+  <img src="https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white" alt="Tailwind CSS">
+  <img src="https://img.shields.io/badge/MySQL-4479A1?style=for-the-badge&logo=mysql&logoColor=white" alt="MySQL">
+  <img src="https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white" alt="Docker">
+</p>
 
-An ethical job aggregator for remote Alaskan communities, bush villages, and tribal organizations. Find opportunities in places most job boards don't reach.
+<h1 align="center">🏔️ Far Reach Jobs</h1>
 
-**Live site:** [far-reach-jobs.tachyonfuture.com](https://far-reach-jobs.tachyonfuture.com/)
+<p align="center">
+  <strong>An ethical job aggregator for remote Alaskan communities, bush villages, and tribal organizations.</strong><br>
+  Find opportunities in places most job boards don't reach.
+</p>
 
-## About
+<p align="center">
+  <a href="https://far-reach-jobs.tachyonfuture.com/">🌐 Live Site</a> •
+  <a href="#-quick-start">🚀 Quick Start</a> •
+  <a href="#-contributing">🤝 Contributing</a> •
+  <a href="ROADMAP.md">🗺️ Roadmap</a>
+</p>
 
-Far Reach Jobs aggregates job listings from employers in Alaska's most remote communities - bush villages, tribal organizations, rural hospitals, and small-town governments. Instead of duplicating listings, we link directly back to the original source so you can apply there.
+---
 
-### Why This Exists
+## 🎯 Why This Exists
 
-Job seekers interested in remote Alaska face a fragmented landscape - positions are scattered across dozens of small employer websites, tribal organization portals, and government HR systems. Far Reach Jobs brings them together in one searchable place.
+Job seekers interested in remote Alaska face a **fragmented landscape** - positions are scattered across dozens of small employer websites, tribal organization portals, and government HR systems.
 
-### How It Works
+**Far Reach Jobs brings them together in one searchable place.**
 
-1. **We scrape public job pages** from employers in remote Alaska
-2. **Jobs appear here** with location, organization, and job type
-3. **Click "Apply"** to go directly to the original listing
-4. **Save jobs** to track positions you're interested in
+We aggregate listings from bush villages, tribal organizations, rural hospitals, and small-town governments - then link you directly back to the original source to apply.
 
-We respect `robots.txt` and identify ourselves as `FarReachJobs/1.0` in our User-Agent string.
+---
 
-## Features
+## ✨ Features
 
-- Search and filter by keyword, city/community, and job type
-- Save jobs to your account for later
-- Dark mode support
-- Mobile-friendly design
-- Daily scraping at noon Alaska time
+| Feature | Description |
+|---------|-------------|
+| 🔍 **Smart Search** | Filter by keyword, city/community, and job type |
+| 💾 **Save Jobs** | Track positions you're interested in |
+| 🌙 **Dark Mode** | Easy on the eyes, day or night |
+| 📱 **Mobile-First** | Responsive design that works everywhere |
+| 🤖 **AI-Powered Setup** | Auto-detect CSS selectors for new job sources |
+| ⏰ **Daily Updates** | Fresh jobs scraped at noon Alaska time |
 
-## Tech Stack
+---
 
-- **Backend:** FastAPI + SQLAlchemy + MySQL
-- **Frontend:** HTMX + Jinja2 + Tailwind CSS
-- **Scraping:** httpx + BeautifulSoup + APScheduler
-- **Deployment:** Docker Compose with Nginx Proxy Manager
+## 🛠️ Tech Stack
 
-## Adding Job Sources (Admin)
-
-Far Reach Jobs uses a configurable scraper system. New job sources can be added via the admin panel without writing code.
-
-### Single Source
-
-1. Go to Admin Dashboard → Add Scrape Source
-2. Enter the source name and base URL
-3. Click "Configure" on the new source
-4. Click **"Analyze Page with AI"** to automatically detect CSS selectors
-5. Review the suggested selectors and click "Apply All Suggestions"
-6. Set a **Default Location** (e.g., "Bethel") for sources where jobs don't have individual locations
-7. Save configuration and click "Scrape" to test
-
-### Bulk Import via CSV
-
-Have a list of sources to add? Import them all at once:
-
-1. Go to Admin Dashboard → Bulk Import from CSV
-2. Upload a CSV file with columns: `Source Name`, `Base URL`, `Jobs URL` (optional)
-3. Review results (duplicates are automatically skipped)
-4. Click "Configure Imported Sources" to go to the Needs Configuration page
-5. For each source: Configure → Test Scrape → auto-enabled when jobs are found
-
-**Example CSV:**
-```csv
-Source Name,Base URL,Jobs URL
-City of Bethel,https://www.cityofbethel.net,https://www.cityofbethel.net/jobs
-NANA Regional,https://nana.com,https://nana.com/careers
+```
+┌─────────────────────────────────────────────────────────┐
+│                      Frontend                           │
+│          HTMX • Jinja2 Templates • Tailwind CSS        │
+├─────────────────────────────────────────────────────────┤
+│                      Backend                            │
+│              FastAPI • SQLAlchemy • MySQL               │
+├─────────────────────────────────────────────────────────┤
+│                     Scraping                            │
+│           httpx • BeautifulSoup • APScheduler          │
+├─────────────────────────────────────────────────────────┤
+│                    Deployment                           │
+│           Docker Compose • Nginx Proxy Manager          │
+└─────────────────────────────────────────────────────────┘
 ```
 
-Imported sources go to "Needs Configuration" and are auto-enabled when scraping successfully finds jobs.
+---
 
-### AI-Powered Scraper Configuration
-
-The admin panel includes AI-powered tools to simplify scraper setup:
-
-- **Analyze Page with AI** - Automatically suggests CSS selectors by analyzing the page structure
-- **Generate Custom Scraper** - For complex sites that can't use the generic scraper, AI generates Python code tailored to that site's unique structure
-
-The scraper respects `robots.txt` rules and uses crawl delays when specified.
-
-## Development
-
-### Quick Start
+## 🚀 Quick Start
 
 ```bash
-# Clone and setup
+# Clone the repo
 git clone https://github.com/mbuckingham74/Far-Reach-Jobs.git
 cd Far-Reach-Jobs
+
+# Copy environment config
 cp .env.example .env
 
 # Create Docker network (first time only)
@@ -95,49 +82,109 @@ docker network create npm_default
 docker compose up -d --build
 ```
 
-Then visit http://localhost:8000
+Then visit **http://localhost:8000** 🎉
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed setup instructions.
+> 📖 See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed setup instructions.
 
-## Contributing
+---
 
-We welcome contributions! Check out:
+## 🤝 Contributing
 
-- [CONTRIBUTING.md](CONTRIBUTING.md) - Setup and guidelines
-- [ROADMAP.md](ROADMAP.md) - Planned features
-- [Issues](https://github.com/mbuckingham74/Far-Reach-Jobs/issues) - Open tasks
+We welcome contributions from developers of all skill levels!
 
-Good first contributions:
-- Suggest new Alaska job sources via the "New Job Source" issue template
-- Improve test coverage
-- UI/UX enhancements
+<table>
+  <tr>
+    <td align="center">📋</td>
+    <td><a href="CONTRIBUTING.md"><strong>Contributing Guide</strong></a><br>Setup and development guidelines</td>
+  </tr>
+  <tr>
+    <td align="center">🗺️</td>
+    <td><a href="ROADMAP.md"><strong>Roadmap</strong></a><br>Planned features and improvements</td>
+  </tr>
+  <tr>
+    <td align="center">🐛</td>
+    <td><a href="https://github.com/mbuckingham74/Far-Reach-Jobs/issues"><strong>Issues</strong></a><br>Open tasks and bug reports</td>
+  </tr>
+</table>
 
-## For Employers
+### 👋 Good First Issues
 
-If you're an employer in remote Alaska and want your jobs included, visit our [For Employers](https://far-reach-jobs.tachyonfuture.com/employers) page where you can:
+- 📍 Suggest new Alaska job sources via the "New Job Source" issue template
+- ✅ Improve test coverage
+- 🎨 UI/UX enhancements
 
-- **Submit a single job** - Fill out a form with your job details
-- **Add your careers page** - We'll set up automatic scraping of your job listings
-- **Bulk import sources** - Upload a CSV with multiple organizations' career pages
+---
 
-### Bulk Import for Employers
+## 👔 For Employers
 
-Have multiple job sources to share? Upload a CSV file with your organizations:
+Are you an employer in remote Alaska? We'd love to include your jobs!
+
+Visit our **[For Employers](https://far-reach-jobs.tachyonfuture.com/employers)** page to:
+
+- 📝 **Submit a single job** - Fill out a simple form
+- 🔗 **Add your careers page** - We'll set up automatic scraping
+- 📊 **Bulk import** - Upload a CSV with multiple organizations
+
+> 🚫 Want to be excluded from scraping? [Open an issue](https://github.com/mbuckingham74/Far-Reach-Jobs/issues) and we'll remove your site.
+
+---
+
+## ⚙️ Admin Features
+
+Far Reach Jobs includes a powerful admin panel for managing job sources:
+
+<details>
+<summary><strong>🤖 AI-Powered Scraper Configuration</strong></summary>
+
+- **Analyze Page with AI** - Automatically suggests CSS selectors
+- **Generate Custom Scraper** - AI creates Python code for complex sites
+- **Bulk CSV Import** - Add dozens of sources at once
+
+</details>
+
+<details>
+<summary><strong>📋 Adding a New Source</strong></summary>
+
+1. Go to Admin Dashboard → Add Scrape Source
+2. Enter the source name and base URL
+3. Click **"Analyze Page with AI"** to auto-detect selectors
+4. Review suggestions and click "Apply All"
+5. Set a default location (e.g., "Bethel")
+6. Save and test with a manual scrape
+
+</details>
+
+<details>
+<summary><strong>📊 Bulk Import via CSV</strong></summary>
 
 ```csv
-Organization,Base URL,Careers URL
+Source Name,Base URL,Jobs URL
 City of Bethel,https://www.cityofbethel.net,https://www.cityofbethel.net/jobs
 NANA Regional,https://nana.com,https://nana.com/careers
 ```
 
-**Limitations:**
-- Maximum 100 sources per submission
-- Maximum file size: 512KB
-- Sources are reviewed before being added
-- Rate limited to 5 submissions per hour
+Upload via Admin Dashboard → Bulk Import from CSV. Duplicates are automatically skipped.
 
-If you'd like to be excluded from scraping, please open an issue or contact us.
+</details>
 
-## License
+---
 
-MIT
+## 🙏 Ethics & Respect
+
+- ✅ We respect `robots.txt` rules
+- ✅ We identify ourselves as `FarReachJobs/1.0` in our User-Agent
+- ✅ We honor crawl delays when specified
+- ✅ We link directly to original listings (no job duplication)
+
+---
+
+## 📄 License
+
+MIT © [Far Reach Jobs](https://github.com/mbuckingham74/Far-Reach-Jobs)
+
+---
+
+<p align="center">
+  <strong>Built with ❤️ for Alaska's remote communities</strong><br>
+  <sub>Connecting job seekers with opportunities in places most job boards don't reach</sub>
+</p>
