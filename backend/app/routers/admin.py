@@ -1074,14 +1074,18 @@ async def trigger_single_source_scrape(source_id: int, request: Request, db: Ses
 
         duration = time.time() - start_time
 
-        # Auto-enable source if it was in needs_configuration and jobs were found
+        # Auto-enable source if it was in needs_configuration and jobs exist
+        # Check both jobs found in this scrape AND existing jobs in database
+        # (handles case where prior scrape added jobs but auto-enable failed)
         auto_enabled = False
-        if source.needs_configuration and result.jobs_found > 0:
-            source.is_active = True
-            source.needs_configuration = False
-            auto_enabled = True
-            db.commit()
-            logger.info(f"Auto-enabled source '{source.name}' after successful configuration scrape")
+        if source.needs_configuration:
+            existing_jobs = db.query(Job).filter(Job.source_id == source.id, Job.is_stale == False).count()
+            if result.jobs_found > 0 or existing_jobs > 0:
+                source.is_active = True
+                source.needs_configuration = False
+                auto_enabled = True
+                db.commit()
+                logger.info(f"Auto-enabled source '{source.name}' after successful configuration scrape (found={result.jobs_found}, existing={existing_jobs})")
 
         # Send notification email
         errors_with_source = [(source.name, e) for e in result.errors]
