@@ -194,6 +194,17 @@
                 <strong>Dynamic:</strong> Uses AI-generated custom scraper code. Only use if others don't work.
             </p>
         </div>
+        <div class="mt-4">
+            <label class="flex items-center gap-3 cursor-pointer">
+                <input type="checkbox" id="use_playwright" name="use_playwright" value="1"
+                       {% if source.use_playwright is not none %}{% if source.use_playwright %}checked{% endif %}{% else %}checked{% endif %}
+                       class="w-4 h-4 text-blue-600 bg-gray-100 dark:bg-gray-700 border-gray-300 dark:border-gray-600 rounded focus:ring-blue-500 focus:ring-2">
+                <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Use Playwright (Headless Browser)</span>
+            </label>
+            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1 ml-7">
+                Enabled by default. Uses a real browser to render JavaScript-heavy pages. Disable only for simple static HTML sites.
+            </p>
+        </div>
     </div>
 
     <!-- Sitemap Configuration (shown when SitemapScraper selected) -->
