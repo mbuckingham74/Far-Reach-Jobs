@@ -11,6 +11,40 @@
 {% endif %}
 
 {% if sources %}
+<!-- Pagination info (top) -->
+{% if total is defined and total_pages is defined and total_pages > 1 %}
+<div class="flex items-center justify-between mb-4 text-sm text-gray-600 dark:text-gray-400">
+    <div>
+        Showing {{ ((page - 1) * page_size) + 1 }}-{{ [page * page_size, total]|min }} of {{ total }} sources
+    </div>
+    <div class="flex items-center gap-1">
+        {% if page > 1 %}
+        <button hx-get="{{ list_url }}?page={{ page - 1 }}"
+                hx-target="{% if show_needs_configuration %}#needs-configuration-list{% elif show_disabled %}#disabled-source-list{% elif show_robots_blocked %}#robots-blocked-source-list{% else %}#source-list{% endif %}"
+                hx-swap="innerHTML show:none"
+                class="px-3 py-1 rounded border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+            Prev
+        </button>
+        {% else %}
+        <span class="px-3 py-1 rounded border border-gray-200 dark:border-gray-700 text-gray-400 dark:text-gray-600 cursor-not-allowed">Prev</span>
+        {% endif %}
+
+        <span class="px-3 py-1">Page {{ page }} of {{ total_pages }}</span>
+
+        {% if page < total_pages %}
+        <button hx-get="{{ list_url }}?page={{ page + 1 }}"
+                hx-target="{% if show_needs_configuration %}#needs-configuration-list{% elif show_disabled %}#disabled-source-list{% elif show_robots_blocked %}#robots-blocked-source-list{% else %}#source-list{% endif %}"
+                hx-swap="innerHTML show:none"
+                class="px-3 py-1 rounded border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+            Next
+        </button>
+        {% else %}
+        <span class="px-3 py-1 rounded border border-gray-200 dark:border-gray-700 text-gray-400 dark:text-gray-600 cursor-not-allowed">Next</span>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+
 <div class="overflow-x-auto">
     <table class="w-full text-left">
         <thead class="bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600">
@@ -92,6 +126,7 @@
                             hx-post="/admin/sources/{{ source.id }}/recheck-robots"
                             hx-target="#robots-blocked-source-list"
                             hx-swap="innerHTML show:none"
+                            hx-vals='{"page": "{{ page }}"}'
                             title="Re-fetch robots.txt and unblock if now allowed">
                             Recheck
                         </button>
@@ -100,6 +135,7 @@
                             hx-delete="/admin/sources/{{ source.id }}"
                             hx-target="#robots-blocked-source-list"
                             hx-swap="innerHTML show:none"
+                            hx-vals='{"page": "{{ page }}"}'
                             hx-confirm="Delete source '{{ source.name }}'? This will also delete all jobs from this source.">
                             Delete
                         </button>
@@ -115,6 +151,7 @@
                             hx-post="/admin/sources/{{ source.id }}/mark-disabled"
                             hx-target="#needs-configuration-list"
                             hx-swap="innerHTML show:none"
+                            hx-vals='{"page": "{{ page }}"}'
                             title="Move to Disabled (tried but couldn't configure)">
                             Mark Disabled
                         </button>
@@ -123,6 +160,7 @@
                             hx-delete="/admin/sources/{{ source.id }}"
                             hx-target="#needs-configuration-list"
                             hx-swap="innerHTML show:none"
+                            hx-vals='{"page": "{{ page }}"}'
                             hx-confirm="Delete source '{{ source.name }}'? This will also delete all jobs from this source.">
                             Delete
                         </button>
@@ -140,7 +178,8 @@
                             class="px-3 py-1 text-sm {% if source.is_active %}bg-amber-500 hover:bg-amber-600{% else %}bg-green-500 hover:bg-green-600{% endif %} text-white rounded transition-colors"
                             hx-post="/admin/sources/{{ source.id }}/toggle"
                             hx-target="{% if show_disabled %}#disabled-source-list{% else %}#source-list{% endif %}"
-                            hx-swap="innerHTML show:none">
+                            hx-swap="innerHTML show:none"
+                            hx-vals='{"page": "{{ page }}"}'>
                             {% if source.is_active %}Disable{% else %}Enable{% endif %}
                         </button>
                         <button
@@ -148,6 +187,7 @@
                             hx-delete="/admin/sources/{{ source.id }}"
                             hx-target="{% if show_disabled %}#disabled-source-list{% else %}#source-list{% endif %}"
                             hx-swap="innerHTML show:none"
+                            hx-vals='{"page": "{{ page }}"}'
                             hx-confirm="Delete source '{{ source.name }}'? This will also delete all jobs from this source.">
                             Delete
                         </button>
@@ -169,6 +209,40 @@
         </tbody>
     </table>
 </div>
+
+<!-- Pagination info (bottom) -->
+{% if total is defined and total_pages is defined and total_pages > 1 %}
+<div class="flex items-center justify-between mt-4 text-sm text-gray-600 dark:text-gray-400">
+    <div>
+        Showing {{ ((page - 1) * page_size) + 1 }}-{{ [page * page_size, total]|min }} of {{ total }} sources
+    </div>
+    <div class="flex items-center gap-1">
+        {% if page > 1 %}
+        <button hx-get="{{ list_url }}?page={{ page - 1 }}"
+                hx-target="{% if show_needs_configuration %}#needs-configuration-list{% elif show_disabled %}#disabled-source-list{% elif show_robots_blocked %}#robots-blocked-source-list{% else %}#source-list{% endif %}"
+                hx-swap="innerHTML show:top"
+                class="px-3 py-1 rounded border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+            Prev
+        </button>
+        {% else %}
+        <span class="px-3 py-1 rounded border border-gray-200 dark:border-gray-700 text-gray-400 dark:text-gray-600 cursor-not-allowed">Prev</span>
+        {% endif %}
+
+        <span class="px-3 py-1">Page {{ page }} of {{ total_pages }}</span>
+
+        {% if page < total_pages %}
+        <button hx-get="{{ list_url }}?page={{ page + 1 }}"
+                hx-target="{% if show_needs_configuration %}#needs-configuration-list{% elif show_disabled %}#disabled-source-list{% elif show_robots_blocked %}#robots-blocked-source-list{% else %}#source-list{% endif %}"
+                hx-swap="innerHTML show:top"
+                class="px-3 py-1 rounded border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+            Next
+        </button>
+        {% else %}
+        <span class="px-3 py-1 rounded border border-gray-200 dark:border-gray-700 text-gray-400 dark:text-gray-600 cursor-not-allowed">Next</span>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
 {% else %}
 <div class="text-center py-8 text-gray-500 dark:text-gray-400">
     {% if show_robots_blocked %}

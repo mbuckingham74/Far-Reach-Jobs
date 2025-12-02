@@ -142,22 +142,20 @@ def scraper_guide(request: Request):
     )
 
 
+# Pagination settings
+SOURCES_PER_PAGE = 20
+
+
 @router.get("/sources")
-def list_sources(request: Request, db: Session = Depends(get_db)):
+def list_sources(request: Request, page: int = Query(1, ge=1), db: Session = Depends(get_db)):
     """List active scrape sources (HTMX partial)."""
     if not get_admin_user(request):
         raise HTTPException(status_code=401)
 
-    sources = (
-        db.query(ScrapeSource)
-        .filter(ScrapeSource.is_active == True)
-        .filter((ScrapeSource.robots_blocked == False) | (ScrapeSource.robots_blocked == None))
-        .order_by(ScrapeSource.created_at.desc())
-        .all()
-    )
+    ctx = _get_paginated_sources(db, show_robots_blocked=False, show_disabled=False, show_needs_configuration=False, page=page)
     return templates.TemplateResponse(
         "admin/partials/source_list.html",
-        {"request": request, "sources": sources},
+        {"request": request, **ctx},
     )
 
 
@@ -185,21 +183,15 @@ def disabled_sources_page(request: Request, db: Session = Depends(get_db)):
 
 
 @router.get("/sources/disabled/list")
-def list_disabled_sources(request: Request, db: Session = Depends(get_db)):
+def list_disabled_sources(request: Request, page: int = Query(1, ge=1), db: Session = Depends(get_db)):
     """List disabled scrape sources (HTMX partial), excludes needs_configuration."""
     if not get_admin_user(request):
         raise HTTPException(status_code=401)
 
-    sources = (
-        db.query(ScrapeSource)
-        .filter(ScrapeSource.is_active == False)
-        .filter((ScrapeSource.needs_configuration == False) | (ScrapeSource.needs_configuration == None))
-        .order_by(ScrapeSource.created_at.desc())
-        .all()
-    )
+    ctx = _get_paginated_sources(db, show_robots_blocked=False, show_disabled=True, show_needs_configuration=False, page=page)
     return templates.TemplateResponse(
         "admin/partials/source_list.html",
-        {"request": request, "sources": sources, "show_disabled": True},
+        {"request": request, **ctx},
     )
 
 
@@ -234,21 +226,15 @@ def needs_configuration_page(request: Request, db: Session = Depends(get_db)):
 
 
 @router.get("/sources/needs-configuration/list")
-def needs_configuration_list(request: Request, db: Session = Depends(get_db)):
+def needs_configuration_list(request: Request, page: int = Query(1, ge=1), db: Session = Depends(get_db)):
     """HTMX endpoint: list sources needing configuration."""
     if not get_admin_user(request):
         raise HTTPException(status_code=401)
 
-    sources = (
-        db.query(ScrapeSource)
-        .filter(ScrapeSource.needs_configuration == True)
-        .order_by(ScrapeSource.name)
-        .all()
-    )
-
+    ctx = _get_paginated_sources(db, show_robots_blocked=False, show_disabled=False, show_needs_configuration=True, page=page)
     return templates.TemplateResponse(
         "admin/partials/source_list.html",
-        {"request": request, "sources": sources, "show_needs_configuration": True},
+        {"request": request, **ctx},
     )
 
 
@@ -266,10 +252,12 @@ def needs_configuration_count(request: Request, db: Session = Depends(get_db)):
 
 
 @router.post("/sources/{source_id}/mark-disabled")
-def mark_source_disabled(source_id: int, request: Request, db: Session = Depends(get_db)):
+async def mark_source_disabled(source_id: int, request: Request, db: Session = Depends(get_db)):
     """Move a source from needs-configuration to disabled (tried but couldn't configure)."""
     if not get_admin_user(request):
         raise HTTPException(status_code=401)
+
+    current_page = await _get_current_page_from_request(request)
 
     source = db.query(ScrapeSource).filter(ScrapeSource.id == source_id).first()
     if not source:
@@ -281,17 +269,11 @@ def mark_source_disabled(source_id: int, request: Request, db: Session = Depends
     source.is_active = False
     db.commit()
 
-    # Return updated list
-    sources = (
-        db.query(ScrapeSource)
-        .filter(ScrapeSource.needs_configuration == True)
-        .order_by(ScrapeSource.name)
-        .all()
-    )
-
+    # Return updated paginated list
+    ctx = _get_paginated_sources(db, show_robots_blocked=False, show_disabled=False, show_needs_configuration=True, page=current_page)
     return templates.TemplateResponse(
         "admin/partials/source_list.html",
-        {"request": request, "sources": sources, "show_needs_configuration": True},
+        {"request": request, **ctx},
     )
 
 
@@ -318,20 +300,15 @@ def robots_blocked_sources_page(request: Request, db: Session = Depends(get_db))
 
 
 @router.get("/sources/robots-blocked/list")
-def list_robots_blocked_sources(request: Request, db: Session = Depends(get_db)):
+def list_robots_blocked_sources(request: Request, page: int = Query(1, ge=1), db: Session = Depends(get_db)):
     """List robots-blocked scrape sources (HTMX partial)."""
     if not get_admin_user(request):
         raise HTTPException(status_code=401)
 
-    sources = (
-        db.query(ScrapeSource)
-        .filter(ScrapeSource.robots_blocked == True)
-        .order_by(ScrapeSource.robots_blocked_at.desc())
-        .all()
-    )
+    ctx = _get_paginated_sources(db, show_robots_blocked=True, show_disabled=False, show_needs_configuration=False, page=page)
     return templates.TemplateResponse(
         "admin/partials/source_list.html",
-        {"request": request, "sources": sources, "show_robots_blocked": True},
+        {"request": request, **ctx},
     )
 
 
@@ -349,7 +326,7 @@ def robots_blocked_count_link(request: Request, db: Session = Depends(get_db)):
 
 
 @router.post("/sources/{source_id}/recheck-robots")
-def recheck_robots_source(source_id: int, request: Request, db: Session = Depends(get_db)):
+async def recheck_robots_source(source_id: int, request: Request, db: Session = Depends(get_db)):
     """Recheck robots.txt and unblock source if now allowed.
 
     Actually fetches robots.txt again to verify the site now allows scraping.
@@ -360,17 +337,14 @@ def recheck_robots_source(source_id: int, request: Request, db: Session = Depend
 
     from scraper.runner import check_robots_blocked
 
+    current_page = await _get_current_page_from_request(request)
+
     source = db.query(ScrapeSource).filter(ScrapeSource.id == source_id).first()
     if not source:
-        sources = (
-            db.query(ScrapeSource)
-            .filter(ScrapeSource.robots_blocked == True)
-            .order_by(ScrapeSource.robots_blocked_at.desc())
-            .all()
-        )
+        ctx = _get_paginated_sources(db, show_robots_blocked=True, show_disabled=False, show_needs_configuration=False, page=current_page)
         return templates.TemplateResponse(
             "admin/partials/source_list.html",
-            {"request": request, "sources": sources, "show_robots_blocked": True, "error": "Source not found."},
+            {"request": request, **ctx, "error": "Source not found."},
         )
 
     # Actually check robots.txt again
@@ -385,15 +359,10 @@ def recheck_robots_source(source_id: int, request: Request, db: Session = Depend
         except Exception:
             db.rollback()
 
-        sources = (
-            db.query(ScrapeSource)
-            .filter(ScrapeSource.robots_blocked == True)
-            .order_by(ScrapeSource.robots_blocked_at.desc())
-            .all()
-        )
+        ctx = _get_paginated_sources(db, show_robots_blocked=True, show_disabled=False, show_needs_configuration=False, page=current_page)
         return templates.TemplateResponse(
             "admin/partials/source_list.html",
-            {"request": request, "sources": sources, "show_robots_blocked": True, "error": f"Still blocked: {block_reason} ({blocked_url})"},
+            {"request": request, **ctx, "error": f"Still blocked: {block_reason} ({blocked_url})"},
         )
 
     # Now allowed - unblock the source
@@ -404,26 +373,16 @@ def recheck_robots_source(source_id: int, request: Request, db: Session = Depend
     except Exception as e:
         logger.error(f"Failed to unblock source {source_id}: {e}")
         db.rollback()
-        sources = (
-            db.query(ScrapeSource)
-            .filter(ScrapeSource.robots_blocked == True)
-            .order_by(ScrapeSource.robots_blocked_at.desc())
-            .all()
-        )
+        ctx = _get_paginated_sources(db, show_robots_blocked=True, show_disabled=False, show_needs_configuration=False, page=current_page)
         return templates.TemplateResponse(
             "admin/partials/source_list.html",
-            {"request": request, "sources": sources, "show_robots_blocked": True, "error": "Failed to unblock source. Please try again."},
+            {"request": request, **ctx, "error": "Failed to unblock source. Please try again."},
         )
 
-    sources = (
-        db.query(ScrapeSource)
-        .filter(ScrapeSource.robots_blocked == True)
-        .order_by(ScrapeSource.robots_blocked_at.desc())
-        .all()
-    )
+    ctx = _get_paginated_sources(db, show_robots_blocked=True, show_disabled=False, show_needs_configuration=False, page=current_page)
     return templates.TemplateResponse(
         "admin/partials/source_list.html",
-        {"request": request, "sources": sources, "show_robots_blocked": True, "success": f"'{source.name}' is now allowed and moved to active sources."},
+        {"request": request, **ctx, "success": f"'{source.name}' is now allowed and moved to active sources."},
     )
 
 
@@ -439,10 +398,10 @@ async def create_source(request: Request, db: Session = Depends(get_db)):
     scraper_class = form.get("scraper_class", "GenericScraper").strip()
 
     if not name or not base_url:
-        sources = db.query(ScrapeSource).filter(ScrapeSource.is_active == True).order_by(ScrapeSource.created_at.desc()).all()
+        ctx = _get_paginated_sources(db, show_robots_blocked=False, show_disabled=False, show_needs_configuration=False)
         return templates.TemplateResponse(
             "admin/partials/source_list.html",
-            {"request": request, "sources": sources, "error": "Name and URL are required"},
+            {"request": request, **ctx, "error": "Name and URL are required"},
         )
 
     source = ScrapeSource(
@@ -458,16 +417,16 @@ async def create_source(request: Request, db: Session = Depends(get_db)):
     except Exception as e:
         logger.error(f"Failed to create source '{name}': {e}")
         db.rollback()
-        sources = db.query(ScrapeSource).filter(ScrapeSource.is_active == True).order_by(ScrapeSource.created_at.desc()).all()
+        ctx = _get_paginated_sources(db, show_robots_blocked=False, show_disabled=False, show_needs_configuration=False)
         return templates.TemplateResponse(
             "admin/partials/source_list.html",
-            {"request": request, "sources": sources, "error": "Failed to create source. Please try again."},
+            {"request": request, **ctx, "error": "Failed to create source. Please try again."},
         )
 
-    sources = db.query(ScrapeSource).filter(ScrapeSource.is_active == True).order_by(ScrapeSource.created_at.desc()).all()
+    ctx = _get_paginated_sources(db, show_robots_blocked=False, show_disabled=False, show_needs_configuration=False)
     response = templates.TemplateResponse(
         "admin/partials/source_list.html",
-        {"request": request, "sources": sources, "success": f"Source '{name}' created"},
+        {"request": request, **ctx, "success": f"Source '{name}' created"},
     )
     response.headers["HX-Trigger"] = "sourceCreated"
     return response
@@ -825,7 +784,7 @@ def export_needs_configuration_sources(request: Request, db: Session = Depends(g
 
 
 @router.delete("/sources/{source_id}")
-def delete_source(source_id: int, request: Request, db: Session = Depends(get_db)):
+async def delete_source(source_id: int, request: Request, db: Session = Depends(get_db)):
     """Delete a scrape source."""
     if not get_admin_user(request):
         raise HTTPException(status_code=401)
@@ -835,6 +794,7 @@ def delete_source(source_id: int, request: Request, db: Session = Depends(get_db
     show_disabled = hx_target == "disabled-source-list"
     show_robots_blocked = hx_target == "robots-blocked-source-list"
     show_needs_configuration = hx_target == "needs-configuration-list"
+    current_page = await _get_current_page_from_request(request)
 
     source = db.query(ScrapeSource).filter(ScrapeSource.id == source_id).first()
     if source:
@@ -844,45 +804,92 @@ def delete_source(source_id: int, request: Request, db: Session = Depends(get_db
         except Exception as e:
             logger.error(f"Failed to delete source {source_id}: {e}")
             db.rollback()
-            sources = _get_sources_for_list(db, show_robots_blocked, show_disabled, show_needs_configuration)
+            ctx = _get_paginated_sources(db, show_robots_blocked, show_disabled, show_needs_configuration, current_page)
             return templates.TemplateResponse(
                 "admin/partials/source_list.html",
-                {"request": request, "sources": sources, "show_disabled": show_disabled, "show_robots_blocked": show_robots_blocked, "show_needs_configuration": show_needs_configuration, "error": "Failed to delete source. Please try again."},
+                {"request": request, **ctx, "error": "Failed to delete source. Please try again."},
             )
 
-    sources = _get_sources_for_list(db, show_robots_blocked, show_disabled, show_needs_configuration)
+    ctx = _get_paginated_sources(db, show_robots_blocked, show_disabled, show_needs_configuration, current_page)
     return templates.TemplateResponse(
         "admin/partials/source_list.html",
-        {"request": request, "sources": sources, "show_disabled": show_disabled, "show_robots_blocked": show_robots_blocked, "show_needs_configuration": show_needs_configuration},
+        {"request": request, **ctx},
     )
 
 
-def _get_sources_for_list(db: Session, show_robots_blocked: bool, show_disabled: bool, show_needs_configuration: bool):
-    """Helper to get sources based on which list is being shown."""
+async def _get_current_page_from_request(request: Request) -> int:
+    """Extract current page number from HTMX request.
+
+    Checks hx-vals form data (for POST) or query params (for DELETE),
+    falls back to 1.
+    """
+    # For DELETE requests, htmx sends hx-vals as query params
+    if "page" in request.query_params:
+        try:
+            return max(1, int(request.query_params["page"]))
+        except (ValueError, TypeError):
+            pass
+
+    # For POST requests, htmx sends hx-vals as form data
+    try:
+        form = await request.form()
+        if "page" in form:
+            return max(1, int(form["page"]))
+    except Exception:
+        pass
+
+    return 1
+
+
+def _get_paginated_sources(db: Session, show_robots_blocked: bool, show_disabled: bool, show_needs_configuration: bool, page: int = 1) -> dict:
+    """Helper to get paginated sources based on which list is being shown.
+
+    Returns a dict with sources, pagination info, and context flags.
+    """
     if show_robots_blocked:
-        return db.query(ScrapeSource).filter(ScrapeSource.robots_blocked == True).order_by(ScrapeSource.robots_blocked_at.desc()).all()
+        query = db.query(ScrapeSource).filter(ScrapeSource.robots_blocked == True).order_by(ScrapeSource.robots_blocked_at.desc())
+        list_url = "/admin/sources/robots-blocked/list"
     elif show_needs_configuration:
-        return db.query(ScrapeSource).filter(ScrapeSource.needs_configuration == True).order_by(ScrapeSource.name).all()
+        query = db.query(ScrapeSource).filter(ScrapeSource.needs_configuration == True).order_by(ScrapeSource.name)
+        list_url = "/admin/sources/needs-configuration/list"
     elif show_disabled:
-        return (
+        query = (
             db.query(ScrapeSource)
             .filter(ScrapeSource.is_active == False)
             .filter((ScrapeSource.needs_configuration == False) | (ScrapeSource.needs_configuration == None))
             .order_by(ScrapeSource.created_at.desc())
-            .all()
         )
+        list_url = "/admin/sources/disabled/list"
     else:
-        return (
+        query = (
             db.query(ScrapeSource)
             .filter(ScrapeSource.is_active == True)
             .filter((ScrapeSource.robots_blocked == False) | (ScrapeSource.robots_blocked == None))
             .order_by(ScrapeSource.created_at.desc())
-            .all()
         )
+        list_url = "/admin/sources"
+
+    total = query.count()
+    total_pages = (total + SOURCES_PER_PAGE - 1) // SOURCES_PER_PAGE if total > 0 else 1
+    # Clamp page to valid range
+    page = max(1, min(page, total_pages))
+    sources = query.offset((page - 1) * SOURCES_PER_PAGE).limit(SOURCES_PER_PAGE).all()
+
+    return {
+        "sources": sources,
+        "page": page,
+        "total_pages": total_pages,
+        "total": total,
+        "list_url": list_url,
+        "page_size": SOURCES_PER_PAGE,
+        "show_robots_blocked": show_robots_blocked,
+        "show_disabled": show_disabled,
+        "show_needs_configuration": show_needs_configuration,
+    }
 
 
 @router.post("/sources/{source_id}/toggle")
-def toggle_source(source_id: int, request: Request, db: Session = Depends(get_db)):
+async def toggle_source(source_id: int, request: Request, db: Session = Depends(get_db)):
     """Toggle a scrape source active/inactive."""
     if not get_admin_user(request):
         raise HTTPException(status_code=401)
@@ -891,6 +898,7 @@ def toggle_source(source_id: int, request: Request, db: Session = Depends(get_db
     hx_target = request.headers.get("HX-Target", "")
     show_disabled = hx_target == "disabled-source-list"
     show_needs_configuration = hx_target == "needs-configuration-list"
+    current_page = await _get_current_page_from_request(request)
 
     source = db.query(ScrapeSource).filter(ScrapeSource.id == source_id).first()
     if source:
@@ -903,17 +911,17 @@ def toggle_source(source_id: int, request: Request, db: Session = Depends(get_db
         except Exception as e:
             logger.error(f"Failed to toggle source {source_id}: {e}")
             db.rollback()
-            sources = _get_sources_for_list(db, show_robots_blocked=False, show_disabled=show_disabled, show_needs_configuration=show_needs_configuration)
+            ctx = _get_paginated_sources(db, show_robots_blocked=False, show_disabled=show_disabled, show_needs_configuration=show_needs_configuration, page=current_page)
             return templates.TemplateResponse(
                 "admin/partials/source_list.html",
-                {"request": request, "sources": sources, "show_disabled": show_disabled, "show_needs_configuration": show_needs_configuration, "error": "Failed to toggle source. Please try again."},
+                {"request": request, **ctx, "error": "Failed to toggle source. Please try again."},
             )
 
     # After toggling, return the appropriate list using consistent filters
-    sources = _get_sources_for_list(db, show_robots_blocked=False, show_disabled=show_disabled, show_needs_configuration=show_needs_configuration)
+    ctx = _get_paginated_sources(db, show_robots_blocked=False, show_disabled=show_disabled, show_needs_configuration=show_needs_configuration, page=current_page)
     return templates.TemplateResponse(
         "admin/partials/source_list.html",
-        {"request": request, "sources": sources, "show_disabled": show_disabled, "show_needs_configuration": show_needs_configuration},
+        {"request": request, **ctx},
     )
 
 
