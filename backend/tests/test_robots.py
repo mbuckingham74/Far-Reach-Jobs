@@ -230,6 +230,88 @@ Allow: /public
         assert len(rules) == 1
         assert (True, "/public") in rules
 
+    def test_specific_ua_takes_precedence_over_wildcard(self):
+        """Specific UA group should be used instead of wildcard, not merged."""
+        content = """
+User-agent: FarReachJobs
+Allow: /
+
+User-agent: *
+Disallow: /private
+"""
+        # For FarReachJobs, should use the specific group (Allow: /) only
+        rules = _parse_robots_rules(content, "FarReachJobs")
+        assert (True, "/") in rules
+        assert (False, "/private") not in rules  # Should NOT be merged from wildcard
+
+        # For other bots, should use wildcard
+        rules_other = _parse_robots_rules(content, "OtherBot")
+        assert (False, "/private") in rules_other
+        assert (True, "/") not in rules_other
+
+    def test_multiple_ua_lines_in_group(self):
+        """A group with multiple User-agent lines should match if ANY line matches."""
+        content = """
+User-agent: FarReachJobs
+User-agent: OtherBot
+Allow: /shared
+Disallow: /secret
+"""
+        # Both FarReachJobs and OtherBot should get these rules
+        rules_far = _parse_robots_rules(content, "FarReachJobs")
+        assert (True, "/shared") in rules_far
+        assert (False, "/secret") in rules_far
+
+        rules_other = _parse_robots_rules(content, "OtherBot")
+        assert (True, "/shared") in rules_other
+        assert (False, "/secret") in rules_other
+
+        # A third bot should NOT match this group
+        rules_third = _parse_robots_rules(content, "ThirdBot")
+        assert len(rules_third) == 0
+
+    def test_multiple_ua_lines_with_wildcard(self):
+        """Group with both specific UA and wildcard should match both."""
+        content = """
+User-agent: FarReachJobs
+User-agent: *
+Allow: /docs
+Disallow: /admin
+"""
+        # FarReachJobs matches specifically
+        rules_far = _parse_robots_rules(content, "FarReachJobs")
+        assert (True, "/docs") in rules_far
+
+        # Other bots match via wildcard
+        rules_other = _parse_robots_rules(content, "RandomBot")
+        assert (True, "/docs") in rules_other
+
+    def test_first_specific_match_wins(self):
+        """If multiple specific groups match, first one wins."""
+        content = """
+User-agent: FarReachJobs
+Allow: /first
+
+User-agent: FarReachJobs
+Allow: /second
+"""
+        rules = _parse_robots_rules(content, "FarReachJobs")
+        assert (True, "/first") in rules
+        assert (True, "/second") not in rules
+
+    def test_specific_after_wildcard_still_wins(self):
+        """Specific UA group wins even if it comes after wildcard."""
+        content = """
+User-agent: *
+Disallow: /blocked
+
+User-agent: FarReachJobs
+Allow: /
+"""
+        rules = _parse_robots_rules(content, "FarReachJobs")
+        assert (True, "/") in rules
+        assert (False, "/blocked") not in rules
+
 
 class TestRobotsCheckerCrossDomain:
     """Test cross-domain robots.txt checking."""

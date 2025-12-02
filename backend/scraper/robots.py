@@ -17,14 +17,23 @@ ROBOTS_USER_AGENT = "FarReachJobs/1.0"
 
 
 def _parse_robots_rules(content: str, user_agent: str) -> list[tuple[bool, str]]:
-    """Parse robots.txt content and return rules applicable to the given user agent.
+    """Parse robots.txt content and return rules for the most specific matching UA group.
 
-    Returns a list of (is_allowed, pattern) tuples for matching rules.
-    Rules are returned in order of appearance for the matching user-agent group.
+    Per the robots.txt spec:
+    1. Find the most specific User-agent group that matches (not merged)
+    2. A group can have multiple User-agent lines; if ANY matches, the group applies
+    3. Specific UA names take precedence over wildcard (*)
+
+    Returns a list of (is_allowed, pattern) tuples for the best matching group.
     """
-    rules: list[tuple[bool, str]] = []
-    current_ua_matches = False
     ua_lower = user_agent.lower()
+
+    # First pass: identify all groups and their rules
+    # A group is: one or more User-agent lines followed by Allow/Disallow rules
+    groups: list[tuple[list[str], list[tuple[bool, str]]]] = []
+    current_uas: list[str] = []
+    current_rules: list[tuple[bool, str]] = []
+    in_ua_section = True  # True while we're reading User-agent lines
 
     for line in content.splitlines():
         line = line.strip()
@@ -44,15 +53,50 @@ def _parse_robots_rules(content: str, user_agent: str) -> list[tuple[bool, str]]
         value = value.strip()
 
         if field == "user-agent":
-            # Check if this UA block applies to us
-            ua_pattern = value.lower()
-            current_ua_matches = ua_pattern == "*" or ua_lower.startswith(ua_pattern)
-        elif current_ua_matches and field in ("allow", "disallow"):
+            if not in_ua_section and current_uas:
+                # We hit a new User-agent after rules, so save the previous group
+                groups.append((current_uas, current_rules))
+                current_uas = []
+                current_rules = []
+            current_uas.append(value.lower())
+            in_ua_section = True
+        elif field in ("allow", "disallow"):
+            in_ua_section = False
             if value:  # Ignore empty values
                 is_allowed = field == "allow"
-                rules.append((is_allowed, value))
+                current_rules.append((is_allowed, value))
 
-    return rules
+    # Don't forget the last group
+    if current_uas:
+        groups.append((current_uas, current_rules))
+
+    # Second pass: find the best matching group
+    # Priority: specific UA match > wildcard match
+    best_group: list[tuple[bool, str]] | None = None
+    best_is_specific = False  # True if we matched a specific UA (not *)
+
+    for uas, rules in groups:
+        # Check if any UA in this group matches us
+        matches_specific = False
+        matches_wildcard = False
+
+        for ua in uas:
+            if ua == "*":
+                matches_wildcard = True
+            elif ua_lower.startswith(ua):
+                matches_specific = True
+
+        # Determine if this group is a better match
+        if matches_specific:
+            # Specific match always wins; if we already have one, first wins
+            if not best_is_specific:
+                best_group = rules
+                best_is_specific = True
+        elif matches_wildcard and best_group is None:
+            # Wildcard match, but only if we don't have any match yet
+            best_group = rules
+
+    return best_group if best_group is not None else []
 
 
 def _pattern_matches(pattern: str, path: str) -> bool:
