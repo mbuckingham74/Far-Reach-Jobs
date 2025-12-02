@@ -801,6 +801,39 @@ class TestAIFeatures:
         assert response.status_code == 400
         assert "not available" in response.text.lower() or "api" in response.text.lower()
 
+    @patch("app.routers.admin.generate_scraper_for_url")
+    @patch("app.routers.admin.is_ai_analysis_available")
+    def test_generated_scraper_escapes_html_in_code(self, mock_available, mock_generate, admin_client, db, active_source):
+        """Generated code with HTML-like content should be escaped to prevent XSS/parsing errors."""
+        from app.services.ai_analyzer import GeneratedScraper
+
+        mock_available.return_value = True
+
+        # Code containing sequences that would break HTML if not escaped
+        malicious_code = '''class TestScraper(BaseScraper):
+    def parse(self):
+        html = "</script><script>alert('xss')</script>"
+        code = "</code></pre><div>injected</div>"
+        return html
+'''
+        mock_generate.return_value = GeneratedScraper(
+            success=True,
+            code=malicious_code,
+            class_name="TestScraper"
+        )
+
+        response = admin_client.post(f"/admin/sources/{active_source.id}/generate-scraper")
+        assert response.status_code == 200
+
+        # The response should contain HTML-escaped versions
+        assert "&lt;/script&gt;" in response.text
+        assert "&lt;/code&gt;" in response.text
+        assert "&lt;/pre&gt;" in response.text
+
+        # Raw HTML-breaking sequences should NOT appear
+        assert "</script><script>" not in response.text
+        assert "</code></pre>" not in response.text
+
 
 class TestUrlNormalization:
     """Tests for _normalize_url function used in duplicate detection."""
