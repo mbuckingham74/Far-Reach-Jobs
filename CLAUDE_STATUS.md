@@ -924,6 +924,23 @@ Default State: AK
 - **SitemapScraper:** Shows when `sitemap_url` is configured
 - **DynamicScraper:** Shows when `custom_scraper_code` exists
 
+### Admin Source List Pagination ✅
+- [x] Paginated source lists (20 per page) across all admin pages
+- [x] Pagination controls (Prev/Next) with page info ("Showing 1-20 of 45 sources")
+- [x] Page clamping to prevent invalid ranges (e.g., page 3 of 2 clamps to page 2)
+- [x] Mutation actions (Delete, Toggle, Mark Disabled, Recheck) preserve current page
+- [x] Consolidated `_get_paginated_sources` helper for consistent pagination logic
+
+**Key Files:**
+- `backend/app/routers/admin.py` - Pagination helper and endpoint updates
+- `backend/app/templates/admin/partials/source_list.html` - Pagination controls with `hx-vals`
+
+**Technical Details:**
+- `SOURCES_PER_PAGE = 20` constant for page size
+- `_get_paginated_sources()` returns paginated sources with context flags
+- `_get_current_page_from_request()` extracts page from htmx `hx-vals` (form data for POST, query params for DELETE)
+- All mutation buttons include `hx-vals='{"page": "{{ page }}"}'` to preserve position
+
 ## CSS Selector Troubleshooting
 
 Common issues when configuring GenericScraper:
