@@ -521,10 +521,39 @@ class TestScrapeSourceModel:
 
         assert source.scraper_class == "GenericScraper"
         assert source.is_active is True
-        assert source.use_playwright is False
+        assert source.use_playwright is True  # Default to True for JS-rendered sites
         assert source.max_pages == 10
         assert source.url_attribute == "href"
         assert source.created_at is not None
+
+    def test_source_playwright_default_is_true(self, db):
+        """New sources should have use_playwright=True by default.
+
+        Most modern job sites use JavaScript rendering, so Playwright
+        should be enabled by default to avoid missing dynamically loaded content.
+        """
+        source = ScrapeSource(
+            name="Playwright Default Test",
+            base_url="https://example.com",
+        )
+        db.add(source)
+        db.commit()
+        db.refresh(source)
+
+        assert source.use_playwright is True, "New sources should default to use_playwright=True"
+
+    def test_source_playwright_can_be_disabled(self, db):
+        """Sources can explicitly disable Playwright for rare httpx-only cases."""
+        source = ScrapeSource(
+            name="No Playwright Source",
+            base_url="https://example.com",
+            use_playwright=False,
+        )
+        db.add(source)
+        db.commit()
+        db.refresh(source)
+
+        assert source.use_playwright is False, "Should be able to explicitly disable Playwright"
 
     def test_source_jobs_relationship(self, db):
         """ScrapeSource has jobs relationship."""

@@ -272,8 +272,8 @@ def get_source_config(source: ScrapeSource) -> dict:
         "url_attribute": source.url_attribute,
         "selector_next_page": source.selector_next_page,
         "max_pages": source.max_pages,
-        # Always use Playwright - overhead is minimal vs failing on JS sites
-        "use_playwright": True,
+        # Use Playwright by default (True), but respect database setting for rare httpx-only cases
+        "use_playwright": source.use_playwright if source.use_playwright is not None else True,
         "default_location": source.default_location,
         "default_state": source.default_state,
         # SitemapScraper configuration

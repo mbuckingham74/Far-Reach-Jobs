@@ -41,8 +41,8 @@ class ScrapeSource(Base):
     max_pages = Column(Integer, nullable=True, default=10)
 
     # Use Playwright (headless browser) instead of httpx for fetching
-    # Useful for sites with bot protection or JavaScript-rendered content
-    use_playwright = Column(Boolean, default=False)
+    # Enabled by default - most modern job sites use JavaScript rendering
+    use_playwright = Column(Boolean, default=True)
 
     # Default location to use when scraper doesn't extract location from page
     # e.g., "Bethel" for City of Bethel jobs, "Kotzebue" for City of Kotzebue
