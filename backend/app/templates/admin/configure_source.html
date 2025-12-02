@@ -469,7 +469,9 @@ function toggleScraperSections() {
         loadingDiv.classList.remove('hidden');
         resultDiv.innerHTML = '';
         sourceText.textContent = sourceName || '';
-        playwrightText.textContent = usePlaywright ? 'Using Playwright (headless browser)' : 'Using httpx (direct HTTP)';
+        if (playwrightText) {
+            playwrightText.textContent = usePlaywright ? 'Using Playwright (headless browser)' : 'Using httpx (direct HTTP)';
+        }
 
         // Show modal
         modal.classList.remove('hidden');
