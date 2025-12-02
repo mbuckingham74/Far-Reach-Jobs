@@ -286,19 +286,6 @@ Disallow: /admin
         rules_other = _parse_robots_rules(content, "RandomBot")
         assert (True, "/docs") in rules_other
 
-    def test_first_specific_match_wins(self):
-        """If multiple specific groups match, first one wins."""
-        content = """
-User-agent: FarReachJobs
-Allow: /first
-
-User-agent: FarReachJobs
-Allow: /second
-"""
-        rules = _parse_robots_rules(content, "FarReachJobs")
-        assert (True, "/first") in rules
-        assert (True, "/second") not in rules
-
     def test_specific_after_wildcard_still_wins(self):
         """Specific UA group wins even if it comes after wildcard."""
         content = """
@@ -311,6 +298,47 @@ Allow: /
         rules = _parse_robots_rules(content, "FarReachJobs")
         assert (True, "/") in rules
         assert (False, "/blocked") not in rules
+
+    def test_longest_ua_match_wins(self):
+        """Longest matching UA token should win, not first match."""
+        content = """
+User-agent: Far
+Disallow: /blocked
+
+User-agent: FarReachJobs
+Allow: /
+"""
+        # "FarReachJobs" is longer than "Far", so second group should win
+        rules = _parse_robots_rules(content, "FarReachJobs/1.0")
+        assert (True, "/") in rules
+        assert (False, "/blocked") not in rules
+
+    def test_longer_ua_wins_regardless_of_order(self):
+        """Longer UA match wins even when it appears first."""
+        content = """
+User-agent: FarReachJobs
+Allow: /
+
+User-agent: Far
+Disallow: /blocked
+"""
+        # "FarReachJobs" is longer than "Far", so first group should win
+        rules = _parse_robots_rules(content, "FarReachJobs/1.0")
+        assert (True, "/") in rules
+        assert (False, "/blocked") not in rules
+
+    def test_equal_length_ua_first_wins(self):
+        """When UA tokens have equal length, first group wins."""
+        content = """
+User-agent: FarReachJobs
+Allow: /first
+
+User-agent: FarReachJobs
+Allow: /second
+"""
+        rules = _parse_robots_rules(content, "FarReachJobs")
+        assert (True, "/first") in rules
+        assert (True, "/second") not in rules
 
 
 class TestRobotsCheckerCrossDomain:

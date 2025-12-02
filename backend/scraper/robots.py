@@ -71,30 +71,29 @@ def _parse_robots_rules(content: str, user_agent: str) -> list[tuple[bool, str]]
         groups.append((current_uas, current_rules))
 
     # Second pass: find the best matching group
-    # Priority: specific UA match > wildcard match
+    # Priority: longest matching UA token > shorter match > wildcard
     best_group: list[tuple[bool, str]] | None = None
-    best_is_specific = False  # True if we matched a specific UA (not *)
+    best_match_len = -1  # Length of the best matching UA token (-1 = no match, 0 = wildcard)
 
     for uas, rules in groups:
-        # Check if any UA in this group matches us
-        matches_specific = False
-        matches_wildcard = False
+        # Find the longest matching UA token in this group
+        group_best_len = -1
 
         for ua in uas:
             if ua == "*":
-                matches_wildcard = True
+                # Wildcard match has length 0 (lowest priority among matches)
+                if group_best_len < 0:
+                    group_best_len = 0
             elif ua_lower.startswith(ua):
-                matches_specific = True
+                # Specific match - track the longest one
+                if len(ua) > group_best_len:
+                    group_best_len = len(ua)
 
-        # Determine if this group is a better match
-        if matches_specific:
-            # Specific match always wins; if we already have one, first wins
-            if not best_is_specific:
-                best_group = rules
-                best_is_specific = True
-        elif matches_wildcard and best_group is None:
-            # Wildcard match, but only if we don't have any match yet
+        # Determine if this group is a better match than what we have
+        # Longer match wins; if equal length, first group wins (keep existing)
+        if group_best_len > best_match_len:
             best_group = rules
+            best_match_len = group_best_len
 
     return best_group if best_group is not None else []
 
