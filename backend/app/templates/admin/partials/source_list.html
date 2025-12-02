@@ -15,7 +15,7 @@
 {% if total is defined and total_pages is defined and total_pages > 1 %}
 <div class="flex items-center justify-between mb-4 text-sm text-gray-600 dark:text-gray-400">
     <div>
-        Showing {{ ((page - 1) * 20) + 1 }}-{{ [page * 20, total]|min }} of {{ total }} sources
+        Showing {{ ((page - 1) * page_size) + 1 }}-{{ [page * page_size, total]|min }} of {{ total }} sources
     </div>
     <div class="flex items-center gap-1">
         {% if page > 1 %}
@@ -208,7 +208,7 @@
 {% if total is defined and total_pages is defined and total_pages > 1 %}
 <div class="flex items-center justify-between mt-4 text-sm text-gray-600 dark:text-gray-400">
     <div>
-        Showing {{ ((page - 1) * 20) + 1 }}-{{ [page * 20, total]|min }} of {{ total }} sources
+        Showing {{ ((page - 1) * page_size) + 1 }}-{{ [page * page_size, total]|min }} of {{ total }} sources
     </div>
     <div class="flex items-center gap-1">
         {% if page > 1 %}
