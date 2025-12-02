@@ -341,7 +341,9 @@ def _run_adp_scraper(
 
     source.last_scraped_at = datetime.now(timezone.utc)
 
-    source.last_scrape_success = len(all_errors) == 0
+    # Success if jobs were found, even with warnings
+    jobs_found = jobs_new + jobs_updated + jobs_unchanged
+    source.last_scrape_success = jobs_found > 0 or len(all_errors) == 0
     duration = time.time() - start_time
 
     logger.info(
@@ -419,7 +421,10 @@ def _run_ultipro_scraper(
             logger.exception(f"UltiPro scraper failed for {source.name} URL: {listing_url}")
 
     source.last_scraped_at = datetime.now(timezone.utc)
-    source.last_scrape_success = len(all_errors) == 0
+
+    # Success if jobs were found, even with warnings
+    jobs_found = jobs_new + jobs_updated + jobs_unchanged
+    source.last_scrape_success = jobs_found > 0 or len(all_errors) == 0
     duration = time.time() - start_time
 
     logger.info(
@@ -497,7 +502,10 @@ def _run_workday_scraper(
             logger.exception(f"Workday scraper failed for {source.name} URL: {listing_url}")
 
     source.last_scraped_at = datetime.now(timezone.utc)
-    source.last_scrape_success = len(all_errors) == 0
+
+    # Success if jobs were found, even with warnings
+    jobs_found = jobs_new + jobs_updated + jobs_unchanged
+    source.last_scrape_success = jobs_found > 0 or len(all_errors) == 0
     duration = time.time() - start_time
 
     logger.info(
@@ -678,7 +686,9 @@ def run_scraper(db: Session, source: ScrapeSource, trigger_type: str = "manual")
         all_errors.append(f"Scraper execution failed: {e}")
 
     # Update source's last_scrape_success status
-    source.last_scrape_success = len(all_errors) == 0
+    # Success if jobs were found, even with warnings
+    jobs_found = jobs_new + jobs_updated + jobs_unchanged
+    source.last_scrape_success = jobs_found > 0 or len(all_errors) == 0
 
     duration = time.time() - start_time
 
