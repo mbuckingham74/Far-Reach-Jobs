@@ -142,22 +142,36 @@ def scraper_guide(request: Request):
     )
 
 
+# Pagination settings
+SOURCES_PER_PAGE = 20
+
+
 @router.get("/sources")
-def list_sources(request: Request, db: Session = Depends(get_db)):
+def list_sources(request: Request, page: int = Query(1, ge=1), db: Session = Depends(get_db)):
     """List active scrape sources (HTMX partial)."""
     if not get_admin_user(request):
         raise HTTPException(status_code=401)
 
-    sources = (
+    query = (
         db.query(ScrapeSource)
         .filter(ScrapeSource.is_active == True)
         .filter((ScrapeSource.robots_blocked == False) | (ScrapeSource.robots_blocked == None))
         .order_by(ScrapeSource.created_at.desc())
-        .all()
     )
+    total = query.count()
+    sources = query.offset((page - 1) * SOURCES_PER_PAGE).limit(SOURCES_PER_PAGE).all()
+    total_pages = (total + SOURCES_PER_PAGE - 1) // SOURCES_PER_PAGE
+
     return templates.TemplateResponse(
         "admin/partials/source_list.html",
-        {"request": request, "sources": sources},
+        {
+            "request": request,
+            "sources": sources,
+            "page": page,
+            "total_pages": total_pages,
+            "total": total,
+            "list_url": "/admin/sources",
+        },
     )
 
 
@@ -185,21 +199,32 @@ def disabled_sources_page(request: Request, db: Session = Depends(get_db)):
 
 
 @router.get("/sources/disabled/list")
-def list_disabled_sources(request: Request, db: Session = Depends(get_db)):
+def list_disabled_sources(request: Request, page: int = Query(1, ge=1), db: Session = Depends(get_db)):
     """List disabled scrape sources (HTMX partial), excludes needs_configuration."""
     if not get_admin_user(request):
         raise HTTPException(status_code=401)
 
-    sources = (
+    query = (
         db.query(ScrapeSource)
         .filter(ScrapeSource.is_active == False)
         .filter((ScrapeSource.needs_configuration == False) | (ScrapeSource.needs_configuration == None))
         .order_by(ScrapeSource.created_at.desc())
-        .all()
     )
+    total = query.count()
+    sources = query.offset((page - 1) * SOURCES_PER_PAGE).limit(SOURCES_PER_PAGE).all()
+    total_pages = (total + SOURCES_PER_PAGE - 1) // SOURCES_PER_PAGE
+
     return templates.TemplateResponse(
         "admin/partials/source_list.html",
-        {"request": request, "sources": sources, "show_disabled": True},
+        {
+            "request": request,
+            "sources": sources,
+            "show_disabled": True,
+            "page": page,
+            "total_pages": total_pages,
+            "total": total,
+            "list_url": "/admin/sources/disabled/list",
+        },
     )
 
 
@@ -234,21 +259,31 @@ def needs_configuration_page(request: Request, db: Session = Depends(get_db)):
 
 
 @router.get("/sources/needs-configuration/list")
-def needs_configuration_list(request: Request, db: Session = Depends(get_db)):
+def needs_configuration_list(request: Request, page: int = Query(1, ge=1), db: Session = Depends(get_db)):
     """HTMX endpoint: list sources needing configuration."""
     if not get_admin_user(request):
         raise HTTPException(status_code=401)
 
-    sources = (
+    query = (
         db.query(ScrapeSource)
         .filter(ScrapeSource.needs_configuration == True)
         .order_by(ScrapeSource.name)
-        .all()
     )
+    total = query.count()
+    sources = query.offset((page - 1) * SOURCES_PER_PAGE).limit(SOURCES_PER_PAGE).all()
+    total_pages = (total + SOURCES_PER_PAGE - 1) // SOURCES_PER_PAGE
 
     return templates.TemplateResponse(
         "admin/partials/source_list.html",
-        {"request": request, "sources": sources, "show_needs_configuration": True},
+        {
+            "request": request,
+            "sources": sources,
+            "show_needs_configuration": True,
+            "page": page,
+            "total_pages": total_pages,
+            "total": total,
+            "list_url": "/admin/sources/needs-configuration/list",
+        },
     )
 
 
@@ -318,20 +353,31 @@ def robots_blocked_sources_page(request: Request, db: Session = Depends(get_db))
 
 
 @router.get("/sources/robots-blocked/list")
-def list_robots_blocked_sources(request: Request, db: Session = Depends(get_db)):
+def list_robots_blocked_sources(request: Request, page: int = Query(1, ge=1), db: Session = Depends(get_db)):
     """List robots-blocked scrape sources (HTMX partial)."""
     if not get_admin_user(request):
         raise HTTPException(status_code=401)
 
-    sources = (
+    query = (
         db.query(ScrapeSource)
         .filter(ScrapeSource.robots_blocked == True)
         .order_by(ScrapeSource.robots_blocked_at.desc())
-        .all()
     )
+    total = query.count()
+    sources = query.offset((page - 1) * SOURCES_PER_PAGE).limit(SOURCES_PER_PAGE).all()
+    total_pages = (total + SOURCES_PER_PAGE - 1) // SOURCES_PER_PAGE
+
     return templates.TemplateResponse(
         "admin/partials/source_list.html",
-        {"request": request, "sources": sources, "show_robots_blocked": True},
+        {
+            "request": request,
+            "sources": sources,
+            "show_robots_blocked": True,
+            "page": page,
+            "total_pages": total_pages,
+            "total": total,
+            "list_url": "/admin/sources/robots-blocked/list",
+        },
     )
 
 
