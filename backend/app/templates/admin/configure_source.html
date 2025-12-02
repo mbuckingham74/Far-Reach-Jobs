@@ -35,7 +35,7 @@
                 hx-post="/admin/sources/{{ source.id }}/scrape"
                 hx-target="#scrape-modal-result"
                 hx-swap="innerHTML"
-                onclick="showScrapeModal('{{ source.name }}')">
+                onclick="showScrapeModal('{{ source.name }}', {{ 'true' if source.use_playwright or source.use_playwright is none else 'false' }})">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
             </svg>
@@ -76,7 +76,7 @@
                 hx-post="/admin/sources/{{ source.id }}/scrape"
                 hx-target="#scrape-modal-result"
                 hx-swap="innerHTML"
-                onclick="showScrapeModal('{{ source.name }}')">
+                onclick="showScrapeModal('{{ source.name }}', {{ 'true' if source.use_playwright or source.use_playwright is none else 'false' }})">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path>
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
@@ -391,6 +391,12 @@
                     </div>
                     <p class="mt-4 text-lg font-medium text-gray-900 dark:text-white">Running scraper...</p>
                     <p id="scrape-modal-source" class="mt-1 text-sm text-gray-500 dark:text-gray-400"></p>
+                    <p id="scrape-modal-playwright" class="mt-2 text-xs text-purple-600 dark:text-purple-400 flex items-center gap-1">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                        </svg>
+                        <span id="scrape-modal-playwright-text"></span>
+                    </p>
                 </div>
             </div>
             <!-- Results will be loaded here -->
@@ -452,16 +458,18 @@ function toggleScraperSections() {
     const resultsDiv = document.getElementById('ai-results');
 
     // Scrape modal functions
-    window.showScrapeModal = function(sourceName) {
+    window.showScrapeModal = function(sourceName, usePlaywright) {
         const modal = document.getElementById('scrape-modal');
         const loadingDiv = document.getElementById('scrape-modal-loading');
         const resultDiv = document.getElementById('scrape-modal-result');
         const sourceText = document.getElementById('scrape-modal-source');
+        const playwrightText = document.getElementById('scrape-modal-playwright-text');
 
         // Reset state
         loadingDiv.classList.remove('hidden');
         resultDiv.innerHTML = '';
         sourceText.textContent = sourceName || '';
+        playwrightText.textContent = usePlaywright ? 'Using Playwright (headless browser)' : 'Using httpx (direct HTTP)';
 
         // Show modal
         modal.classList.remove('hidden');
