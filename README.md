@@ -4,6 +4,7 @@
   <img src="https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white" alt="Tailwind CSS">
   <img src="https://img.shields.io/badge/MySQL-4479A1?style=for-the-badge&logo=mysql&logoColor=white" alt="MySQL">
   <img src="https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white" alt="Docker">
+  <img src="https://img.shields.io/badge/Anthropic-191919?style=for-the-badge&logo=anthropic&logoColor=white" alt="Anthropic Claude">
 </p>
 
 <h1 align="center">🏔️ Far Reach Jobs</h1>
@@ -56,7 +57,7 @@ We aggregate listings from bush villages, tribal organizations, rural hospitals,
 │              FastAPI • SQLAlchemy • MySQL               │
 ├─────────────────────────────────────────────────────────┤
 │                     Scraping                            │
-│           httpx • BeautifulSoup • APScheduler          │
+│    Playwright • BeautifulSoup • Anthropic Claude API   │
 ├─────────────────────────────────────────────────────────┤
 │                    Deployment                           │
 │           Docker Compose • Nginx Proxy Manager          │
@@ -134,11 +135,15 @@ Visit our **[For Employers](https://far-reach-jobs.tachyonfuture.com/employers)*
 Far Reach Jobs includes a powerful admin panel for managing job sources:
 
 <details>
-<summary><strong>🤖 AI-Powered Scraper Configuration</strong></summary>
+<summary><strong>🤖 AI-Powered Scraper Configuration (Anthropic Claude)</strong></summary>
 
-- **Analyze Page with AI** - Automatically suggests CSS selectors
-- **Generate Custom Scraper** - AI creates Python code for complex sites
-- **Bulk CSV Import** - Add dozens of sources at once
+We use the **Anthropic Claude API** to intelligently analyze job listing pages and automatically configure scrapers:
+
+- **Analyze Page with AI** - Claude examines the HTML structure and suggests optimal CSS selectors for extracting job titles, URLs, locations, and more
+- **Generate Custom Scraper** - For complex sites that don't fit standard patterns, Claude generates complete Python scraper code tailored to the specific page structure
+- **Smart Detection** - Handles JavaScript-rendered pages, pagination, and various HTML layouts automatically
+
+This approach dramatically reduces the manual effort of adding new job sources - what used to take hours of CSS selector trial-and-error now takes seconds.
 
 </details>
 
