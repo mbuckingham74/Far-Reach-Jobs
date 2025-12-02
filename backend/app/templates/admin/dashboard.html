@@ -237,6 +237,15 @@ Yukon-Kuskokwim Health,https://www.ykhc.org,https://www.ykhc.org/employment</cod
         }
     });
 
+    // Handle dashboard scrape button clicks via event delegation (avoids quoting issues)
+    document.body.addEventListener('click', function(event) {
+        const btn = event.target.closest('.dashboard-scrape-btn');
+        if (btn) {
+            const sourceName = btn.dataset.sourceName;
+            openScrapeModal(sourceName);
+        }
+    });
+
     // Listen for HTMX after swap to hide loading spinner
     document.body.addEventListener('htmx:afterSwap', function(evt) {
         if (evt.detail.target.id === 'scrape-modal-result') {

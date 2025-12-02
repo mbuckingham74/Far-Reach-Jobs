@@ -193,11 +193,11 @@
                         </button>
                         {% if not show_disabled %}
                         <button
-                            class="px-3 py-1 text-sm bg-blue-500 hover:bg-blue-600 text-white rounded transition-colors inline-flex items-center"
+                            class="px-3 py-1 text-sm bg-blue-500 hover:bg-blue-600 text-white rounded transition-colors inline-flex items-center dashboard-scrape-btn"
                             hx-post="/admin/sources/{{ source.id }}/scrape"
                             hx-target="#scrape-modal-result"
                             hx-swap="innerHTML show:none"
-                            onclick="openScrapeModal({{ source.name|tojson|e }})">
+                            data-source-name="{{ source.name }}">
                             Scrape
                         </button>
                         {% endif %}

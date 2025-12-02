@@ -31,11 +31,12 @@
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <span>{{ success }}</span>
         <button type="button"
-                class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-md transition-colors flex items-center gap-2 whitespace-nowrap"
+                class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-md transition-colors flex items-center gap-2 whitespace-nowrap scrape-btn"
                 hx-post="/admin/sources/{{ source.id }}/scrape"
                 hx-target="#scrape-modal-result"
                 hx-swap="innerHTML"
-                onclick="showScrapeModal({{ source.name|tojson|e }}, {{ 'true' if source.use_playwright or source.use_playwright is none else 'false' }})">
+                data-source-name="{{ source.name }}"
+                data-use-playwright="{{ 'true' if source.use_playwright or source.use_playwright is none else 'false' }}">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
             </svg>
@@ -72,11 +73,12 @@
             </div>
         </div>
         <button type="button"
-                class="px-5 py-3 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition-colors flex items-center gap-2 whitespace-nowrap shadow-sm"
+                class="px-5 py-3 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition-colors flex items-center gap-2 whitespace-nowrap shadow-sm scrape-btn"
                 hx-post="/admin/sources/{{ source.id }}/scrape"
                 hx-target="#scrape-modal-result"
                 hx-swap="innerHTML"
-                onclick="showScrapeModal({{ source.name|tojson|e }}, {{ 'true' if source.use_playwright or source.use_playwright is none else 'false' }})">
+                data-source-name="{{ source.name }}"
+                data-use-playwright="{{ 'true' if source.use_playwright or source.use_playwright is none else 'false' }}">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path>
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
@@ -116,11 +118,12 @@
             </div>
         </div>
         <button type="button"
-                class="px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors flex items-center gap-2 whitespace-nowrap shadow-sm"
+                class="px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors flex items-center gap-2 whitespace-nowrap shadow-sm scrape-btn"
                 hx-post="/admin/sources/{{ source.id }}/scrape"
                 hx-target="#scrape-modal-result"
                 hx-swap="innerHTML"
-                onclick="showScrapeModal({{ source.name|tojson|e }}, {{ 'true' if source.use_playwright or source.use_playwright is none else 'false' }})">
+                data-source-name="{{ source.name }}"
+                data-use-playwright="{{ 'true' if source.use_playwright or source.use_playwright is none else 'false' }}">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path>
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
@@ -548,6 +551,16 @@ function toggleScraperSections() {
     document.body.addEventListener('htmx:afterSwap', function(event) {
         if (event.detail.target.id === 'scrape-modal-result') {
             onScrapeComplete();
+        }
+    });
+
+    // Handle scrape button clicks via event delegation (avoids quoting issues in onclick)
+    document.body.addEventListener('click', function(event) {
+        const btn = event.target.closest('.scrape-btn');
+        if (btn) {
+            const sourceName = btn.dataset.sourceName;
+            const usePlaywright = btn.dataset.usePlaywright === 'true';
+            showScrapeModal(sourceName, usePlaywright);
         }
     });
 

@@ -834,6 +834,30 @@ class TestAIFeatures:
         assert "</script><script>" not in response.text
         assert "</code></pre>" not in response.text
 
+    def test_configure_page_handles_special_chars_in_source_name(self, admin_client, db):
+        """Source names with quotes/apostrophes should not break the page."""
+        from app.models import ScrapeSource
+
+        # Create source with problematic characters
+        source = ScrapeSource(
+            name="King's \"Special\" Source",
+            base_url="https://example.com",
+            is_active=True,
+            scraper_class="GenericScraper",
+        )
+        db.add(source)
+        db.commit()
+
+        response = admin_client.get(f"/admin/sources/{source.id}/configure")
+        assert response.status_code == 200
+
+        # The source name should appear in data attributes (properly escaped by Jinja2)
+        assert 'data-source-name="King' in response.text
+        # Scrape buttons should NOT use inline onclick with showScrapeModal
+        # (we use data attributes + event delegation instead)
+        assert 'onclick="showScrapeModal' not in response.text
+        assert "onclick='showScrapeModal" not in response.text
+
 
 class TestUrlNormalization:
     """Tests for _normalize_url function used in duplicate detection."""
