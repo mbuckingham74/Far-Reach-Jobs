@@ -349,7 +349,12 @@ cd backend && pytest tests/ -v
 - `backend/scraper/playwright_fetcher.py` - Python client for Playwright service
 - `backend/scraper/sources/generic.py` - `_fetch_page()` with Playwright/httpx logic
 - `backend/scraper/runner.py` - Always enables Playwright for all scrapers
-- `backend/alembic/versions/006_add_use_playwright.py` - Migration (legacy)
+- `backend/alembic/versions/019_enable_playwright_by_default.py` - Sets `use_playwright=True` for all sources
+
+**Database Default:**
+- `use_playwright` column defaults to `True` for new sources (migration 019)
+- All existing sources were updated to `use_playwright=True`
+- The toggle exists in admin for rare cases where httpx-only is needed
 
 **Interactive Page Features (Playwright):**
 - `selectActions` - Array of `{selector, value}` for dropdown selection before page extraction

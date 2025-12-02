@@ -1074,9 +1074,9 @@ async def trigger_single_source_scrape(source_id: int, request: Request, db: Ses
 
         duration = time.time() - start_time
 
-        # Auto-enable source if it was in needs_configuration and scrape was successful
+        # Auto-enable source if it was in needs_configuration and jobs were found
         auto_enabled = False
-        if source.needs_configuration and result.jobs_found > 0 and not result.errors:
+        if source.needs_configuration and result.jobs_found > 0:
             source.is_active = True
             source.needs_configuration = False
             auto_enabled = True

@@ -272,8 +272,8 @@ def get_source_config(source: ScrapeSource) -> dict:
         "url_attribute": source.url_attribute,
         "selector_next_page": source.selector_next_page,
         "max_pages": source.max_pages,
-        # Always use Playwright - overhead is minimal vs failing on JS sites
-        "use_playwright": True,
+        # Use Playwright by default (True), but respect database setting for rare httpx-only cases
+        "use_playwright": source.use_playwright if source.use_playwright is not None else True,
         "default_location": source.default_location,
         "default_state": source.default_state,
         # SitemapScraper configuration
@@ -341,7 +341,9 @@ def _run_adp_scraper(
 
     source.last_scraped_at = datetime.now(timezone.utc)
 
-    source.last_scrape_success = len(all_errors) == 0
+    # Success if jobs were found, even with warnings
+    jobs_found = jobs_new + jobs_updated + jobs_unchanged
+    source.last_scrape_success = jobs_found > 0 or len(all_errors) == 0
     duration = time.time() - start_time
 
     logger.info(
@@ -419,7 +421,10 @@ def _run_ultipro_scraper(
             logger.exception(f"UltiPro scraper failed for {source.name} URL: {listing_url}")
 
     source.last_scraped_at = datetime.now(timezone.utc)
-    source.last_scrape_success = len(all_errors) == 0
+
+    # Success if jobs were found, even with warnings
+    jobs_found = jobs_new + jobs_updated + jobs_unchanged
+    source.last_scrape_success = jobs_found > 0 or len(all_errors) == 0
     duration = time.time() - start_time
 
     logger.info(
@@ -497,7 +502,10 @@ def _run_workday_scraper(
             logger.exception(f"Workday scraper failed for {source.name} URL: {listing_url}")
 
     source.last_scraped_at = datetime.now(timezone.utc)
-    source.last_scrape_success = len(all_errors) == 0
+
+    # Success if jobs were found, even with warnings
+    jobs_found = jobs_new + jobs_updated + jobs_unchanged
+    source.last_scrape_success = jobs_found > 0 or len(all_errors) == 0
     duration = time.time() - start_time
 
     logger.info(
@@ -678,7 +686,9 @@ def run_scraper(db: Session, source: ScrapeSource, trigger_type: str = "manual")
         all_errors.append(f"Scraper execution failed: {e}")
 
     # Update source's last_scrape_success status
-    source.last_scrape_success = len(all_errors) == 0
+    # Success if jobs were found, even with warnings
+    jobs_found = jobs_new + jobs_updated + jobs_unchanged
+    source.last_scrape_success = jobs_found > 0 or len(all_errors) == 0
 
     duration = time.time() - start_time
 
