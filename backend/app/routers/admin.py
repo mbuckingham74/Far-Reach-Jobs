@@ -252,12 +252,12 @@ def needs_configuration_count(request: Request, db: Session = Depends(get_db)):
 
 
 @router.post("/sources/{source_id}/mark-disabled")
-def mark_source_disabled(source_id: int, request: Request, db: Session = Depends(get_db)):
+async def mark_source_disabled(source_id: int, request: Request, db: Session = Depends(get_db)):
     """Move a source from needs-configuration to disabled (tried but couldn't configure)."""
     if not get_admin_user(request):
         raise HTTPException(status_code=401)
 
-    current_page = _get_current_page_from_request(request)
+    current_page = await _get_current_page_from_request(request)
 
     source = db.query(ScrapeSource).filter(ScrapeSource.id == source_id).first()
     if not source:
@@ -326,7 +326,7 @@ def robots_blocked_count_link(request: Request, db: Session = Depends(get_db)):
 
 
 @router.post("/sources/{source_id}/recheck-robots")
-def recheck_robots_source(source_id: int, request: Request, db: Session = Depends(get_db)):
+async def recheck_robots_source(source_id: int, request: Request, db: Session = Depends(get_db)):
     """Recheck robots.txt and unblock source if now allowed.
 
     Actually fetches robots.txt again to verify the site now allows scraping.
@@ -337,7 +337,7 @@ def recheck_robots_source(source_id: int, request: Request, db: Session = Depend
 
     from scraper.runner import check_robots_blocked
 
-    current_page = _get_current_page_from_request(request)
+    current_page = await _get_current_page_from_request(request)
 
     source = db.query(ScrapeSource).filter(ScrapeSource.id == source_id).first()
     if not source:
@@ -784,7 +784,7 @@ def export_needs_configuration_sources(request: Request, db: Session = Depends(g
 
 
 @router.delete("/sources/{source_id}")
-def delete_source(source_id: int, request: Request, db: Session = Depends(get_db)):
+async def delete_source(source_id: int, request: Request, db: Session = Depends(get_db)):
     """Delete a scrape source."""
     if not get_admin_user(request):
         raise HTTPException(status_code=401)
@@ -794,7 +794,7 @@ def delete_source(source_id: int, request: Request, db: Session = Depends(get_db
     show_disabled = hx_target == "disabled-source-list"
     show_robots_blocked = hx_target == "robots-blocked-source-list"
     show_needs_configuration = hx_target == "needs-configuration-list"
-    current_page = _get_current_page_from_request(request)
+    current_page = await _get_current_page_from_request(request)
 
     source = db.query(ScrapeSource).filter(ScrapeSource.id == source_id).first()
     if source:
@@ -817,22 +817,27 @@ def delete_source(source_id: int, request: Request, db: Session = Depends(get_db
     )
 
 
-def _get_current_page_from_request(request: Request) -> int:
+async def _get_current_page_from_request(request: Request) -> int:
     """Extract current page number from HTMX request.
 
-    Checks HX-Current-URL header for page query param, falls back to 1.
+    Checks hx-vals form data (for POST) or query params (for DELETE),
+    falls back to 1.
     """
-    current_url = request.headers.get("HX-Current-URL", "")
-    if "page=" in current_url:
+    # For DELETE requests, htmx sends hx-vals as query params
+    if "page" in request.query_params:
         try:
-            # Parse page from URL like ".../list?page=2"
-            from urllib.parse import urlparse, parse_qs
-            parsed = urlparse(current_url)
-            params = parse_qs(parsed.query)
-            if "page" in params:
-                return max(1, int(params["page"][0]))
-        except (ValueError, IndexError):
+            return max(1, int(request.query_params["page"]))
+        except (ValueError, TypeError):
             pass
+
+    # For POST requests, htmx sends hx-vals as form data
+    try:
+        form = await request.form()
+        if "page" in form:
+            return max(1, int(form["page"]))
+    except Exception:
+        pass
+
     return 1
 
 
@@ -884,7 +889,7 @@ def _get_paginated_sources(db: Session, show_robots_blocked: bool, show_disabled
 
 
 @router.post("/sources/{source_id}/toggle")
-def toggle_source(source_id: int, request: Request, db: Session = Depends(get_db)):
+async def toggle_source(source_id: int, request: Request, db: Session = Depends(get_db)):
     """Toggle a scrape source active/inactive."""
     if not get_admin_user(request):
         raise HTTPException(status_code=401)
@@ -893,7 +898,7 @@ def toggle_source(source_id: int, request: Request, db: Session = Depends(get_db
     hx_target = request.headers.get("HX-Target", "")
     show_disabled = hx_target == "disabled-source-list"
     show_needs_configuration = hx_target == "needs-configuration-list"
-    current_page = _get_current_page_from_request(request)
+    current_page = await _get_current_page_from_request(request)
 
     source = db.query(ScrapeSource).filter(ScrapeSource.id == source_id).first()
     if source:

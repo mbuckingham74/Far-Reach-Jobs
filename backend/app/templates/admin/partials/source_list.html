@@ -126,6 +126,7 @@
                             hx-post="/admin/sources/{{ source.id }}/recheck-robots"
                             hx-target="#robots-blocked-source-list"
                             hx-swap="innerHTML show:none"
+                            hx-vals='{"page": "{{ page }}"}'
                             title="Re-fetch robots.txt and unblock if now allowed">
                             Recheck
                         </button>
@@ -134,6 +135,7 @@
                             hx-delete="/admin/sources/{{ source.id }}"
                             hx-target="#robots-blocked-source-list"
                             hx-swap="innerHTML show:none"
+                            hx-vals='{"page": "{{ page }}"}'
                             hx-confirm="Delete source '{{ source.name }}'? This will also delete all jobs from this source.">
                             Delete
                         </button>
@@ -149,6 +151,7 @@
                             hx-post="/admin/sources/{{ source.id }}/mark-disabled"
                             hx-target="#needs-configuration-list"
                             hx-swap="innerHTML show:none"
+                            hx-vals='{"page": "{{ page }}"}'
                             title="Move to Disabled (tried but couldn't configure)">
                             Mark Disabled
                         </button>
@@ -157,6 +160,7 @@
                             hx-delete="/admin/sources/{{ source.id }}"
                             hx-target="#needs-configuration-list"
                             hx-swap="innerHTML show:none"
+                            hx-vals='{"page": "{{ page }}"}'
                             hx-confirm="Delete source '{{ source.name }}'? This will also delete all jobs from this source.">
                             Delete
                         </button>
@@ -174,7 +178,8 @@
                             class="px-3 py-1 text-sm {% if source.is_active %}bg-amber-500 hover:bg-amber-600{% else %}bg-green-500 hover:bg-green-600{% endif %} text-white rounded transition-colors"
                             hx-post="/admin/sources/{{ source.id }}/toggle"
                             hx-target="{% if show_disabled %}#disabled-source-list{% else %}#source-list{% endif %}"
-                            hx-swap="innerHTML show:none">
+                            hx-swap="innerHTML show:none"
+                            hx-vals='{"page": "{{ page }}"}'>
                             {% if source.is_active %}Disable{% else %}Enable{% endif %}
                         </button>
                         <button
@@ -182,6 +187,7 @@
                             hx-delete="/admin/sources/{{ source.id }}"
                             hx-target="{% if show_disabled %}#disabled-source-list{% else %}#source-list{% endif %}"
                             hx-swap="innerHTML show:none"
+                            hx-vals='{"page": "{{ page }}"}'
                             hx-confirm="Delete source '{{ source.name }}'? This will also delete all jobs from this source.">
                             Delete
                         </button>
