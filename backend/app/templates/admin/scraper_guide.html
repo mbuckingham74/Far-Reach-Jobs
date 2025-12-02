@@ -507,7 +507,7 @@ NANA Regional,https://nana.com,https://nana.com/careers</pre>
 <!-- Playwright Features -->
 <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-8">
     <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">Playwright Features</h3>
-    <p class="text-gray-600 dark:text-gray-400 mb-4">Playwright is a headless browser that renders JavaScript. It's used automatically for all scrapers but provides extra features for DynamicScrapers.</p>
+    <p class="text-gray-600 dark:text-gray-400 mb-4">Playwright is a headless browser that renders JavaScript. <strong>It's enabled by default for all sources</strong> to ensure JavaScript-rendered job listings are properly loaded. DynamicScrapers can also use these additional interactive features:</p>
 
     <div class="grid md:grid-cols-2 gap-4">
         <div class="p-4 bg-gray-50 dark:bg-gray-900 rounded">
@@ -551,7 +551,7 @@ NANA Regional,https://nana.com,https://nana.com/careers</pre>
                 <span class="px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded text-xs font-medium">use_playwright</span>
             </div>
             <div>
-                <p class="text-sm text-gray-600 dark:text-gray-400">Force Playwright browser rendering. Enabled by default for all scrapers, but can be explicitly set for DynamicScrapers that need it.</p>
+                <p class="text-sm text-gray-600 dark:text-gray-400"><strong>Enabled by default.</strong> All new sources use Playwright browser rendering automatically. This ensures JavaScript-rendered content is properly loaded. Only disable for rare cases where httpx-only is specifically needed.</p>
             </div>
         </div>
         <div class="flex items-start gap-4 p-4 bg-gray-50 dark:bg-gray-900 rounded">
@@ -581,10 +581,10 @@ NANA Regional,https://nana.com,https://nana.com/careers</pre>
         <div>
             <h4 class="font-medium text-gray-900 dark:text-white mb-1">No jobs found</h4>
             <ul class="text-sm text-gray-600 dark:text-gray-400 list-disc list-inside">
-                <li>Check if the page requires JavaScript - enable Playwright</li>
-                <li>Verify CSS selectors match actual page structure</li>
+                <li>Verify CSS selectors match actual page structure (use browser DevTools)</li>
                 <li>Check for robots.txt blocking in scrape history</li>
                 <li>Try "Analyze Page with AI" for selector suggestions</li>
+                <li>Playwright is enabled by default - if issues persist, check Playwright service logs</li>
             </ul>
         </div>
         <div>
