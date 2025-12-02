@@ -197,7 +197,7 @@
                             hx-post="/admin/sources/{{ source.id }}/scrape"
                             hx-target="#scrape-modal-result"
                             hx-swap="innerHTML show:none"
-                            onclick="openScrapeModal('{{ source.name }}')">
+                            onclick="openScrapeModal({{ source.name|tojson|e }})">
                             Scrape
                         </button>
                         {% endif %}
