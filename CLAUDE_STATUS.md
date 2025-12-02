@@ -488,6 +488,12 @@ ANTHROPIC_API_KEY=<api-key>  # Required for AI selector analysis and custom scra
 - Sites without robots.txt (404) allow all paths
 - Blocked sources moved to separate admin page, excluded from scheduled/bulk scrapes
 - Raw robots.txt content cached during load for error reporting (2KB limit)
+- **Specificity-based matching:** Uses custom parser instead of Python's RobotFileParser
+  - Longest matching rule wins (not first-match-wins)
+  - `Allow: /v4/ats/web.php/jobs` beats `Disallow: /` regardless of order
+  - If rules have equal length, Allow takes precedence over Disallow
+- **Longest UA token wins:** When multiple User-agent groups match, uses the group with the longest matching UA token (e.g., "FarReachJobs" beats "Far")
+- **No rule merging:** Only uses rules from the single best-matching group, not merged from multiple groups
 
 ## Server Info
 

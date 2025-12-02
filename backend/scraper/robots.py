@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 import logging
+import re
 from urllib.parse import urljoin, urlparse
 from urllib.robotparser import RobotFileParser
 
@@ -11,6 +14,157 @@ USER_AGENT = "Mozilla/5.0 (compatible; FarReachJobs/1.0; +https://far-reach-jobs
 
 # User-Agent for robots.txt parsing - must start with bot name for proper rule matching
 ROBOTS_USER_AGENT = "FarReachJobs/1.0"
+
+
+def _parse_robots_rules(content: str, user_agent: str) -> list[tuple[bool, str]]:
+    """Parse robots.txt content and return rules for the most specific matching UA group.
+
+    Per the robots.txt spec:
+    1. Find the most specific User-agent group that matches (not merged)
+    2. A group can have multiple User-agent lines; if ANY matches, the group applies
+    3. Specific UA names take precedence over wildcard (*)
+
+    Returns a list of (is_allowed, pattern) tuples for the best matching group.
+    """
+    ua_lower = user_agent.lower()
+
+    # First pass: identify all groups and their rules
+    # A group is: one or more User-agent lines followed by Allow/Disallow rules
+    groups: list[tuple[list[str], list[tuple[bool, str]]]] = []
+    current_uas: list[str] = []
+    current_rules: list[tuple[bool, str]] = []
+    in_ua_section = True  # True while we're reading User-agent lines
+
+    for line in content.splitlines():
+        line = line.strip()
+        # Skip comments and empty lines
+        if not line or line.startswith("#"):
+            continue
+
+        # Remove inline comments
+        if "#" in line:
+            line = line[: line.index("#")].strip()
+
+        if ":" not in line:
+            continue
+
+        field, _, value = line.partition(":")
+        field = field.strip().lower()
+        value = value.strip()
+
+        if field == "user-agent":
+            if not in_ua_section and current_uas:
+                # We hit a new User-agent after rules, so save the previous group
+                groups.append((current_uas, current_rules))
+                current_uas = []
+                current_rules = []
+            current_uas.append(value.lower())
+            in_ua_section = True
+        elif field in ("allow", "disallow"):
+            in_ua_section = False
+            if value:  # Ignore empty values
+                is_allowed = field == "allow"
+                current_rules.append((is_allowed, value))
+
+    # Don't forget the last group
+    if current_uas:
+        groups.append((current_uas, current_rules))
+
+    # Second pass: find the best matching group
+    # Priority: longest matching UA token > shorter match > wildcard
+    best_group: list[tuple[bool, str]] | None = None
+    best_match_len = -1  # Length of the best matching UA token (-1 = no match, 0 = wildcard)
+
+    for uas, rules in groups:
+        # Find the longest matching UA token in this group
+        group_best_len = -1
+
+        for ua in uas:
+            if ua == "*":
+                # Wildcard match has length 0 (lowest priority among matches)
+                if group_best_len < 0:
+                    group_best_len = 0
+            elif ua_lower.startswith(ua):
+                # Specific match - track the longest one
+                if len(ua) > group_best_len:
+                    group_best_len = len(ua)
+
+        # Determine if this group is a better match than what we have
+        # Longer match wins; if equal length, first group wins (keep existing)
+        if group_best_len > best_match_len:
+            best_group = rules
+            best_match_len = group_best_len
+
+    return best_group if best_group is not None else []
+
+
+def _pattern_matches(pattern: str, path: str) -> bool:
+    """Check if a robots.txt pattern matches a URL path.
+
+    Supports:
+    - Simple prefix matching (default)
+    - * wildcard (matches any sequence)
+    - $ end anchor
+    """
+    # Handle $ anchor at end
+    must_end = pattern.endswith("$")
+    if must_end:
+        pattern = pattern[:-1]
+
+    # Convert robots.txt pattern to regex
+    # Escape special regex chars except * which we handle specially
+    regex_pattern = ""
+    i = 0
+    while i < len(pattern):
+        c = pattern[i]
+        if c == "*":
+            regex_pattern += ".*"
+        else:
+            regex_pattern += re.escape(c)
+        i += 1
+
+    if must_end:
+        regex_pattern += "$"
+    else:
+        # Default: prefix match
+        regex_pattern = "^" + regex_pattern
+
+    try:
+        return bool(re.match(regex_pattern, path))
+    except re.error:
+        return False
+
+
+def _can_fetch_with_specificity(rules: list[tuple[bool, str]], url: str) -> bool:
+    """Determine if a URL can be fetched using specificity-based matching.
+
+    Per Google's robots.txt spec, the most specific (longest matching) rule wins.
+    If multiple rules have the same length, Allow takes precedence over Disallow.
+    """
+    parsed = urlparse(url)
+    path = parsed.path
+    if parsed.query:
+        path += "?" + parsed.query
+
+    # Find all matching rules with their specificity (pattern length)
+    matches: list[tuple[int, bool, str]] = []
+    for is_allowed, pattern in rules:
+        if _pattern_matches(pattern, path):
+            # Specificity = length of the pattern (excluding wildcards for comparison)
+            specificity = len(pattern.replace("*", ""))
+            matches.append((specificity, is_allowed, pattern))
+
+    if not matches:
+        # No rules match = allowed
+        return True
+
+    # Sort by specificity (descending), then by is_allowed (True > False)
+    # This means: longest match wins, and if tied, Allow beats Disallow
+    matches.sort(key=lambda x: (x[0], x[1]), reverse=True)
+
+    best_match = matches[0]
+    logger.debug(f"Best matching rule for {path}: {'Allow' if best_match[1] else 'Disallow'} {best_match[2]}")
+    return best_match[1]
 
 
 class RobotsChecker:
@@ -102,11 +256,33 @@ class RobotsChecker:
         self._domain_cache[self._base_domain] = result
         return True
 
+    def _check_with_specificity(self, raw_content: str, url: str) -> bool:
+        """Check URL access using specificity-based matching.
+
+        Uses our custom parser that implements Google's robots.txt spec correctly:
+        the most specific (longest matching) rule wins, regardless of order.
+
+        Checks both our bot name and Mozilla UA, honoring the most restrictive.
+        """
+        # Parse rules for both user agents
+        rules_bot = _parse_robots_rules(raw_content, ROBOTS_USER_AGENT)
+        rules_mozilla = _parse_robots_rules(raw_content, "Mozilla")
+
+        # Check both UAs - if either disallows, we don't fetch
+        allowed_bot = _can_fetch_with_specificity(rules_bot, url)
+        allowed_mozilla = _can_fetch_with_specificity(rules_mozilla, url)
+
+        return allowed_bot and allowed_mozilla
+
     def can_fetch(self, url: str) -> bool:
         """Check if the given URL can be fetched according to robots.txt.
 
         Handles cross-domain URLs by loading the robots.txt for the URL's domain
         if it differs from the base domain.
+
+        Uses specificity-based matching per Google's robots.txt spec:
+        the most specific (longest matching) rule wins, regardless of order.
+        This fixes Python's RobotFileParser which incorrectly uses first-match-wins.
 
         Checks both our bot name and Mozilla UA, honoring the most restrictive.
         """
@@ -126,12 +302,10 @@ class RobotsChecker:
                     return True
                 self._domain_cache[url_domain] = result
 
-            parser, no_robots, _, _ = self._domain_cache[url_domain]
+            _, no_robots, _, raw_content = self._domain_cache[url_domain]
             if no_robots:
                 return True
-            allowed_bot = parser.can_fetch(ROBOTS_USER_AGENT, url)
-            allowed_mozilla = parser.can_fetch("Mozilla", url)
-            return allowed_bot and allowed_mozilla
+            return self._check_with_specificity(raw_content, url)
 
         # Same domain - use the base domain's robots.txt
         if not self._loaded:
@@ -144,10 +318,8 @@ class RobotsChecker:
         if self._no_robots:
             return True
 
-        # Check both UAs - if either disallows, we don't fetch
-        allowed_bot = self.parser.can_fetch(ROBOTS_USER_AGENT, url)
-        allowed_mozilla = self.parser.can_fetch("Mozilla", url)
-        return allowed_bot and allowed_mozilla
+        # Use our specificity-based matching instead of RobotFileParser.can_fetch()
+        return self._check_with_specificity(self._raw_content, url)
 
     def get_crawl_delay(self) -> float:
         """Get the crawl delay in seconds. Returns 1.0 if not specified."""

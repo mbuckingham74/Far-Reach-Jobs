@@ -4,7 +4,341 @@ import pytest
 from unittest.mock import patch, MagicMock
 import httpx
 
-from scraper.robots import RobotsChecker
+from scraper.robots import (
+    RobotsChecker,
+    _parse_robots_rules,
+    _pattern_matches,
+    _can_fetch_with_specificity,
+)
+
+
+class TestSpecificityBasedMatching:
+    """Test specificity-based robots.txt rule matching.
+
+    Per Google's robots.txt spec, the most specific (longest matching) rule wins,
+    regardless of the order rules appear in the file.
+    """
+
+    def test_allow_overrides_disallow_when_more_specific(self):
+        """Allow rule should win when it's more specific than Disallow."""
+        # This is the paycomonline.net case: Disallow: / but Allow: /v4/ats/web.php/jobs
+        robots_content = """
+User-agent: *
+Disallow: /
+Allow: /v4/ats/web.php/jobs
+"""
+        rules = _parse_robots_rules(robots_content, "*")
+
+        # The /v4/ats/web.php/jobs path should be allowed
+        assert _can_fetch_with_specificity(rules, "https://example.com/v4/ats/web.php/jobs") is True
+        assert _can_fetch_with_specificity(rules, "https://example.com/v4/ats/web.php/jobs?foo=bar") is True
+
+        # Other paths should still be blocked
+        assert _can_fetch_with_specificity(rules, "https://example.com/") is False
+        assert _can_fetch_with_specificity(rules, "https://example.com/admin") is False
+
+    def test_disallow_overrides_allow_when_more_specific(self):
+        """Disallow rule should win when it's more specific than Allow."""
+        robots_content = """
+User-agent: *
+Allow: /docs
+Disallow: /docs/internal
+"""
+        rules = _parse_robots_rules(robots_content, "*")
+
+        # /docs should be allowed, but /docs/internal should be blocked
+        assert _can_fetch_with_specificity(rules, "https://example.com/docs") is True
+        assert _can_fetch_with_specificity(rules, "https://example.com/docs/public") is True
+        assert _can_fetch_with_specificity(rules, "https://example.com/docs/internal") is False
+        assert _can_fetch_with_specificity(rules, "https://example.com/docs/internal/secret") is False
+
+    def test_equal_length_allow_wins(self):
+        """When rules have equal specificity, Allow should take precedence."""
+        robots_content = """
+User-agent: *
+Disallow: /page
+Allow: /page
+"""
+        rules = _parse_robots_rules(robots_content, "*")
+
+        # Equal length, Allow wins
+        assert _can_fetch_with_specificity(rules, "https://example.com/page") is True
+
+    def test_order_does_not_matter(self):
+        """Rule order in the file should not affect the result."""
+        # Disallow first
+        robots1 = """
+User-agent: *
+Disallow: /
+Allow: /public
+"""
+        # Allow first
+        robots2 = """
+User-agent: *
+Allow: /public
+Disallow: /
+"""
+        rules1 = _parse_robots_rules(robots1, "*")
+        rules2 = _parse_robots_rules(robots2, "*")
+
+        # Both should give the same result
+        assert _can_fetch_with_specificity(rules1, "https://example.com/public") is True
+        assert _can_fetch_with_specificity(rules2, "https://example.com/public") is True
+        assert _can_fetch_with_specificity(rules1, "https://example.com/private") is False
+        assert _can_fetch_with_specificity(rules2, "https://example.com/private") is False
+
+    def test_wildcard_in_pattern(self):
+        """Wildcard patterns should work correctly."""
+        robots_content = """
+User-agent: *
+Disallow: /
+Allow: /api/*/public
+"""
+        rules = _parse_robots_rules(robots_content, "*")
+
+        assert _can_fetch_with_specificity(rules, "https://example.com/api/v1/public") is True
+        assert _can_fetch_with_specificity(rules, "https://example.com/api/v2/public") is True
+        assert _can_fetch_with_specificity(rules, "https://example.com/api/v1/private") is False
+
+    def test_end_anchor(self):
+        """$ end anchor should work correctly."""
+        robots_content = """
+User-agent: *
+Allow: /
+Disallow: /*.pdf$
+"""
+        rules = _parse_robots_rules(robots_content, "*")
+
+        assert _can_fetch_with_specificity(rules, "https://example.com/doc.pdf") is False
+        assert _can_fetch_with_specificity(rules, "https://example.com/doc.pdf?v=1") is True  # Not at end
+        assert _can_fetch_with_specificity(rules, "https://example.com/doc.html") is True
+
+    def test_query_string_handling(self):
+        """Query strings should be included in path matching."""
+        robots_content = """
+User-agent: *
+Disallow: /
+Allow: /v4/ats/web.php/jobs
+"""
+        rules = _parse_robots_rules(robots_content, "*")
+
+        # Query string should still match the Allow rule
+        url_with_query = "https://example.com/v4/ats/web.php/jobs?clientkey=ABC&jpt="
+        assert _can_fetch_with_specificity(rules, url_with_query) is True
+
+    def test_no_matching_rules_allows(self):
+        """If no rules match, the URL should be allowed."""
+        robots_content = """
+User-agent: *
+Disallow: /admin
+"""
+        rules = _parse_robots_rules(robots_content, "*")
+
+        assert _can_fetch_with_specificity(rules, "https://example.com/public") is True
+
+    def test_paycomonline_real_robots(self):
+        """Test with the actual paycomonline.net robots.txt structure."""
+        robots_content = """
+User-agent: *
+Disallow: /
+Allow: /v4/ats/web.php/application/style/logo/
+Allow: /v4/ats/web.php/jobs
+Allow: /v4/ats/sitemap.php
+Allow: /v4/ats/web.php/portal/
+Allow: /v4/ats/web.php/portal-customization/logo
+Allow: /career-portal/sprawl.json
+Allow: /api/ats/job-postings/
+Allow: /api/ats/company-name
+"""
+        rules = _parse_robots_rules(robots_content, "*")
+
+        # Should be allowed
+        assert _can_fetch_with_specificity(
+            rules,
+            "https://www.paycomonline.net/v4/ats/web.php/jobs?clientkey=0CBBB7F6BE4EB8B39E20254F30A93E18&jpt="
+        ) is True
+
+        # Should be blocked
+        assert _can_fetch_with_specificity(rules, "https://www.paycomonline.net/") is False
+        assert _can_fetch_with_specificity(rules, "https://www.paycomonline.net/admin") is False
+
+
+class TestPatternMatches:
+    """Test the _pattern_matches helper function."""
+
+    def test_simple_prefix_match(self):
+        assert _pattern_matches("/foo", "/foo") is True
+        assert _pattern_matches("/foo", "/foobar") is True
+        assert _pattern_matches("/foo", "/foo/bar") is True
+        assert _pattern_matches("/foo", "/bar") is False
+
+    def test_wildcard_match(self):
+        assert _pattern_matches("/a*b", "/ab") is True
+        assert _pattern_matches("/a*b", "/aXXXb") is True
+        assert _pattern_matches("/a*b", "/aXXXbYYY") is True  # Prefix match
+
+    def test_end_anchor_match(self):
+        assert _pattern_matches("/foo$", "/foo") is True
+        assert _pattern_matches("/foo$", "/foobar") is False
+        assert _pattern_matches("/*.pdf$", "/doc.pdf") is True
+        assert _pattern_matches("/*.pdf$", "/doc.pdf?v=1") is False
+
+
+class TestParseRobotsRules:
+    """Test the _parse_robots_rules helper function."""
+
+    def test_parses_allow_and_disallow(self):
+        content = """
+User-agent: *
+Allow: /public
+Disallow: /private
+"""
+        rules = _parse_robots_rules(content, "*")
+        assert (True, "/public") in rules
+        assert (False, "/private") in rules
+
+    def test_ignores_other_user_agents(self):
+        content = """
+User-agent: Googlebot
+Allow: /google-only
+
+User-agent: *
+Disallow: /blocked
+"""
+        rules = _parse_robots_rules(content, "*")
+        assert (False, "/blocked") in rules
+        assert (True, "/google-only") not in rules
+
+    def test_handles_comments(self):
+        content = """
+User-agent: * # This is a comment
+Disallow: /private # Another comment
+# Full line comment
+Allow: /public
+"""
+        rules = _parse_robots_rules(content, "*")
+        assert (False, "/private") in rules
+        assert (True, "/public") in rules
+
+    def test_ignores_empty_values(self):
+        content = """
+User-agent: *
+Disallow:
+Allow: /public
+"""
+        rules = _parse_robots_rules(content, "*")
+        assert len(rules) == 1
+        assert (True, "/public") in rules
+
+    def test_specific_ua_takes_precedence_over_wildcard(self):
+        """Specific UA group should be used instead of wildcard, not merged."""
+        content = """
+User-agent: FarReachJobs
+Allow: /
+
+User-agent: *
+Disallow: /private
+"""
+        # For FarReachJobs, should use the specific group (Allow: /) only
+        rules = _parse_robots_rules(content, "FarReachJobs")
+        assert (True, "/") in rules
+        assert (False, "/private") not in rules  # Should NOT be merged from wildcard
+
+        # For other bots, should use wildcard
+        rules_other = _parse_robots_rules(content, "OtherBot")
+        assert (False, "/private") in rules_other
+        assert (True, "/") not in rules_other
+
+    def test_multiple_ua_lines_in_group(self):
+        """A group with multiple User-agent lines should match if ANY line matches."""
+        content = """
+User-agent: FarReachJobs
+User-agent: OtherBot
+Allow: /shared
+Disallow: /secret
+"""
+        # Both FarReachJobs and OtherBot should get these rules
+        rules_far = _parse_robots_rules(content, "FarReachJobs")
+        assert (True, "/shared") in rules_far
+        assert (False, "/secret") in rules_far
+
+        rules_other = _parse_robots_rules(content, "OtherBot")
+        assert (True, "/shared") in rules_other
+        assert (False, "/secret") in rules_other
+
+        # A third bot should NOT match this group
+        rules_third = _parse_robots_rules(content, "ThirdBot")
+        assert len(rules_third) == 0
+
+    def test_multiple_ua_lines_with_wildcard(self):
+        """Group with both specific UA and wildcard should match both."""
+        content = """
+User-agent: FarReachJobs
+User-agent: *
+Allow: /docs
+Disallow: /admin
+"""
+        # FarReachJobs matches specifically
+        rules_far = _parse_robots_rules(content, "FarReachJobs")
+        assert (True, "/docs") in rules_far
+
+        # Other bots match via wildcard
+        rules_other = _parse_robots_rules(content, "RandomBot")
+        assert (True, "/docs") in rules_other
+
+    def test_specific_after_wildcard_still_wins(self):
+        """Specific UA group wins even if it comes after wildcard."""
+        content = """
+User-agent: *
+Disallow: /blocked
+
+User-agent: FarReachJobs
+Allow: /
+"""
+        rules = _parse_robots_rules(content, "FarReachJobs")
+        assert (True, "/") in rules
+        assert (False, "/blocked") not in rules
+
+    def test_longest_ua_match_wins(self):
+        """Longest matching UA token should win, not first match."""
+        content = """
+User-agent: Far
+Disallow: /blocked
+
+User-agent: FarReachJobs
+Allow: /
+"""
+        # "FarReachJobs" is longer than "Far", so second group should win
+        rules = _parse_robots_rules(content, "FarReachJobs/1.0")
+        assert (True, "/") in rules
+        assert (False, "/blocked") not in rules
+
+    def test_longer_ua_wins_regardless_of_order(self):
+        """Longer UA match wins even when it appears first."""
+        content = """
+User-agent: FarReachJobs
+Allow: /
+
+User-agent: Far
+Disallow: /blocked
+"""
+        # "FarReachJobs" is longer than "Far", so first group should win
+        rules = _parse_robots_rules(content, "FarReachJobs/1.0")
+        assert (True, "/") in rules
+        assert (False, "/blocked") not in rules
+
+    def test_equal_length_ua_first_wins(self):
+        """When UA tokens have equal length, first group wins."""
+        content = """
+User-agent: FarReachJobs
+Allow: /first
+
+User-agent: FarReachJobs
+Allow: /second
+"""
+        rules = _parse_robots_rules(content, "FarReachJobs")
+        assert (True, "/first") in rules
+        assert (True, "/second") not in rules
 
 
 class TestRobotsCheckerCrossDomain:
