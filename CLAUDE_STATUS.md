@@ -1,6 +1,6 @@
 # Far Reach Jobs - Implementation Status
 
-**Last Updated:** 2025-11-30
+**Last Updated:** 2025-12-02
 **Repository:** https://github.com/mbuckingham74/Far-Reach-Jobs
 **Domain:** far-reach-jobs.tachyonfuture.com
 
@@ -863,7 +863,7 @@ Default State: AK
 - [x] Bulk imports set `needs_configuration=True` instead of just `is_active=False`
 - [x] Disabled page excludes needs_configuration sources (keeps them separate)
 - [x] Dashboard shows "Needs Configuration (N)" link when count > 0
-- [x] Auto-enable on successful scrape: when jobs_found > 0 and no errors
+- [x] Auto-enable on successful scrape: when jobs_found > 0 (warnings don't block)
 - [x] "Source enabled!" message in scrape result modal after auto-enable
 - [x] Mark Disabled button moves source to Disabled page
 - [x] Export CSV of needs-configuration sources
@@ -897,7 +897,7 @@ Default State: AK
 **Auto-Enable Flow:**
 1. Admin clicks Configure on a needs-configuration source
 2. Admin sets up CSS selectors and clicks Test Scrape
-3. If scrape finds jobs (>0) with no errors → source auto-enabled
+3. If scrape finds jobs (>0) → source auto-enabled (warnings don't block)
 4. Source moves to Active list, "Source enabled!" shown in modal
 5. If 0 jobs or errors → stays in Needs Configuration for further work
 
@@ -907,6 +907,22 @@ Default State: AK
 3. Success with jobs → auto-enabled, moves to Active
 4. Can't configure → Mark Disabled (moves to Disabled page)
 5. Robots.txt block → automatically moves to Robots Blocked page
+
+### Configure Source UX Improvements ✅
+- [x] "Scraper Configured - Ready" banner when CSS selectors are populated
+- [x] Shows "Run Scraper Now" button to avoid re-running AI analysis
+- [x] Detects configuration status for GenericScraper, SitemapScraper, and DynamicScraper
+- [x] AI Analysis section text changes to "Re-analyze to update selectors" when configured
+- [x] Playwright status indicator in scrape modal ("Using Playwright (browser)" / "Using httpx (fast)")
+- [x] Scrape success now based on jobs_found > 0, not absence of errors
+
+**Key Files:**
+- `backend/app/templates/admin/configure_source.html` - Banner and modal updates
+
+**Banner Logic:**
+- **GenericScraper:** Shows when `selector_job_container`, `selector_title`, AND `selector_url` are set
+- **SitemapScraper:** Shows when `sitemap_url` is configured
+- **DynamicScraper:** Shows when `custom_scraper_code` exists
 
 ## CSS Selector Troubleshooting
 
